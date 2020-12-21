@@ -3,27 +3,16 @@
 * GR.  MODE: 0xA000  *
 *********************/
 
-#define VRAM	0xB8000
+#include "../Drivers/Typedefs.cpp"
+#include "../Drivers/VGA_Text.cpp"
 
-void RawPrint(char s[], int curspos);
 
 void main(){
-	char string[] = "There Are Two Colors In My Head";
-	RawPrint(string, 0);
+	char string[] = "There Are Two\n\rColors In My Head";
+	SetCursorPos(0,0);
+	print(string);
+	
 	return;
 }
 
 
-void RawPrint(char s[], int curspos){
-	char* letter = (char*) (VRAM + 2*curspos);
-	char c = s[0];
-	int i = 0;
-	while(c != (char)0){
-		
-		*letter = c;
-		i++;
-		letter += 2;
-		c = s[i];
-	}
-	return;
-}

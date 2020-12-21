@@ -1,7 +1,7 @@
 echo Boot:
 nasm "Bootloader/boot.asm" -f bin -o "WeeBins/boot.bin" -i Bootloader
 nasm "Kernel/empty_end.asm" -f bin -o "WeeBins/empty_end.bin"
-i386-elf-gcc -ffreestanding -m32 -c "Kernel/kernel.cpp" -o "WeeBins/kernel.o"
+i386-elf-gcc -ffreestanding -m32 -c "Kernel/kernel.cpp" -o "WeeBins/kernel.o" -I Kernel
 
 nasm "Kernel/kernel_entry.asm" -f elf -o "WeeBins/kernel_entry.o"
 
