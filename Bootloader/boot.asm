@@ -1,8 +1,12 @@
 [org 0x7c00]
 
-KERNEL_LOCATION equ 0x7e00	; Kernel starts right after the boot sector
-				; AAAAAAA IMPORTANT:
-				; free memory only 638 kb (up to 0x9fc00): might want to load kernel a bit higher than that later on.
+
+
+
+
+KERNEL_LOCATION equ 0x1000	; Was 0x7e00 but I changed it because of buffer overflow problems
+				; Implementing SSP asap
+				
 
 mov [BOOT_DISK], dl		; Stores the boot disk number
 
@@ -16,7 +20,7 @@ mov bp, 0x8000 		; stack base
 mov sp, bp			; stack pointer to stack base
 				; A:B = A*d16 + B
 mov bx, KERNEL_LOCATION	; ES:BX is the location to read from, e.g. 0x0000:0x9000 = 0x00000 + 0x9000 = 0x9000
-mov dh, 20			; read 20 sectors (blank sectors: empty_end)
+mov dh, 35			; read 20 sectors (blank sectors: empty_end)
 
 call readDisk
 
@@ -54,8 +58,8 @@ OK:
 [bits 32]
 
 BEGIN_PM:
-	call KERNEL_LOCATION	; jumps to entry_kernel
-	jmp $
+	jmp KERNEL_LOCATION	; jumps to entry_kernel
+	;jmp $
 
 
 times 510-($-$$) db 0

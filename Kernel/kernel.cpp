@@ -3,14 +3,35 @@
 * GR.  MODE: 0xA000  *
 *********************/
 
-#include "../Drivers/Typedefs.cpp"
-#include "../Drivers/VGA_Text.cpp"
+//IMPLEMENT STACK SMASHING PROTECTOR!!!!
+
+#include "../UsefulStuff/Typedefs.h"
+#include "../Drivers/VGA_Text.h"
+#include "../UsefulStuff/Conversions.h"
+#include "../UsefulStuff/mem.h"
+#include "../CPU/idt.h"
+#include "../CPU/isr.h"
+extern const char Fool[];			// Test included binary
+extern const char John[];
 
 
-void main(){
-	char string[] = "There Are Two\n\rColors In My Head";
+extern "C" void main(){
+	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	SetCursorPos(0,0);
-	print(string);
+	
+	print(Fool);
+	print("Test, printing integer: ");
+	print(toString(10 , 10));
+	print(" | ");
+	print(toString(10 , 16));
+	print(" | ");
+	print(toString(10 , 2));
+	print("\n");
+	//print(John);
+	idt_install();
+	isrs_install();
+	
+	int a = 10/0;
 	
 	return;
 }
