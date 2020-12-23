@@ -18,7 +18,7 @@ mov es, ax			; set es to 0
 mov ds, ax			; set ds to 0
 mov bp, 0x8000 		; stack base
 mov sp, bp			; stack pointer to stack base
-				; A:B = A*d16 + B
+					; A:B = A*d16 + B
 mov bx, KERNEL_LOCATION	; ES:BX is the location to read from, e.g. 0x0000:0x9000 = 0x00000 + 0x9000 = 0x9000
 mov dh, 35			; read 20 sectors (blank sectors: empty_end)
 

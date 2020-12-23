@@ -1,4 +1,5 @@
-; Shamelessely stolen, with some degree of adaptation, from http://www.osdever.net/ 
+; (Shamelessely stolen | Adapted) from http://www.osdever.net/ 
+
 
 global _idt_load
 
@@ -7,6 +8,7 @@ _idt_load:
 	lidt [_idtp]
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;; INTERRUPT SERVICE ROUTINES ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 global _isr0
 global _isr1
@@ -43,11 +45,11 @@ global _isr31
 
 
 _isr0:
-    cli
-    push byte 0    ; A normal ISR stub that pops a dummy error code to keep a
-                   ; uniform stack frame
-    push byte 0
-    jmp isr_common_stub
+	cli
+	push byte 0	; A normal ISR stub that pops a dummy error code to keep a
+				   ; uniform stack frame
+	push byte 0
+	jmp isr_common_stub
 
 _isr1:
 	cli
@@ -205,25 +207,152 @@ extern _fault_handler
 
 
 isr_common_stub:
-    pusha
-    push ds
-    push es
-    push fs
-    push gs
-    mov ax, 0x10   ; Load the Kernel Data Segment descriptor!
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov eax, esp   ; Push us the stack
-    push eax
-    mov eax, _fault_handler
-    call eax       ; A special call, preserves the 'eip' register
-    pop eax
-    pop gs
-    pop fs
-    pop es
-    pop ds
-    popa
-    add esp, 8     ; Cleans up the pushed error code and pushed ISR number
-    iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
+	pusha
+	push ds
+	push es
+	push fs
+	push gs
+	mov ax, 0x10   ; Load the Kernel Data Segment descriptor!
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov eax, esp   ; Push us the stack
+	push eax
+	mov eax, _fault_handler
+	call eax	   ; A special call, preserves the 'eip' register
+	pop eax
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popa
+	add esp, 8	 ; Cleans up the pushed error code and pushed ISR number
+	iret		   ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
+	
+;;;;;;;;;;;;;;;;;;;;;;;; INTERRUPT REQUESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+global irq0
+global irq1
+global irq2
+global irq3
+global irq4
+global irq5
+global irq6
+global irq7
+global irq8
+global irq9
+global irq10
+global irq11
+global irq12
+global irq13
+global irq14
+global irq15
+
+
+irq0:
+	cli
+	push byte 0
+	push byte 32
+	jmp irq_common_stub
+irq1:
+	cli
+	push byte 0
+	push byte 33
+	jmp irq_common_stub
+irq2:
+	cli
+	push byte 0
+	push byte 34
+	jmp irq_common_stub
+irq3:
+	cli
+	push byte 0
+	push byte 35
+	jmp irq_common_stub
+irq4:
+	cli	
+	push byte 0
+	push byte 36
+	jmp irq_common_stub
+irq5:
+	cli
+	push byte 0
+	push byte 37
+	jmp irq_common_stub
+irq6:
+	cli
+	push byte 0
+	push byte 38
+	jmp irq_common_stub
+irq7:
+	cli
+	push byte 0
+	push byte 39
+	jmp irq_common_stub
+irq8:
+	cli
+	push byte 0
+	push byte 40
+	jmp irq_common_stub
+irq9:
+	cli
+	push byte 0
+	push byte 41
+	jmp irq_common_stub
+irq10:
+	cli
+	push byte 0
+	push byte 42
+	jmp irq_common_stub
+irq11:
+	cli
+	push byte 0
+	push byte 43
+	jmp irq_common_stub
+irq12:
+	cli
+	push byte 0
+	push byte 44
+	jmp irq_common_stub
+irq13:
+	cli
+	push byte 0
+	push byte 45
+	jmp irq_common_stub
+irq14:
+	cli
+	push byte 0
+	push byte 46
+	jmp irq_common_stub
+irq15:
+	cli
+	push byte 0
+	push byte 47
+	jmp irq_common_stub
+
+[extern] _irq_handler
+
+irq_common_stub:
+	pusha
+	push ds
+	push es
+	push fs
+	push gs
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov eax, esp
+	push eax
+	mov eax, _irq_handler
+	call eax
+	pop eax
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popa
+	add esp, 8
+	iret

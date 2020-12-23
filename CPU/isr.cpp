@@ -1,4 +1,6 @@
-//Shamelessely stolen, with some degree of adaptation, from http://www.osdever.net/ 
+//INTERRUPT SERVICE ROUTINES
+
+//(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
 
 
 #include "../UsefulStuff/Typedefs.h"
@@ -6,13 +8,7 @@
 #include "../Drivers/VGA_Text.h"
 
 
-struct regs
-{
-    unsigned int gs, fs, es, ds;      /* pushed the segs last */
-    unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
-    unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
-    unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
-};
+
 
 
 extern "C" void _isr0();

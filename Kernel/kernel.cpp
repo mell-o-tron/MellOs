@@ -11,6 +11,9 @@
 #include "../UsefulStuff/mem.h"
 #include "../CPU/idt.h"
 #include "../CPU/isr.h"
+#include "../CPU/irq.h"
+#include "../CPU/timer.h"
+#include "../Drivers/Keyboard.h"
 extern const char Fool[];			// Test included binary
 extern const char John[];
 
@@ -30,8 +33,13 @@ extern "C" void main(){
 	//print(John);
 	idt_install();
 	isrs_install();
+	irq_install();
+	asm volatile ("sti");
+	kb_install();
 	
-	int a = 10/0;
+	
+	//timer_install();
+	//int a = 10/0;
 	
 	return;
 }

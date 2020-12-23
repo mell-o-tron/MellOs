@@ -87,8 +87,72 @@ void print(const char* s){		// Just a simple print function. Prints to screen at
     charPtr++;
   }
   SetCursorPosRaw(i);
+  return;
 }
 
+void MoveCursorLR(int i){
+	CursorPos += i;
+	SetCursorPosRaw(CursorPos);
+	return;
+}
+
+void MoveCursorUD(int i){
+	CursorPos += VGA_WIDTH * i;
+	SetCursorPosRaw(CursorPos);
+	return;
+}
+
+void ScrollVMem(){
+	int i;
+	for(i = 0xB8000 + 1998 ; i >= CursorPos; i--){
+		*(VIDEO_MEMORY + i * 2) = *(VIDEO_MEMORY + i * 2 - 2);
+	}
+	//*(VIDEO_MEMORY + i * 2) = 0;
+}
+
+
+void printChar(const char c, bool caps){
+	if(c == 8 || c == 10 || (c >= 32 && c <= 255)) {
+	switch(c){
+		case 10: 						// newline
+			CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
+			break;
+		case 8: 						// backspace
+			if(CursorPos > 0){
+			CursorPos--;
+			*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
+			}
+			break;
+		case 127: 						// del
+			if(CursorPos < 2000){
+			*(VIDEO_MEMORY + CursorPos * 2 + 2) = (char)0;
+			}
+			break;
+		default:
+			if(c >= 97 && c <= 172 && caps){
+				
+				ScrollVMem();
+				
+				*(VIDEO_MEMORY + CursorPos * 2) = c - 32;
+				CursorPos++;
+			}
+			else if(c >= 48 && c <= 57 && caps){
+				
+			}
+			else{
+				
+				ScrollVMem();
+				
+				*(VIDEO_MEMORY + CursorPos * 2) = c;
+				CursorPos++;
+			}
+			
+		}
+	}
+	
+	SetCursorPosRaw(CursorPos);
+	return;
+}
 
 
 
