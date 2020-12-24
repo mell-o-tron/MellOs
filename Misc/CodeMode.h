@@ -1,0 +1,2 @@
+void Interpret();
+void EnterCodeMode();

@@ -9,4 +9,9 @@ void print(const char* s);
 void printChar(const char c, bool caps);
 void MoveCursorLR(int i);
 void MoveCursorUD(int i);
+void ClearScreen(int col);
+void ColLine(int line, int col);
+void printCol(const char* s, int col);
+void ClrLine(int line);
+void ColScreen(int col);
 #endif

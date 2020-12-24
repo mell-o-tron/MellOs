@@ -1,6 +1,3 @@
-#ifndef CONVERSIONS_H
-#define CONVERSIONS_H
 const char* reverse(const char* str, char* buffer, int len);
-const char* toString(int n, int base);
+int strLen(const char* s);
 bool StringsEqu(const char* s, const char* t);
-#endif

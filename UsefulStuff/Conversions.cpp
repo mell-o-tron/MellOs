@@ -2,21 +2,12 @@
 
 
 /*********************** FUNCTIONS *************************
-* reverse: reverses a string				     *
+* 							     *
 * toString: converts int into string - arbitrary base      *
-* 							     *
-* 							     *
 * 							     *
 ***********************************************************/
 
-const char* reverse(const char* str, char* buffer, int len){
-	int i;
-	for (i = 0; i <= len; i++){
-		buffer[i] = str[len - i];
-	}
-	buffer[i] = '\0';
-	return buffer;
-}
+#include <string.h>
 
 char toStringRes[128];
 

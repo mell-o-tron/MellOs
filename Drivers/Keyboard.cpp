@@ -3,6 +3,15 @@
 #include<VGA_Text.h>
 #include<port_io.h>
 #include "../CPU/irq.h"
+#include "../Misc/CmdMode.h"
+#include "../Misc/CodeMode.h"
+
+/********************FUNCTIONS*********************
+* kb_install: installs keyboard IRQ handler       *
+* keyboard_handler: handles interrupt requests    *
+**************************************************/
+
+extern int curMode;					// CURRENT MODE
 
 unsigned char kbdus[128] =
 {
@@ -71,6 +80,7 @@ void keyboard_handler(struct regs *r)
     }
     else
     {
+    	
     	switch(scancode){
     		case 0x4b: MoveCursorLR(-1); break;
     		case 0x4d: MoveCursorLR(1); break;
@@ -78,6 +88,16 @@ void keyboard_handler(struct regs *r)
     		case 0x50: MoveCursorUD(1); break;
     		case 0x2a: shift_pressed = true; break;
     		case 0x3a: caps_lock = !caps_lock; break;
+    		case 0x1c: 
+    			switch(curMode){
+    				case 1: FindCmd(); break;
+    				case 2: Interpret(); break;
+    				case 0: printChar('\n', 0);
+    			}
+    			break;
+    		case 0x3b: SetCmdMode(); break;
+    									//ITALIAN KEYBOARD, might not work on others:
+    		case 0x56: printChar(shift_pressed ? '>' : '<', 0); break;	
     		default: printChar(kbdus[scancode], shift_pressed | caps_lock);
     	}
         

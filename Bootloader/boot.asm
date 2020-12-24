@@ -50,7 +50,7 @@ GraphicsMode:
 %include "ReadFromDisk.asm"
 %include "PrintDecimal.asm"
 %include "GDT.asm"
-%include "PrintStringPM.asm"
+
 %include "EnterPM.asm"
 
 OK:
@@ -59,8 +59,10 @@ OK:
 
 BEGIN_PM:
 	jmp KERNEL_LOCATION	; jumps to entry_kernel
+	;mov bl, OK
+	;call PrintStringPM
 	;jmp $
 
-
+%include "PrintStringPM.asm"
 times 510-($-$$) db 0
 dw 0xaa55

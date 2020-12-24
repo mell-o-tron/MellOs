@@ -1,5 +1,6 @@
 #include "../UsefulStuff/Typedefs.h"
 #include <port_io.h>
+#include "../UsefulStuff/Conversions.h"
 
 /*********************
 * TEXT MODE: 0xB8000 *
@@ -10,44 +11,48 @@
 #define VGA_WIDTH	80
 
 
-/*********************** FUNCTIONS *************************
-* SetCursorPosRaw / SetCursorPos: set cursor positon	     *
-* print: prints string					     *
-* other commented, currently red. or unnec. ones	     *
-* 							     *
-* 							     *
-***********************************************************/
+/*********************** FUNCTIONS ****************************
+* SetCursorPosRaw / SetCursorPos: set cursor positon          *
+* print: prints string                                        *
+* other commented, currently red. or unnec. ones              *
+* other useful functions handling colour and different modes  *
+**************************************************************/
 
 //thanks, OSDEV wiki, for being a thing.
 
+extern int curMode;
+extern int curColor;
 uint16_t CursorPos = 0; 		// Holds the current position of the cursor
 
 
 void SetCursorPosRaw(uint16_t pos){	// Does some I/O black magic 
-	outb(0x3d4, 0x0f);
-	outb(0x3d5, (uint8_t)(pos & 0xff));
-	outb(0x3d4, 0x0e);
-	outb(0x3d5, (uint8_t)((pos >> 8) & 0xff));
-	CursorPos = pos;
+	if(pos >= 0 && pos < 2000) {
+		outb(0x3d4, 0x0f);
+		outb(0x3d5, (uint8_t)(pos & 0xff));
+		outb(0x3d4, 0x0e);
+		outb(0x3d5, (uint8_t)((pos >> 8) & 0xff));
+		CursorPos = pos;
+	}
 	return;
 }
 
 
 void SetCursorPos(int x, int y){
-	uint16_t pos = y * VGA_WIDTH + x;
-	SetCursorPosRaw(pos);
-	
+	uint16_t pos;
+
+			pos = y * VGA_WIDTH + x;
+			SetCursorPosRaw(pos);
 	return;
 }
 
 /*uint16_t GetCursorPos()		//Commented for no particular reason, uncomment if needed
 {
-    uint16_t pos = 0;
-    outb(0x3D4, 0x0F);
-    pos |= inb(0x3D5);
-    outb(0x3D4, 0x0E);
-    pos |= ((uint16_t)inb(0x3D5)) << 8;
-    return pos;
+	uint16_t pos = 0;
+	outb(0x3D4, 0x0F);
+	pos |= inb(0x3D5);
+	outb(0x3D4, 0x0E);
+	pos |= ((uint16_t)inb(0x3D5)) << 8;
+	return pos;
 }
 
 void disable_cursor()
@@ -66,61 +71,173 @@ void enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 }
 */
 
+void ClearScreen(int col){
+	switch(curMode){
+	case 0:
+		for(int i = (int)VIDEO_MEMORY; i < (int)VIDEO_MEMORY + 4000; i += 1) {
+			if(i % 2 == 0) *((char*)i) = 32;	//Default is spaces
+			else *((char*)i) = col;
+		}
+		break;
+	default:
+		
+		for(int i = (int)VIDEO_MEMORY + 160; i < (int)VIDEO_MEMORY + 3840; i += 1) {
+			if(i % 2 == 0) *((char*)i) = 32;	//Default is spaces
+			else *((char*)i) = col;
+		}
+	}
+}
+
+void ColScreen(int col){
+	switch(curMode){
+	case 0:
+		
+		for(int i = (int)VIDEO_MEMORY + 1; i < (int)VIDEO_MEMORY + 4000; i += 2)
+			*((char*)i) = col;
+			break;
+	default:
+		for(int i = (int)VIDEO_MEMORY + 161; i < (int)VIDEO_MEMORY + 3840; i += 2) 
+			*((char*)i) = col;
+		
+		
+	}
+}
+
+					// SET LINE COLOUR
+void ColLine(int line, int col){
+	for(int i = (int)VIDEO_MEMORY + VGA_WIDTH * 2 * line + 1;
+	i < (int)VIDEO_MEMORY + VGA_WIDTH * 2 * (line + 1) + 1; i += 2)  *((char*)i) = col;
+		
+}
+
+void ClrLine(int line){
+	for(int i = (int)VIDEO_MEMORY + VGA_WIDTH * 2 * line;
+	i < (int)VIDEO_MEMORY + VGA_WIDTH * 2 * (line + 1); i += 2)  *((char*)i) = 0; 	// CLR WITH 0s
+		
+}
+
 
 void print(const char* s){		// Just a simple print function. Prints to screen at cursor position, moves the cursor at the end. 
+	uint8_t* charPtr = (uint8_t*)s;
+	uint16_t i = CursorPos;
+	while(*charPtr != 0){
+	if(i > 2000){
+		i = 0;
+		ClearScreen(curColor);
+		switch(curMode){
+			case 0: SetCursorPosRaw(0); i = 0; break;
+			default: SetCursorPosRaw(81); i = 81;
+		}
+	}
+	switch (*charPtr) {
+		case 10:	if(CursorPos < 1920)
+	  			i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
+			break;
+		case 13:
+			i -= i % VGA_WIDTH;
+			break;
+		default:
+		*(VIDEO_MEMORY + i * 2) = *charPtr;
+		i++;
+	}
+
+	charPtr++;
+	}
+	SetCursorPosRaw(i);
+	return;
+}
+
+
+void printCol(const char* s, int col){		//Print: with colours!
   uint8_t* charPtr = (uint8_t*)s;
   uint16_t i = CursorPos;
   while(*charPtr != 0)
   {
-    switch (*charPtr) {
-      case 10:	
-      		i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
-        	break;
-      case 13:
-        	i -= i % VGA_WIDTH;
-        	break;
-      default:
-      *(VIDEO_MEMORY + i * 2) = *charPtr;
-      i++;
-    }
+	switch (*charPtr) {
+	  case 10:	
+	  		if(CursorPos < 1920)
+	  			i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
+			break;
+	  case 13:
+			i -= i % VGA_WIDTH;
+			break;
+	  default:
+	  *(VIDEO_MEMORY + i*2) = *charPtr;
+	  *(VIDEO_MEMORY + i*2 + 1) = col;
+	  i++;
+	}
 
-    charPtr++;
+	charPtr++;
   }
   SetCursorPosRaw(i);
   return;
 }
 
-void MoveCursorLR(int i){
-	CursorPos += i;
-	SetCursorPosRaw(CursorPos);
+
+void MoveCursorLR(int i){			// MOVE CURSOR HORIZONTALLY
+	if(CursorPos >= 0 && CursorPos < 2000){
+		switch(curMode){
+			case 0:
+				CursorPos += i;
+				SetCursorPosRaw(CursorPos);
+				break;
+			default:
+				if(!(i < 0 && CursorPos == 1920)){
+					CursorPos += i;
+					SetCursorPosRaw(CursorPos);
+				}	
+		}
+	}
 	return;
 }
 
-void MoveCursorUD(int i){
-	CursorPos += VGA_WIDTH * i;
-	SetCursorPosRaw(CursorPos);
+void MoveCursorUD(int i){			// MOVE CURSOR VERTICALLY
+	if(CursorPos >= 0 && CursorPos < 2000){
+		switch(curMode){
+			case 0:
+				CursorPos += VGA_WIDTH * i;
+				SetCursorPosRaw(CursorPos);
+				break;	
+		}
+	}
 	return;
 }
 
 void ScrollVMem(){
 	int i;
-	for(i = 0xB8000 + 1998 ; i >= CursorPos; i--){
-		*(VIDEO_MEMORY + i * 2) = *(VIDEO_MEMORY + i * 2 - 2);
-	}
-	//*(VIDEO_MEMORY + i * 2) = 0;
+	
+	for(i = 0xB8000/2 + 1999 ; i >= CursorPos + 0xB8000/2; i--)
+		*((char*)(i * 2)) = *((char*)(i * 2 - 2));
+	return;
 }
 
 
+
+
+
+
 void printChar(const char c, bool caps){
+	int curLine = 1 + CursorPos / VGA_WIDTH;
+	
 	if(c == 8 || c == 10 || (c >= 32 && c <= 255)) {
 	switch(c){
-		case 10: 						// newline
-			CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
+		case 10:
+			if(CursorPos < 1920) 						// newline
+				CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
 			break;
 		case 8: 						// backspace
 			if(CursorPos > 0){
-			CursorPos--;
-			*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
+				switch(curMode){
+					case 0:
+						CursorPos--;
+						*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
+						break;
+					default:
+						if(CursorPos > 1920){
+							CursorPos--;
+							*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
+							}
+				}
 			}
 			break;
 		case 127: 						// del
@@ -129,23 +246,15 @@ void printChar(const char c, bool caps){
 			}
 			break;
 		default:
-			if(c >= 97 && c <= 172 && caps){
-				
-				ScrollVMem();
-				
-				*(VIDEO_MEMORY + CursorPos * 2) = c - 32;
-				CursorPos++;
-			}
+			ScrollVMem();
+			if(c >= 97 && c <= 172 && caps) *(VIDEO_MEMORY + CursorPos * 2) = c - 32; // CAPS
 			else if(c >= 48 && c <= 57 && caps){
-				
+				//caps numbers
 			}
-			else{
-				
-				ScrollVMem();
-				
-				*(VIDEO_MEMORY + CursorPos * 2) = c;
+			else *(VIDEO_MEMORY + CursorPos * 2) = c;
+			
+			if(CursorPos < 2000)
 				CursorPos++;
-			}
 			
 		}
 	}
