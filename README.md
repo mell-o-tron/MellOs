@@ -7,4 +7,4 @@ Some of the resources I found most useful are [the OSDEV wiki](https://wiki.osde
 I'm doing this in my spare time, which basically means "during a small part of the summer and a week or so around Christmas". Feel free to do whatever you like with this, as long as you don't physically (nor psychologically) harm people and animals I'm absolutely fine with it.
 
 ### And now for something completely different:
-Zitto Jalvatore.
+Cheese
