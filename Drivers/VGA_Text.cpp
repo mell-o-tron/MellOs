@@ -1,6 +1,7 @@
-#include "../UsefulStuff/Typedefs.h"
+#include "../Utils/Typedefs.h"
 #include <port_io.h>
-#include "../UsefulStuff/Conversions.h"
+#include "../Utils/Conversions.h"
+#include "../Misc/colors.h"
 
 /*********************
 * TEXT MODE: 0xB8000 *
@@ -20,8 +21,11 @@
 
 //thanks, OSDEV wiki, for being a thing.
 
+
+//////////////////////////////////////////// WOW this code sucks, I'll need to rewrite it entirely with the new shell in mind.
+
 extern int curMode;
-extern int curColor;
+int curColor = DEFAULT_COLOR;
 uint16_t CursorPos = 0; 		// Holds the current position of the cursor
 
 
@@ -71,7 +75,8 @@ void enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 }
 */
 
-void ClearScreen(int col){
+void ClearScreen(int col){	//col...or
+	if(col == -1) col = curColor;		//-1: maintain current colour
 	switch(curMode){
 	case 0:
 		for(int i = (int)VIDEO_MEMORY; i < (int)VIDEO_MEMORY + 4000; i += 1) {
@@ -116,29 +121,37 @@ void ClrLine(int line){
 		
 }
 
+void scrollPageUp(){
+    for(int i = 160*2; i < 4000 - 160; i++) *(VIDEO_MEMORY + i - 160) = *(VIDEO_MEMORY + i);
+}
 
-void print(const char* s){		// Just a simple print function. Prints to screen at cursor position, moves the cursor at the end. 
+
+void kprint(const char* s){		// Just a simple print function. Prints to screen at cursor position, moves the cursor at the end. 
 	uint8_t* charPtr = (uint8_t*)s;
 	uint16_t i = CursorPos;
 	while(*charPtr != 0){
-	if(i > 2000){
-		i = 0;
-		ClearScreen(curColor);
-		switch(curMode){
-			case 0: SetCursorPosRaw(0); i = 0; break;
-			default: SetCursorPosRaw(81); i = 81;
-		}
-	}
 	switch (*charPtr) {
-		case 10:	if(CursorPos < 1920)
-	  			i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
+		case 10:	if(i < 1920){
+                        if(CursorPos >= 1760){
+                            i = 1760;
+                            scrollPageUp();
+                        }else i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
+                    }
+            
+	  			
 			break;
 		case 13:
 			i -= i % VGA_WIDTH;
 			break;
 		default:
-		*(VIDEO_MEMORY + i * 2) = *charPtr;
-		i++;
+        if(i < 1760){
+            *(VIDEO_MEMORY + i * 2) = *charPtr;
+            i++;
+        }
+        else{
+            ClearScreen(-1);
+            i = 80;
+        }
 	}
 
 	charPtr++;
@@ -148,7 +161,7 @@ void print(const char* s){		// Just a simple print function. Prints to screen at
 }
 
 
-void printCol(const char* s, int col){		//Print: with colours!
+void kprintCol(const char* s, int col){		//Print: with colours!
   uint8_t* charPtr = (uint8_t*)s;
   uint16_t i = CursorPos;
   while(*charPtr != 0)
@@ -215,15 +228,16 @@ void ScrollVMem(){
 
 
 
-
-void printChar(const char c, bool caps){
+void kprintChar(const char c, bool caps){
 	int curLine = 1 + CursorPos / VGA_WIDTH;
-	
+    
+    
 	if(c == 8 || c == 10 || (c >= 32 && c <= 255)) {
 	switch(c){
 		case 10:
-			if(CursorPos < 1920) 						// newline
-				CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
+			if(CursorPos < 1920){ 						// newline
+                CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
+            }
 			break;
 		case 8: 						// backspace
 			if(CursorPos > 0){
@@ -255,6 +269,7 @@ void printChar(const char c, bool caps){
 			
 			if(CursorPos < 2000)
 				CursorPos++;
+            else scrollPageUp();
 			
 		}
 	}
@@ -263,6 +278,9 @@ void printChar(const char c, bool caps){
 	return;
 }
 
+void printError(const char* s){
+    kprintCol(s, ERROR_COLOR);
+}
 
 
 

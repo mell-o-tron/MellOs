@@ -212,23 +212,24 @@ isr_common_stub:
 	push es
 	push fs
 	push gs
-	mov ax, 0x10   ; Load the Kernel Data Segment descriptor!
+	mov ax, 0x10                   ; Load the Kernel Data Segment descriptor!
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	mov eax, esp   ; Push us the stack
+	mov eax, esp                   ; Push us the stack
 	push eax
-	mov eax, _fault_handler
-	call eax	   ; A special call, preserves the 'eip' register
+	mov eax, _fault_handler        ; checks if interrupt number < 32 (if it represents an exception)
+                                   ; prints exception message and halts system.
+	call eax	                   ; A special call, preserves the 'eip' register
 	pop eax
 	pop gs
 	pop fs
 	pop es
 	pop ds
 	popa
-	add esp, 8	 ; Cleans up the pushed error code and pushed ISR number
-	iret		   ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
+	add esp, 8	                   ; Cleans up the pushed error code and pushed ISR number
+	iret		                   ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
 	
 ;;;;;;;;;;;;;;;;;;;;;;;; INTERRUPT REQUESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;
 

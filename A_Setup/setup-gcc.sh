@@ -1,3 +1,8 @@
+# nasm and qemu
+sudo apt install nasm
+sudo apt install qemu
+sudo apt-get install qemu-kvm
+
 # GCC cross compiler for i386 systems (might take quite some time, prepare food)
 
 sudo apt update
@@ -39,3 +44,4 @@ echo MAKE INSTALL-TARGET-LIBGCC:
 sudo make install-target-libgcc
 echo HERE U GO MAYBE:
 ls /usr/local/i386elfgcc/bin
+export PATH=$PATH:/usr/local/i386elfgcc/bin

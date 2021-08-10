@@ -1,6 +1,7 @@
-#include "../UsefulStuff/Typedefs.h"
+#include "../Utils/Typedefs.h"
 #include "../Drivers/port_io.h"
 #include "../Drivers/VGA_Text.h"
+#include "../Utils/Conversions.h"
 #include <idt.h>
 
 extern "C" void irq0();
@@ -77,10 +78,11 @@ void irq_install()
 	idt_set_gate(47, (unsigned)irq15, 0x08, 0x8E);
 }
 
+int currentInterrupt = -1;
 
 extern "C" void _irq_handler(struct regs *r)
 {
-	
+	currentInterrupt = r -> int_no;
 	void (*handler)(struct regs *r);
 
 	
@@ -98,4 +100,10 @@ extern "C" void _irq_handler(struct regs *r)
 
 
 	outb(0x20, 0x20);
+}
+
+void irq_wait(int n){
+    while(currentInterrupt != n){};
+    currentInterrupt = -1;
+
 }

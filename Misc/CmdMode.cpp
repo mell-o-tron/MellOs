@@ -1,11 +1,11 @@
-#include "../UsefulStuff/Typedefs.h"
+#include "../Utils/Typedefs.h"
 #include "../Drivers/port_io.h"
-#include "../UsefulStuff/Conversions.h"
+#include "../Utils/Conversions.h"
 #include "../Drivers/VGA_Text.h"
-#include "../UsefulStuff/string.h"
+#include "../Utils/string.h"
 #include "../CPU/timer.h"
 #include "../Misc/CodeMode.h"
-
+#include <colors.h>
 /********************FUNCTIONS*********************
 * SetCmdMode: sets up the CMD mode, curMode = 1   *
 * FindCmd: reads command line, seeks commands     *
@@ -16,10 +16,8 @@
 
 
 
-#define DEFAULT_COLOR 0x3f
-#define BAR_COLOR 0x1E
-#define DARK_COLOR 0x0F
-int curColor = DEFAULT_COLOR;
+
+extern int curColor;
 
 int cmdNum = 8;			// number of commands
 const char* commands[] = {		// command labels
@@ -30,7 +28,7 @@ const char* commands[] = {		// command labels
 "help",
 "BDR",
 "darkmode",
-"lightmode"
+"lightmode",
 };
 
 
@@ -56,8 +54,9 @@ void SetCmdMode(){
 	ColLine(24, BAR_COLOR);
 	ClrLine(24);
 	SetCursorPos(0,0);
-	print("CMD mode\n");
-	print(Fool);
+	kprint("CMD mode\n");
+	kprint(Fool);
+    kprintCol("May 23 2021: CMD mode is being replaced by a more complete shell \nPress F5 to enter shell mode\n", ERROR_COLOR);
 	TextCursorPos = CursorPos;
 	SetCursorPosRaw(1920);
 	return;	
@@ -98,36 +97,36 @@ void TextMode(){			// DUMMY FUNCTION (will eventually be useful)
 	curMode = 0;
 	ClearScreen(DARK_COLOR);
 	SetCursorPosRaw(0);
-	print("This is some text you can edit.\nActually this is pointless, press F1 to get back to cmd mode.");
+	kprint("This is some text you can edit.\nActually this is pointless, press F1 to get back to cmd mode.");
 	//there's a few bugs, as well!
 }
 
 void ExecCmd(int cmd, char* str){
-	//print(toString(cmd, 10));
+	//kprint(toString(cmd, 10));
 	
 	switch(cmd){
-		case 0: print("command not found \n"); break;
+		case 0: kprint("command not found \n"); break;
 		case 1: TextMode(); break;
 		case 3: EnterCodeMode(); break;
-		case 4: print("Command list: ");
+		case 4: kprint("Command list: ");
 			for(int i = 0; i < cmdNum; i++){
-				print(commands[i]);
-				print("    ");
+				kprint(commands[i]);
+				kprint("    ");
 			}
-			print("\n");
+			kprint("\n");
 			break;
 		case 5: 
 			ClearScreen(0x0D);
 			SetCursorPosRaw(81);
-			print(bdr);
-			printCol("          \"Addio, Bocca di Rosa, con te se ne parte la primavera\".              ", 0xe0);
+			kprint(bdr);
+			kprintCol("          \"Addio, Bocca di Rosa, con te se ne parte la primavera\".              ", 0xe0);
 			
 			
 			SetCursorPosRaw(81);
 			asm volatile ("1: jmp 1b");
 		case 6: ColScreen(DARK_COLOR); curColor = DARK_COLOR; break;
 		case 7: ColScreen(DEFAULT_COLOR); curColor = DEFAULT_COLOR; break;
-		default: print("not yet ");
+		default: kprint("not yet ");
 	
 	}
 

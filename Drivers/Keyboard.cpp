@@ -1,11 +1,11 @@
-#include "../UsefulStuff/Typedefs.h"
-#include "../UsefulStuff/Conversions.h"
+#include "../Utils/Typedefs.h"
+#include "../Utils/Conversions.h"
 #include<VGA_Text.h>
 #include<port_io.h>
 #include "../CPU/irq.h"
 #include "../Misc/CmdMode.h"
 #include "../Misc/CodeMode.h"
-
+#include "../Shell/shell.h"
 /********************FUNCTIONS*********************
 * kb_install: installs keyboard IRQ handler       *
 * keyboard_handler: handles interrupt requests    *
@@ -13,7 +13,7 @@
 
 extern int curMode;					// CURRENT MODE
 
-unsigned char kbdus[128] =
+const char kbdus[128] =
 {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
   '9', '0', '-', '=', '\b',	/* Backspace */
@@ -61,7 +61,7 @@ void keyboard_handler(struct regs *r)
     unsigned char scancode;
 
     scancode = inb(0x60);
-
+    
     /* If the top bit of the byte we read from the keyboard is
     *  set, that means that a key has just been released */
     if (scancode & 0x80)
@@ -69,7 +69,7 @@ void keyboard_handler(struct regs *r)
         /* You can use this one to see if the user released the
         *  shift, alt, or control keys... */
        
-    	//print(toString((int)scancode, 16));		// for testing
+    	//kprint(toString((int)scancode, 16));		// for testing
     	
     	
     	switch(scancode){
@@ -92,13 +92,15 @@ void keyboard_handler(struct regs *r)
     			switch(curMode){
     				case 1: FindCmd(); break;
     				case 2: Interpret(); break;
-    				case 0: printChar('\n', 0);
+    				case 0: kprintChar('\n', 0);
+                    case 10: parseCommand();
     			}
     			break;
     		case 0x3b: SetCmdMode(); break;
+            case 0x3f: load_shell(); break;
     									//ITALIAN KEYBOARD, might not work on others:
-    		case 0x56: printChar(shift_pressed ? '>' : '<', 0); break;	
-    		default: printChar(kbdus[scancode], shift_pressed | caps_lock);
+    		case 0x56: kprintChar(shift_pressed ? '>' : '<', 0); break;	
+    		default: kprintChar(kbdus[scancode], shift_pressed | caps_lock);
     	}
         
     }

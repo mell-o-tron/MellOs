@@ -20,3 +20,4 @@ void irq_remap(void);
 void irq_install();
 extern "C" void _irq_handler(struct regs *r);
 
+void irq_wait(int n);

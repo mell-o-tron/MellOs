@@ -3,7 +3,7 @@
 //(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
 
 
-#include "../UsefulStuff/Typedefs.h"
+#include "../Utils/Typedefs.h"
 #include <idt.h>
 #include "../Drivers/VGA_Text.h"
 
@@ -125,8 +125,8 @@ extern "C" void _fault_handler(struct regs *r)
     
     if (r->int_no < 32)
     {
-        print(exception_messages[r->int_no]);
-        print(" Exception. System Halted!\n\r");
+        kprint(exception_messages[r->int_no]);
+        kprint(" Exception. System Halted!\n\r");
         for (;;);
     }
 }

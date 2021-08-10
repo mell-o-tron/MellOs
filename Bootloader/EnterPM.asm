@@ -22,7 +22,6 @@ init_pm:
 	
 	mov ebp, 0x90000		; 32 bit stack base pointer
 	mov esp, ebp
-	
 	call BEGIN_PM
 
 

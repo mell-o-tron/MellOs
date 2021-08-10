@@ -1,8 +1,8 @@
-#include "../UsefulStuff/Typedefs.h"
+#include "../Utils/Typedefs.h"
 #include "../Drivers/port_io.h"
-#include "../UsefulStuff/Conversions.h"
+#include "../Utils/Conversions.h"
 #include "../Drivers/VGA_Text.h"
-#include "../UsefulStuff/string.h"
+#include "../Utils/string.h"
 #include <colors.h>
 
 //very simple BF-ish interpreter without loops.
@@ -33,7 +33,7 @@ void EnterCodeMode(){
 	ColLine(24, BAR_COLOR);
 	ClrLine(24);
 	SetCursorPos(0,0);
-	print("CODE mode\n");
+	kprint("CODE mode\n");
 	
 	TextCursorPos = CursorPos;
 	SetCursorPosRaw(1920);
@@ -61,7 +61,7 @@ void Interpret(){
 			case '<': LocPointer == 0? LocPointer = 255 : LocPointer--; break;
 			case '+': memArray[LocPointer]++; break;
 			case '-': if(LocPointer>0)memArray[LocPointer]--; break;
-			case '.': print("output: "); print(toString(memArray[LocPointer], 10)); print("    "); break; 
+			case '.': kprint("output: "); kprint(toString(memArray[LocPointer], 10)); kprint("    "); break; 
 		}
 		i++;
 	}
