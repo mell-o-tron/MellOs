@@ -1,7 +1,7 @@
 # MellOS
 *A very simple kernel I'm working on in my free time.* 
 ## Why MellOS
-A while back I was gifted a computer from 1994, and I figured I could use it to learn how to write a simple operating system. I started writing some real mode programs, and eventually I moved on to writing a simple 32 bit kernel. 
+A while back I was gifted a 1994 Compaq Presario, and I figured I could use it to learn how to write a simple operating system. I started writing some real mode programs, and eventually I moved on to writing a simple 32 bit kernel. 
 
 I decided to share my results and progress for a couple of reasons, the main of which might be letting you have fun with this as much as I am, but also to share the ways I fixed my misconceptions, and the resources that helped me move on whenever I got stuck.
 
