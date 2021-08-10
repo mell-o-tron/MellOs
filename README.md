@@ -1,4 +1,4 @@
-# MellOS
+# Mellotron Kernel (MellOS)
 *A very simple kernel I'm working on in my free time.* 
 ## Why MellOS
 A while back I was gifted a 1994 Compaq Presario, and I figured I could use it to learn how to write a simple operating system. I started writing some real mode programs, and eventually I moved on to writing a simple 32 bit kernel. 
@@ -21,8 +21,6 @@ As simple as it can get:
 - Interrupt request handling, keyboard and timer support
 - Linear dynamic memory allocation (with some tricks not to make it too inefficient)
 
-## Bugs and Horrible Code
-- The printy-screeney-bit is all broken and redundant, because it was made in a hurry for a very badly designed system. I updated most of the very badly designed system (it now is a mildly badly designed system), but not that, not yet. Next up, I guess.
 
 ### Work in progress
 - Dynamic, Modular Shell (with the possibility to create/edit commands)
@@ -30,3 +28,6 @@ As simple as it can get:
 
 ### Future
 - File System support, most likely USTAR (highly dependant on the floppy disk drivers)
+
+### Bugs and Horrible Code
+- The printy-screeney-bit is all broken and redundant, because it was made in a hurry for a very badly designed system. I updated most of the very badly designed system (it now is a mildly badly designed system), but not that, not yet. Next up, I guess.
