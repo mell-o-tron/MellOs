@@ -1,1 +1,1 @@
-times 17920 db 0	; 20 blank sectors
+times 25600 db 0	; 50 blank sectors

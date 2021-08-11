@@ -21,17 +21,34 @@ static const char *  const helpList[5] = {                  // find better (dyna
 };
 
 void helpCMD(const char* s){
-    currentTask = "help";
-    kprint("List of commands:\n");
-    for(int i = 0; i < numberOfCMDs; i++)
-        kprint(helpList[i]);
+    if(strLen(s) == 0){
+        currentTask = "help";
+        kprint("List of commands:\n");
+        for(int i = 0; i < numberOfCMDs; i++)
+            kprint(helpList[i]);
+    }
+    else{
+        kprint("Invalid option: \"");
+        if(s[0] == ' ') kprint((const char*)((int)s + 1));
+        else kprint(s);
+        kprint("\"");
+    }
+   
 }
 
 void printUsedMem(const char* s){
-    currentTask = "usedmem";
-    kprint("Used dynamic memory: ");
-    kprint(toString(getFreeMem() - 0x10000, 10));
-    kprint(" bytes");
+    if(strLen(s) == 0){
+        currentTask = "usedmem";
+        kprint("Used dynamic memory: ");
+        kprint(toString(getFreeMem() - 0x10000, 10));
+        kprint(" bytes");
+    }
+    else{
+        kprint("Invalid option: \"");
+        if(s[0] == ' ') kprint((const char*)((int)s + 1));
+        else kprint(s);
+        kprint("\"");
+    }
 }
 
 void floppyCMD(const char* s){
@@ -42,7 +59,16 @@ void floppyCMD(const char* s){
 }
 
 void clearCMD(const char* s){ 
-    currentTask = "clear";
-    ClearScreen(-1);
-    CursorPos = 0;
+    if(strLen(s) == 0){
+        currentTask = "clear";
+        ClearScreen(-1);
+        CursorPos = 0;
+    }
+    else{
+        kprint("Invalid option: \"");
+        if(s[0] == ' ') kprint((const char*)((int)s + 1));
+        else kprint(s);
+        kprint("\"");
+    }
+    
 }

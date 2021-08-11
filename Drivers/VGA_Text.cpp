@@ -144,13 +144,13 @@ void kprint(const char* s){		// Just a simple print function. Prints to screen a
 			i -= i % VGA_WIDTH;
 			break;
 		default:
-        if(i < 1760){
+        if(i < 1840){
             *(VIDEO_MEMORY + i * 2) = *charPtr;
             i++;
         }
         else{
-            ClearScreen(-1);
-            i = 80;
+            scrollPageUp();
+            i = 1760;
         }
 	}
 

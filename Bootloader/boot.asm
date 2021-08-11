@@ -18,7 +18,7 @@ mov bp, 0x8000 		; stack base
 mov sp, bp			; stack pointer to stack base
 					; A:B = A*d16 + B
 mov bx, KERNEL_LOCATION	; ES:BX is the location to read from, e.g. 0x0000:0x9000 = 0x00000 + 0x9000 = 0x9000
-mov dh, 35			; read 35 sectors (blank sectors: empty_end)
+mov dh, 50			; read 35 sectors (blank sectors: empty_end)
 
 call readDisk
 
