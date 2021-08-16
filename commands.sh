@@ -39,9 +39,11 @@ i386-elf-ld -o "WeeBins/kernel.bin" -Ttext 0x1000 "WeeBins/kernel_entry.o" "WeeB
 cat "WeeBins/boot.bin" "WeeBins/kernel.bin" > "WeeBins/short.bin"
 cat "WeeBins/short.bin" "WeeBins/empty_end.bin" > os_image.bin
 
-
+truncate os-image.bin -s 1200k
+mkisofs -b os-image.bin -o os-image.iso .
 
 #qemu-system-x86_64 -s -S -drive format=raw,file=os_image.bin,index=0,if=floppy		# GDB
-qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M			# RUN EMULATOR
+#qemu-system-x86_64 -drive format=raw,file=os_image.img,index=0,if=floppy,  -m 128M			# RUN EMULATOR
+qemu-system-x86_64 -cdrom os_image.img -m 128M
 
 
