@@ -1,11 +1,12 @@
 #include "../Utils/Typedefs.h"
 #include "../Utils/Conversions.h"
-#include<VGA_Text.h>
-#include<port_io.h>
-#include "../CPU/irq.h"
+#include <VGA_Text.h>
+#include <port_io.h>
+#include "../CPU/Interrupts/irq.h"
 #include "../Misc/CmdMode.h"
 #include "../Misc/CodeMode.h"
 #include "../Shell/shell.h"
+
 /********************FUNCTIONS*********************
 * kb_install: installs keyboard IRQ handler       *
 * keyboard_handler: handles interrupt requests    *

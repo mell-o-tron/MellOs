@@ -60,7 +60,7 @@ GraphicsMode:
 %include "ReadFromDisk.asm"
 %include "PrintDecimal.asm"
 %include "AvailableMemory.asm"
-%include "GDT.asm"
+%include "basic_gdt.asm"
 
 %include "EnterPM.asm"
 

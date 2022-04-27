@@ -1,9 +1,9 @@
 #include "../Utils/Typedefs.h"
 #include <port_io.h>
 #include "../Drivers/VGA_Text.h"
-#include "../CPU/timer.h"
+#include "../CPU/Timer/timer.h"
 #include "../Utils/Conversions.h"
-#include "../CPU/irq.h"
+#include "../CPU/Interrupts/irq.h"
 // Adaptation of Teemu Voipio's driver:
 
 /******************************************************************************

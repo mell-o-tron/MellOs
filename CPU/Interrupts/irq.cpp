@@ -1,8 +1,8 @@
-#include "../Utils/Typedefs.h"
-#include "../Drivers/port_io.h"
-#include "../Drivers/VGA_Text.h"
-#include "../Utils/Conversions.h"
-#include <idt.h>
+#include "../../Utils/Typedefs.h"
+#include "../../Drivers/port_io.h"
+#include "../../Drivers/VGA_Text.h"
+#include "../../Utils/Conversions.h"
+#include "idt.h"
 
 extern "C" void irq0();
 extern "C" void irq1();

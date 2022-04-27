@@ -3,11 +3,9 @@
 //(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
 
 
-#include "../Utils/Typedefs.h"
-#include <idt.h>
-#include "../Drivers/VGA_Text.h"
-
-
+#include "../../Utils/Typedefs.h"
+#include "idt.h"
+#include "../../Drivers/VGA_Text.h"
 
 
 

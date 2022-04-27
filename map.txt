@@ -3,7 +3,7 @@ BOOTLOADER
 	---- PrintString.asm
 	---- PrintDecimal.asm
 	---- ReadFromDisk.asm
-	---- GDT.asm
+	---- Gdt_bootloader.asm
 	---- EnterPM.asm
 	---- PrintStringPM.asm
 KERNEL
@@ -16,7 +16,7 @@ DRIVERS
 	---- port_io.cpp
 	---- port_io.h
 	---- VGA_Text.cpp
-	---- VGA_Text.h
+	---- VGA_Text.hù
 USEFULSTUFF
 	---- Conversions.cpp
 	---- Conversions.h

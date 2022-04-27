@@ -3,7 +3,7 @@
 #include "../Utils/Conversions.h"
 #include "../Drivers/VGA_Text.h"
 #include "../Utils/string.h"
-#include "../CPU/timer.h"
+#include "../CPU/Timer/timer.h"
 #include "../Misc/CodeMode.h"
 #include <colors.h>
 /********************FUNCTIONS*********************
