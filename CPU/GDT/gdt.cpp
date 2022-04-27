@@ -81,7 +81,7 @@ GDTEntry g_GDT[] = {
 
 GDTDescriptor g_GDTDescriptor = { sizeof(g_GDT) - 1, g_GDT};
 
-void __attribute__((cdecl)) gdt_load(GDTDescriptor* descriptor, uint16_t codeSegment, uint16_t dataSegment);
+extern "C" void gdt_load(GDTDescriptor* descriptor, uint16_t codeSegment, uint16_t dataSegment);
 
 /*And Finally... */
 void GDT_Init(){
