@@ -11,6 +11,9 @@ Some of the resources I found most useful are [the OSDEV wiki](https://wiki.osde
 ## Future of MellOS
 I'm doing this in my spare time, which basically means "during a small part of the summer and a week or so around Christmas". Feel free to do whatever you like with this, as long as you don't physically (nor psychologically) harm people or other animals I'm absolutely fine with it.
 
+## Contributions
+Special thanks to all of those who contributed. Your changelogs will be integrated in `contributions.md`
+
 ## Features
 ### Current
 As simple as it can get:
@@ -24,11 +27,14 @@ As simple as it can get:
 
 
 ### Work in progress
-- Dynamic, Modular Shell (with the possibility to create/edit commands)
+- Dynamic, Modular Shell (will run executables when processes will be a thing)
 - Floppy Disk Driver (does not work with USB floppy adapter, so I can only work on it when I'm at home, which is quite rare considering I live a fairly long way from my uni)
 
 ### Future
+- Process abstraction
 - File System support, most likely USTAR (highly dependant on the floppy disk drivers)
 
 ### Bugs and Horrible Code
 - The printy-screeney-bit is all broken and redundant, because it was made in a hurry for a very badly designed system. I updated most of the very badly designed system (it now is a mildly badly designed system), but not that, not yet. Next up, I guess.
+
+
