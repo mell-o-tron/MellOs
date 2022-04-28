@@ -10,10 +10,11 @@
 #include "../Utils/Conversions.h"
 #include "../Utils/string.h"
 #include "../Memory/mem.h"
-#include "../CPU/idt.h"
-#include "../CPU/isr.h"
-#include "../CPU/irq.h"
-#include "../CPU/timer.h"
+#include "../CPU/Interrupts/idt.h"
+#include "../CPU/Interrupts/isr.h"
+#include "../CPU/Interrupts/irq.h"
+#include "../CPU/Timer/timer.h"
+#include "../CPU/GDT/gdt.h"
 #include "../Drivers/Keyboard.h"
 #include "../Drivers/Floppy.h"
 #include "../Misc/CmdMode.h"
@@ -29,7 +30,7 @@ extern const unsigned short MemSize;    // Approximate value of extended memory 
 extern "C" void main(){
 	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	
-	
+	GDT_Init();
 	idt_install();
 	isrs_install();
 	irq_install();
@@ -37,7 +38,6 @@ extern "C" void main(){
 	timer_install();
 	kb_install();
     initializeMem();
-    
     load_shell();
     //kprint(strDecapitate("print pal", strLen("print ")));
     //kprint("one\ntwo two \nthree three three \nfour four four four");

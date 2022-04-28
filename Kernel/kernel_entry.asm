@@ -10,7 +10,7 @@ call main		        ; calls kernel function main()
 
 jmp $
 
-%include "../CPU/interrupt.asm"
+%include "../CPU//Interrupts/interrupt.asm"
 
 
 section .rodata		    ; read only data

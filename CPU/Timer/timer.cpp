@@ -1,8 +1,8 @@
-#include "../Utils/Typedefs.h"
-#include "../Drivers/port_io.h"
-#include "../Drivers/VGA_Text.h"
-#include "../Utils/Conversions.h"
-#include <irq.h>
+#include "../../Utils/Typedefs.h"
+#include "../../Drivers/port_io.h"
+#include "../../Drivers/VGA_Text.h"
+#include "../../Utils/Conversions.h"
+#include "../Interrupts/irq.h"
 int timer_ticks = 0;
 int seconds = 0;
 

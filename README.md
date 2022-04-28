@@ -20,6 +20,7 @@ As simple as it can get:
 - Flat memory model (just the strictly necessary segmentation (data/code), no paging)
 - Interrupt request handling, keyboard and timer support
 - Linear dynamic memory allocation (with some tricks not to make it too inefficient)
+- GDT (Different from the one in the Bootloader)
 
 
 ### Work in progress
