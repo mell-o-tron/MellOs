@@ -1,98 +1,46 @@
- 
-# definizione del compilatore e dei flag di compilazione
-# che vengono usate dalle regole implicite
-CC=gcc
-CFLAGS=-g -Wall -O -std=c99
-LDLIBS=-lm
+## Compiler
+CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
+## Linker
+LD=/usr/local/i386elfgcc/bin/i386-elf-LD
+SRC=$(shell pwd)
+## Directory to write binaries to
+BIN=WeeBins
+## Compiler Flags
+FLAGS=-ffreestanding -m32 -g
 
+## C++ source files
+CPPSRC := $(shell find ./ -name "*.cpp")
+## C++ target files
+CPPTAR := $(patsubst %.cpp,%.o,$(CPPSRC))
 
-export PATH := $(PATH):/usr/local/i386elfgcc/bin
+## Assembly files to ignore in ASMTAR - these need to be compiled to .bin or not at all
+ASMBIN := ./Bootloader/boot.o ./Kernel/empty_end.o ./Bootloader/AvailableMemory.o ./Bootloader/EnterPM.o ./Bootloader/PrintDecimal.o ./Bootloader/PrintString.o ./Bootloader/PrintStringPM.o ./Bootloader/ReadFromDisk.o ./CPU/Interrupts/interrupt.o ./Kernel/IncBins.o 
+ASMSRC := $(shell find ./ -name "*.asm")
+ASMTAR := $(filter-out $(ASMBIN),$(patsubst %.asm,%.o,$(ASMSRC)))
 
-# se si scrive solo make di default compila main 
-all: os_image.bin 
+all: prebuild build run
 
-	
+prebuild:	## Prebuild instructions
+	clear
+	rm -rf $(BIN)
+	mkdir $(BIN)
 
-	
-os_image.bin: WeeBins/short.bin WeeBins/empty_end.bin
-	cat "WeeBins/short.bin" "WeeBins/empty_end.bin" > os_image.bin
+build: boot $(ASMTAR) $(CPPTAR)
+	i386-elf-ld -o $(BIN)/kernel.bin -Ttext 0x1000 $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/VGA_Text.o $(BIN)/Drivers/port_io.o $(BIN)/Utils/Conversions.o $(BIN)/Memory/mem.o $(BIN)/CPU/Interrupts/idt.o $(BIN)/CPU/Interrupts/isr.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/CPU/Timer/timer.o $(BIN)/Drivers/Keyboard.o $(BIN)/Misc/CmdMode.o $(BIN)/Utils/string.o $(BIN)/Misc/CodeMode.o $(BIN)/Utils/dataStructures.o $(BIN)/Shell/shell.o $(BIN)/Drivers/Floppy.o $(BIN)/Shell/shellFunctions.o $(BIN)/CPU/GDT/gdt_loader.o $(BIN)/CPU/GDT/gdt.o --oformat binary
+	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
+	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 
-WeeBins/short.bin: WeeBins/boot.bin WeeBins/kernel.bin
-	cat "WeeBins/boot.bin" "WeeBins/kernel.bin" > "WeeBins/short.bin"
+boot:
+	nasm Bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i Bootloader
+	nasm Kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
 
-WeeBins/kernel.bin: WeeBins/kernel_entry.o WeeBins/kernel.o WeeBins/Drivers/VGA_Text.o WeeBins/Drivers/port_io.o WeeBins/Utils/Conversions.o WeeBins/Memory/mem.o WeeBins/CPU/idt.o WeeBins/CPU/isr.o WeeBins/CPU/irq.o WeeBins/CPU/timer.o WeeBins/Drivers/Keyboard.o WeeBins/Misc/CmdMode.o WeeBins/Utils/string.o WeeBins/Misc/CodeMode.o WeeBins/Utils/dataStructures.o WeeBins/Shell/shell.o WeeBins/Drivers/Floppy.o WeeBins/Shell/shellFunctions.o WeeBins/CPU/gdt_loader.o WeeBins/CPU/gdt.o
-	i386-elf-ld -o "WeeBins/kernel.bin" -Ttext 0x1000 "WeeBins/kernel_entry.o" "WeeBins/kernel.o" "WeeBins/Drivers/VGA_Text.o" "WeeBins/Drivers/port_io.o" "WeeBins/Utils/Conversions.o" "WeeBins/Memory/mem.o" "WeeBins/CPU/idt.o" "WeeBins/CPU/isr.o" "WeeBins/CPU/irq.o" "WeeBins/CPU/timer.o" "WeeBins/Drivers/Keyboard.o" "WeeBins/Misc/CmdMode.o" "WeeBins/Utils/string.o" "WeeBins/Misc/CodeMode.o" "WeeBins/Utils/dataStructures.o" "WeeBins/Shell/shell.o" "WeeBins/Drivers/Floppy.o" "WeeBins/Shell/shellFunctions.o" "WeeBins/CPU/gdt_loader.o" "WeeBins/CPU/gdt.o" --oformat binary
+%.o: %.cpp
+	mkdir -p $(BIN)/$(shell dirname $<)
+	$(CC) $(FLAGS) -c $< -o $(BIN)/$(subst .cpp,.o,$<) $(addprefix -I ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
 
+%.o : %.asm
+	mkdir -p $(BIN)/$(shell dirname $<)
+	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
 
-#BOOT
-WeeBins/boot.bin: Bootloader/boot.asm
-	nasm "Bootloader/boot.asm" -f bin -o "WeeBins/boot.bin" -i Bootloader
-WeeBins/empty_end.bin: Kernel/empty_end.asm
-	nasm "Kernel/empty_end.asm" -f bin -o "WeeBins/empty_end.bin"
-
-#KERNEL
-
-WeeBins/kernel.o: Kernel/kernel.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Kernel/kernel.cpp" -o "WeeBins/kernel.o" -I Kernel
-WeeBins/kernel_entry.o: Kernel/kernel_entry.asm
-	nasm "Kernel/kernel_entry.asm" -f elf -o "WeeBins/kernel_entry.o" -i Kernel
-
-#DRIVERS + UTILS
-"WeeBins/Drivers/port_io.o": "Drivers/port_io.cpp" 
-	i386-elf-gcc -ffreestanding -m32 -g -c "Drivers/port_io.cpp" -o "WeeBins/Drivers/port_io.o" -I Drivers
-
-"WeeBins/Drivers/VGA_Text.o": "Drivers/VGA_Text.cpp" 
-	i386-elf-gcc -ffreestanding -m32 -g -c "Drivers/VGA_Text.cpp" -o "WeeBins/Drivers/VGA_Text.o" -I Drivers
-
-WeeBins/Drivers/Keyboard.o: Drivers/Keyboard.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Drivers/Keyboard.cpp" -o "WeeBins/Drivers/Keyboard.o" -I Drivers
-
-WeeBins/Drivers/Floppy.o: Drivers/Floppy.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Drivers/Floppy.cpp" -o "WeeBins/Drivers/Floppy.o" -I Drivers
-WeeBins/Utils/Conversions.o: Utils/Conversions.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Utils/Conversions.cpp" -o "WeeBins/Utils/Conversions.o" -I Utils
-
-WeeBins/Utils/string.o: Utils/string.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Utils/string.cpp" -o "WeeBins/Utils/string.o" -I Utils
-WeeBins/Utils/dataStructures.o: Utils/dataStructures.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Utils/dataStructures.cpp" -o "WeeBins/Utils/dataStructures.o" -I Utils
-
-
-# CPU
-WeeBins/CPU/gdt.o: CPU/GDT/gdt.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "CPU/GDT/gdt.cpp" -o "WeeBins/CPU/gdt.o" -I GDT
-	
-WeeBins/CPU/gdt_loader.o: CPU/GDT/gdt_loader.asm
-	nasm "CPU/GDT/gdt_loader.asm" -f elf -o "WeeBins/CPU/gdt_loader.o"
-
-WeeBins/CPU/idt.o: CPU/Interrupts/idt.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "CPU/Interrupts/idt.cpp" -o "WeeBins/CPU/idt.o"
-
-WeeBins/CPU/isr.o: CPU/Interrupts/isr.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "CPU/Interrupts/isr.cpp" -o "WeeBins/CPU/isr.o" -I Interrupts
-
-WeeBins/CPU/irq.o: CPU/Interrupts/irq.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "CPU/Interrupts/irq.cpp" -o "WeeBins/CPU/irq.o" -I Interrupts
-
-WeeBins/CPU/timer.o: CPU/Timer/timer.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "CPU/Timer/timer.cpp" -o "WeeBins/CPU/timer.o" -I Timer
-
-#MEMORY
-WeeBins/Memory/mem.o: Memory/mem.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Memory/mem.cpp" -o "WeeBins/Memory/mem.o"
-
-
-
-#MISC
-WeeBins/Misc/CmdMode.o: Misc/CmdMode.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Misc/CmdMode.cpp" -o "WeeBins/Misc/CmdMode.o" -I Misc
-
-WeeBins/Misc/CodeMode.o: Misc/CodeMode.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Misc/CodeMode.cpp" -o "WeeBins/Misc/CodeMode.o" -I Misc
-
-# SHELL
-WeeBins/Shell/shellFunctions.o: Shell/shellFunctions.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Shell/shellFunctions.cpp" -o "WeeBins/Shell/shellFunctions.o" -I Shell
-	
-WeeBins/Shell/shell.o: Shell/shell.cpp
-	i386-elf-gcc -ffreestanding -m32 -g -c "Shell/shell.cpp" -o "WeeBins/Shell/shell.o" -I Shell
+run:
+	qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
