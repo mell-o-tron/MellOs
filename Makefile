@@ -1,3 +1,5 @@
+export PATH := $(PATH):/usr/local/i386elfgcc/bin
+
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 ## Linker
