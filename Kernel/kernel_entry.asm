@@ -6,6 +6,7 @@ global MemSize
     mov [MemSize], bx   ; Get memory size from bx
 
 [extern main]
+[extern kpanic]
 call main		        ; calls kernel function main()
 
 jmp $

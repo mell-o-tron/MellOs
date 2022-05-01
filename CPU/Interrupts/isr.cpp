@@ -6,7 +6,7 @@
 #include "../../Utils/Typedefs.h"
 #include "idt.h"
 #include "../../Drivers/VGA_Text.h"
-
+#include "../../Kernel/kernel.h"
 
 
 extern "C" void _isr0();
@@ -79,52 +79,11 @@ void isrs_install()
 	
 }
 
-
-const char* exception_messages[] = 
-{
-	"Division By Zero",
-	"Debug",
-	"Non Maskable Interrupt",
-	"Breakpoint",
-	"Into Detected Overflow",
-	"Out of Bounds",
-	"Invalid Opcode",
-	"No Coprocessor",
-	"Double Fault",
-	"Coprocessor Segment Overrun",
-	"Bad TSS",
-	"Segment Not Present",
-	"Stack Fault",
-	"General Protection Fault",
-	"Page Fault",
-	"Unknown Interrupt",
-	"Coprocessor Fault",
-	"Alignment Check",
-	"Machine Check",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved"
-};
-
-
-
 extern "C" void _fault_handler(struct regs *r)
 {
     
     if (r->int_no < 32)
     {
-        kprint(exception_messages[r->int_no]);
-        kprint(" Exception. System Halted!\n\r");
-        for (;;);
+		kpanic(r);
     }
 }

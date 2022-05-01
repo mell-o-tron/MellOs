@@ -109,6 +109,7 @@ void parseCommand(){
     else if (CheckCMD(floppyCMD, "floppy ")){;}
     else if (CheckCMD(floppyCMD, "floppy")){;}      // get rid of redundancy asap
     else if (CheckCMD(clearCMD, "clear")){;}
+    else if (CheckCMD(HCF, "hcf")){;}
     else {kprint("\""); kprint(CommandBuffer); kprint("\" is not a command");}
     kprint("\n");
     CommandCursor = CursorPos;
