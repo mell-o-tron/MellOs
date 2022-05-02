@@ -72,3 +72,8 @@ void clearCMD(const char* s){
     }
     
 }
+
+// Halt and catch fire, this is just a tester function for kpanic
+void HCF(const char* s){
+    int x = 0/0;
+}

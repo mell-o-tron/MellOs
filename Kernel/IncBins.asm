@@ -12,3 +12,8 @@ global bdr
 
 bdr: incbin "bdr.txt"
 db 0
+
+global KPArt
+
+KPArt: incbin "KPArt.txt"
+db 0

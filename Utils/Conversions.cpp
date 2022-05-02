@@ -54,3 +54,15 @@ int oct2bin(unsigned char *str, int size) {
     }
     return n;
 }
+
+int hex2bin(unsigned char *str, int size) {
+    int n = 0;
+    unsigned char *c = str;
+    while(size-- > 0) {
+        n *= 16;
+        if(n >= '0' && n <= '9') n += *c - '0';
+        else if (n >= 'A' && n <= 'F') n += *c - 55;
+        c++;
+    }
+    return n;
+}

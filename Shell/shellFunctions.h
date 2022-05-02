@@ -4,4 +4,5 @@ void printUsedMem(const char* s);
 void floppyCMD(const char* s);
 void helpCMD(const char* s);
 void clearCMD(const char* s);
+void HCF(const char* s);
 #endif

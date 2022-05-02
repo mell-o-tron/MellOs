@@ -43,6 +43,7 @@ global _isr29
 global _isr30
 global _isr31
 
+[extern kpanic]
 
 _isr0:
 	cli
@@ -203,7 +204,7 @@ _isr31:
 	jmp isr_common_stub
 
 
-extern _fault_handler
+extern kpanic
 
 
 isr_common_stub:
@@ -219,7 +220,7 @@ isr_common_stub:
 	mov gs, ax
 	mov eax, esp                   ; Push us the stack
 	push eax
-	mov eax, _fault_handler        ; checks if interrupt number < 32 (if it represents an exception)
+	mov eax, kpanic				   ; checks if interrupt number < 32 (if it represents an exception)
                                    ; prints exception message and halts system.
 	call eax	                   ; A special call, preserves the 'eip' register
 	pop eax
