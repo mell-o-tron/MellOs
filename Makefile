@@ -1,7 +1,7 @@
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 ## Linker
-LD=/usr/local/i386elfgcc/bin/i386-elf-LD
+LD=/usr/local/i386elfgcc/bin/i386-elf-ld
 SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=WeeBins
@@ -26,7 +26,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CPPTAR)
-	i386-elf-ld -o $(BIN)/kernel.bin -Ttext 0x1000 --start-group $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/VGA_Text.o $(BIN)/Drivers/port_io.o $(BIN)/Utils/Conversions.o $(BIN)/Memory/mem.o $(BIN)/CPU/Interrupts/idt.o $(BIN)/CPU/Interrupts/isr.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/CPU/Timer/timer.o $(BIN)/Drivers/Keyboard.o $(BIN)/Misc/CmdMode.o $(BIN)/Utils/string.o $(BIN)/Misc/CodeMode.o $(BIN)/Utils/dataStructures.o $(BIN)/Shell/shell.o $(BIN)/Drivers/Floppy.o $(BIN)/Shell/shellFunctions.o $(BIN)/CPU/GDT/gdt_loader.o $(BIN)/CPU/GDT/gdt.o --end-group --oformat binary
+	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 --start-group $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/VGA_Text.o $(BIN)/Drivers/port_io.o $(BIN)/Utils/Conversions.o $(BIN)/Memory/mem.o $(BIN)/CPU/Interrupts/idt.o $(BIN)/CPU/Interrupts/isr.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/CPU/Timer/timer.o $(BIN)/Drivers/Keyboard.o $(BIN)/Misc/CmdMode.o $(BIN)/Utils/string.o $(BIN)/Misc/CodeMode.o $(BIN)/Utils/dataStructures.o $(BIN)/Shell/shell.o $(BIN)/Drivers/Floppy.o $(BIN)/Shell/shellFunctions.o $(BIN)/CPU/GDT/gdt_loader.o $(BIN)/CPU/GDT/gdt.o --end-group --oformat binary
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 
