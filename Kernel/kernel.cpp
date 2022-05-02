@@ -24,7 +24,6 @@
 int curMode;					        // Modes:	1: CMD, 2: code, 0: dummy text, 10: shell
 
 extern const char Fool[];			    // Test included binaries
-extern const char John[];
 extern const char KPArt[];
 extern const unsigned short MemSize;    // Approximate value of extended memory (under 4 GB)
 
@@ -36,6 +35,7 @@ extern "C" void kpanic(struct regs *r){
 	char panicscreen[4000];
 	const char* components[] = {
 		KPArt,
+        "Exception message: ",
 		exception_messages[r->int_no],
 	};
 	int psidx = 0; //Index to access panicscreen
@@ -77,6 +77,8 @@ extern "C" void main(){
 	kb_install();
     initializeMem();
     load_shell();
+
+    
     //kprint(strDecapitate("print pal", strLen("print ")));
     //kprint("one\ntwo two \nthree three three \nfour four four four");
     //scrollPageUp();

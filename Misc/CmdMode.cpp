@@ -26,14 +26,13 @@ const char* commands[] = {		// command labels
 "calc",
 "code",
 "help",
-"BDR",
+"",
 "darkmode",
 "lightmode",
 };
 
 
 extern const char Fool[];
-extern const char bdr[];
 
 
 extern int curMode;			// current mode
@@ -115,15 +114,6 @@ void ExecCmd(int cmd, char* str){
 			}
 			kprint("\n");
 			break;
-		case 5: 
-			ClearScreen(0x0D);
-			SetCursorPosRaw(81);
-			kprint(bdr);
-			kprintCol("          \"Addio, Bocca di Rosa, con te se ne parte la primavera\".              ", 0xe0);
-			
-			
-			SetCursorPosRaw(81);
-			asm volatile ("1: jmp 1b");
 		case 6: ColScreen(DARK_COLOR); curColor = DARK_COLOR; break;
 		case 7: ColScreen(DEFAULT_COLOR); curColor = DEFAULT_COLOR; break;
 		default: kprint("not yet ");
