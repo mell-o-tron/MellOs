@@ -7,8 +7,6 @@
 
 extern const char* currentTask;
 
-static const int numberOfCMDs = 5;
-
 extern uint16_t CursorPos;
 
 static const char *  const helpList[5] = {                  // find better (dynamic) way
@@ -24,7 +22,7 @@ void helpCMD(const char* s){
     if(strLen(s) == 0){
         currentTask = "help";
         kprint("List of commands:\n");
-        for(int i = 0; i < numberOfCMDs; i++)
+        for(int i = 0; i < sizeof(helpList)/sizeof(char*); i++)
             kprint(helpList[i]);
     }
     else{
@@ -75,5 +73,41 @@ void clearCMD(const char* s){
 
 // Halt and catch fire, this is just a tester function for kpanic
 void HCF(const char* s){
+    // Try any exceptions you want
     int x = 0/0;
+}
+
+//Maybe make these a dictionary?
+const char* CMDNames[] = {
+    "help",
+    "echo",
+    "usedmem",
+    "floppy",
+    "clear",
+    "hcf"
+};
+
+fptr CMDBinds[sizeof(CMDNames)/sizeof(char*)]{
+    &helpCMD,
+    &kprint,
+    &printUsedMem,
+    &floppyCMD,
+    &clearCMD,
+    &HCF
+};
+
+int LastCMDidx = 0;
+
+fptr TryGetCMDPointer(char* cmdbuf){
+    for(int x = 0; x < sizeof(CMDNames)/sizeof(char*); x++){
+        if(StringStartsWith(cmdbuf, CMDNames[x])){
+            LastCMDidx = x;
+            return CMDBinds[x];
+        }
+    }
+    return 0;
+}
+
+int GetCMDLength(){
+    return strLen(CMDNames[LastCMDidx]);
 }

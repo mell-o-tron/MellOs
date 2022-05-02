@@ -7,6 +7,8 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
+typedef void (*fptr)(const char *);
+
 //USEFUL FOR IDT
 
 #define low_16(address) (uint16_t)((address) && 0xFFFF)

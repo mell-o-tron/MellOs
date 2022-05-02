@@ -78,7 +78,6 @@ void refreshShell(){
 	return;
 }
 
-
 char CommandBuffer[128];
 void findCommand(){
     SetCursorPosRaw(CommandCursor);
@@ -90,27 +89,21 @@ void findCommand(){
 }
 
 
-bool CheckCMD(void(*f)(const char*), const char* command){
-    bool res = false;
-    memrec();
-    if(StringStartsWith(CommandBuffer, command)) {
-        f(strDecapitate(CommandBuffer, strLen(command)));
-        res = true;
-    }
-    memunrec();
-    return res;
-}
 
 void parseCommand(){
     findCommand();
-         if(CheckCMD(helpCMD, "help")){;}
-    else if (CheckCMD(kprint, "echo ")){currentTask = "echo";}
-    else if (CheckCMD(printUsedMem, "usedmem")){;}
-    else if (CheckCMD(floppyCMD, "floppy ")){;}
-    else if (CheckCMD(floppyCMD, "floppy")){;}      // get rid of redundancy asap
-    else if (CheckCMD(clearCMD, "clear")){;}
-    else if (CheckCMD(HCF, "hcf")){;}
-    else {kprint("\""); kprint(CommandBuffer); kprint("\" is not a command");}
+    int tableidx = 0;
+    memrec();
+    if(CommandBuffer[0] == 0){;}
+    else{
+        fptr cmd = TryGetCMDPointer(CommandBuffer);
+        if(cmd != 0){
+            int CommandLength = GetCMDLength();
+            cmd(strDecapitate(CommandBuffer, CommandLength));
+        }
+        else {kprint("\""); kprint(CommandBuffer); kprint("\" is not a command");}
+    }
+    memunrec();
     kprint("\n");
     CommandCursor = CursorPos;
     ClrLine(24);
