@@ -1,5 +1,5 @@
 # Mellotron Kernel (MellOS)
-*A very simple kernel I'm working on in my free time.* 
+*A minimal, collaboratively written kernel* 
 ## Why MellOS
 A while back I was gifted a 1994 Compaq Presario, and I figured I could use it to learn how to write a simple operating system. I started writing some real mode programs, and eventually I moved on to writing a simple 32 bit kernel. 
 
@@ -10,6 +10,8 @@ Some of the resources I found most useful are [the OSDEV wiki](https://wiki.osde
 
 ## Future of MellOS
 I'm doing this in my spare time, which basically means "during a small part of the summer and a week or so around Christmas". Feel free to do whatever you like with this, as long as you don't physically (nor psychologically) harm people or other animals I'm absolutely fine with it.
+
+Feel free to make pull requests and they'll be processed whenever possible.
 
 ## Contributions
 Special thanks to all of those who contributed. Your changelogs will be integrated in `contributions.md`
