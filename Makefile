@@ -12,11 +12,16 @@ FLAGS=-ffreestanding -m32 -g
 CPPSRC := $(shell find ./ -name "*.cpp")
 ## C++ target files
 CPPTAR := $(patsubst %.cpp,%.o,$(CPPSRC))
+CPPOBJWithWeridPath := $(addprefix $(BIN)/, $(CPPTAR))
+CPPOBJ := $(subst ./,,$(CPPOBJWithWeridPath))
 
 ## Assembly files to ignore in ASMTAR - these need to be compiled to .bin or not at all
 ASMBIN := ./Bootloader/boot.o ./Kernel/empty_end.o ./Bootloader/AvailableMemory.o ./Bootloader/EnterPM.o ./Bootloader/PrintDecimal.o ./Bootloader/PrintString.o ./Bootloader/PrintStringPM.o ./Bootloader/ReadFromDisk.o ./CPU/Interrupts/interrupt.o ./Kernel/IncBins.o 
 ASMSRC := $(shell find ./ -name "*.asm")
 ASMTAR := $(filter-out $(ASMBIN),$(patsubst %.asm,%.o,$(ASMSRC)))
+DoNotIncludeInKernelASM := WeeBins/Bootloader/basic_gdt.o WeeBins/Kernel/kernel_entry.o
+KERNELASMOBJ := $(filter-out $(DoNotIncludeInKernelASM), $(subst ./,,$(addprefix $(BIN)/, $(ASMTAR))))
+
 
 all: prebuild build run
 
@@ -26,7 +31,8 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CPPTAR)
-	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 --start-group $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/VGA_Text.o $(BIN)/Drivers/port_io.o $(BIN)/Utils/Conversions.o $(BIN)/Memory/mem.o $(BIN)/CPU/Interrupts/idt.o $(BIN)/CPU/Interrupts/isr.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/CPU/Timer/timer.o $(BIN)/Drivers/Keyboard.o $(BIN)/Misc/CmdMode.o $(BIN)/Utils/string.o $(BIN)/Misc/CodeMode.o $(BIN)/Utils/dataStructures.o $(BIN)/Shell/shell.o $(BIN)/Drivers/Floppy.o $(BIN)/Shell/shellFunctions.o $(BIN)/CPU/GDT/gdt_loader.o $(BIN)/CPU/GDT/gdt.o --end-group --oformat binary
+	echo $(KERNELASMOBJ)
+	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 --start-group  WeeBins/Kernel/kernel_entry.o $(CPPOBJ) $(KERNELASMOBJ) --end-group --oformat binary
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 
