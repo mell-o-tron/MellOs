@@ -88,18 +88,14 @@ void findCommand(){
 	CommandBuffer[i] = 0;
 }
 
-
-
 void parseCommand(){
     findCommand();
-    int tableidx = 0;
     memrec();
     if(CommandBuffer[0] == 0){;}
     else{
-        fptr cmd = TryGetCMDPointer(CommandBuffer);
+        shellfunction* cmd = TryGetCMD(CommandBuffer);
         if(cmd != 0){
-            int CommandLength = GetCMDLength();
-            cmd(strDecapitate(CommandBuffer, CommandLength));
+            cmd->fptr(strDecapitate(CommandBuffer, strLen(cmd->alias)));
         }
         else {kprint("\""); kprint(CommandBuffer); kprint("\" is not a command");}
     }

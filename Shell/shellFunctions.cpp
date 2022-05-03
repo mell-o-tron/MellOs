@@ -5,6 +5,8 @@
 #include "../Drivers/Floppy.h"
 #include "../Utils/string.h"
 
+#include "shellFunctions.h"
+
 extern const char* currentTask;
 
 extern uint16_t CursorPos;
@@ -18,6 +20,7 @@ static const char *  const helpList[5] = {                  // find better (dyna
     
 };
 
+// Bind this to CMDs and use the help texts for each command (that's the better way ^)
 void helpCMD(const char* s){
     if(strLen(s) == 0){
         currentTask = "help";
@@ -77,37 +80,40 @@ void HCF(const char* s){
     int x = 0/0;
 }
 
-//Maybe make these a dictionary?
-const char* CMDNames[] = {
-    "help",
-    "echo",
-    "usedmem",
-    "floppy",
-    "clear",
-    "hcf"
+shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
+    shellfunction f;
+    f.fptr = Fptr;
+    kprint("<<");
+    kprint(Alias);
+    kprint(">>");
+    f.alias = Alias;
+    kprint("[[");
+    kprint(f.alias);
+    kprint("]]");
+    f.help = Help;
+    return f;
+}
+
+#define CMDENTRY(fptr, alias, help) {   \
+    fptr,                               \
+    alias,                              \
+    help                                \
+}
+
+shellfunction CMDs[] = {
+    CMDENTRY(&helpCMD, "help", "Shows command list"),
+    CMDENTRY(&kprint, "echo", "Prints text"),
+    CMDENTRY(&printUsedMem, "usedmem", "Shows dynamic memory usage"),
+    CMDENTRY(&floppyCMD, "floppy", "Shows list of connected floppy drives"),
+    CMDENTRY(&clearCMD, "clear", "Clears the screen"),
+    CMDENTRY(&HCF, "hcf", "Crashes your system")
 };
 
-fptr CMDBinds[sizeof(CMDNames)/sizeof(char*)]{
-    &helpCMD,
-    &kprint,
-    &printUsedMem,
-    &floppyCMD,
-    &clearCMD,
-    &HCF
-};
-
-int LastCMDidx = 0;
-
-fptr TryGetCMDPointer(char* cmdbuf){
-    for(int x = 0; x < sizeof(CMDNames)/sizeof(char*); x++){
-        if(StringStartsWith(cmdbuf, CMDNames[x])){
-            LastCMDidx = x;
-            return CMDBinds[x];
+shellfunction* TryGetCMD(char* cmdbuf){
+    for(int x = 0; x < sizeof(CMDs)/sizeof(shellfunction); x++){
+        if(StringStartsWith(cmdbuf, CMDs[x].alias)){
+            return &CMDs[x];
         }
     }
     return 0;
-}
-
-int GetCMDLength(){
-    return strLen(CMDNames[LastCMDidx]);
 }

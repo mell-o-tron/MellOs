@@ -1,9 +1,15 @@
 #ifndef SHELLFUNCTIONS_H
 #define SHELLFUNCTIONS_H
 
-#include "../Utils/Typedefs.h";
+#include "../Utils/Typedefs.h"
 
-fptr TryGetCMDPointer(char* cmdbuf);
+typedef struct shellfunction{
+    void (*fptr)(const char *);
+    char* alias;
+    char* help;
+};
+
+shellfunction* TryGetCMD(char* cmdbuf);
 int GetCMDLength();
 
 #endif
