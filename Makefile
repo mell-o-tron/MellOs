@@ -1,7 +1,7 @@
 ## Compiler
-CC=/home/franchioping/opt/cross-64/bin/i686-elf-gcc
+CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 ## Linker
-LD=/home/franchioping/opt/cross-64/bin/i686-elf-ld
+LD=/usr/local/i386elfgcc/bin/i386-elf-ld
 SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=WeeBins
