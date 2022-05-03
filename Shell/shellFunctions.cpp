@@ -6,6 +6,7 @@
 #include "../Utils/string.h"
 
 #include "shellFunctions.h"
+#include "./functions/functions.h"
 
 extern const char* currentTask;
 
@@ -37,49 +38,6 @@ void helpCMD(const char* s){
    
 }
 
-void printUsedMem(const char* s){
-    if(strLen(s) == 0){
-        currentTask = "usedmem";
-        kprint("Used dynamic memory: ");
-        kprint(toString(getFreeMem() - 0x10000, 10));
-        kprint(" bytes");
-    }
-    else{
-        kprint("Invalid option: \"");
-        if(s[0] == ' ') kprint((const char*)((int)s + 1));
-        else kprint(s);
-        kprint("\"");
-    }
-}
-
-void floppyCMD(const char* s){
-    currentTask = "floppy";
-    if(StringStartsWith(s, "list")) floppy_detect_drives();
-    else if(false){;}       // will contain other floppy commands
-    else{kprint(helpList[3]);}
-}
-
-void clearCMD(const char* s){ 
-    if(strLen(s) == 0){
-        currentTask = "clear";
-        ClearScreen(-1);
-        CursorPos = 0;
-    }
-    else{
-        kprint("Invalid option: \"");
-        if(s[0] == ' ') kprint((const char*)((int)s + 1));
-        else kprint(s);
-        kprint("\"");
-    }
-    
-}
-
-// Halt and catch fire, this is just a tester function for kpanic
-void HCF(const char* s){
-    // Try any exceptions you want
-    int x = 0/0;
-}
-
 shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
     shellfunction f;
     f.fptr = Fptr;
@@ -101,12 +59,12 @@ shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
 }
 
 shellfunction CMDs[] = {
-    CMDENTRY(&helpCMD, "help", "Shows command list"),
-    CMDENTRY(&kprint, "echo", "Prints text"),
-    CMDENTRY(&printUsedMem, "usedmem", "Shows dynamic memory usage"),
-    CMDENTRY(&floppyCMD, "floppy", "Shows list of connected floppy drives"),
-    CMDENTRY(&clearCMD, "clear", "Clears the screen"),
-    CMDENTRY(&HCF, "hcf", "Crashes your system")
+    CMDENTRY(&helpCMD,  "help",     "Shows command list"),
+    CMDENTRY(&echo,     "echo",     "Prints text"),
+    CMDENTRY(&usedmem,  "usedmem",  "Shows dynamic memory usage"),
+    CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives"),
+    CMDENTRY(&clear,    "clear",    "Clears the screen"),
+    CMDENTRY(&hcf,      "hcf",      "Crashes your system")
 };
 
 shellfunction* TryGetCMD(char* cmdbuf){

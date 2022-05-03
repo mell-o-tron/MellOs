@@ -1,5 +1,6 @@
 #ifndef VGA_TEXT_H
 #define VGA_TEXT_H
+#include "../Utils/Typedefs.h"
 void SetCursorPosRaw(uint16_t pos);
 void SetCursorPos(int x, int y);
 //uint16_t GetCursorPos();
