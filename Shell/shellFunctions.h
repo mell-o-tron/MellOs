@@ -1,8 +1,15 @@
 #ifndef SHELLFUNCTIONS_H
 #define SHELLFUNCTIONS_H
-void printUsedMem(const char* s);
-void floppyCMD(const char* s);
-void helpCMD(const char* s);
-void clearCMD(const char* s);
-void HCF(const char* s);
+
+#include "../Utils/Typedefs.h"
+
+typedef struct shellfunction{
+    void (*fptr)(const char *);
+    char* alias;
+    char* help;
+};
+
+shellfunction* TryGetCMD(char* cmdbuf);
+int GetCMDLength();
+
 #endif

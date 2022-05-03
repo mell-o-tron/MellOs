@@ -17,6 +17,7 @@
 #include "../CPU/GDT/gdt.h"
 #include "../Drivers/Keyboard.h"
 #include "../Drivers/Floppy.h"
+#include "../Drivers/port_io.h"
 #include "../Misc/CmdMode.h"
 #include "../Utils/dataStructures.h"
 #include "../Shell/shell.h"
@@ -61,6 +62,10 @@ extern "C" void kpanic(struct regs *r){
 		*write++ = panicscreen[i];
 		*write++ = ERRCOL;
 	}
+
+	// Disables the flashing cursor because that's annoying imo
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, 0x20);
 
 	for(;;);
 }

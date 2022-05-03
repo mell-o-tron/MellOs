@@ -5,9 +5,10 @@
 #include "../Drivers/Floppy.h"
 #include "../Utils/string.h"
 
-extern const char* currentTask;
+#include "shellFunctions.h"
+#include "./functions/functions.h"
 
-static const int numberOfCMDs = 5;
+extern const char* currentTask;
 
 extern uint16_t CursorPos;
 
@@ -20,11 +21,12 @@ static const char *  const helpList[5] = {                  // find better (dyna
     
 };
 
+// Bind this to CMDs and use the help texts for each command (that's the better way ^)
 void helpCMD(const char* s){
     if(strLen(s) == 0){
         currentTask = "help";
         kprint("List of commands:\n");
-        for(int i = 0; i < numberOfCMDs; i++)
+        for(int i = 0; i < sizeof(helpList)/sizeof(char*); i++)
             kprint(helpList[i]);
     }
     else{
@@ -36,44 +38,40 @@ void helpCMD(const char* s){
    
 }
 
-void printUsedMem(const char* s){
-    if(strLen(s) == 0){
-        currentTask = "usedmem";
-        kprint("Used dynamic memory: ");
-        kprint(toString(getFreeMem() - 0x10000, 10));
-        kprint(" bytes");
-    }
-    else{
-        kprint("Invalid option: \"");
-        if(s[0] == ' ') kprint((const char*)((int)s + 1));
-        else kprint(s);
-        kprint("\"");
-    }
+shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
+    shellfunction f;
+    f.fptr = Fptr;
+    kprint("<<");
+    kprint(Alias);
+    kprint(">>");
+    f.alias = Alias;
+    kprint("[[");
+    kprint(f.alias);
+    kprint("]]");
+    f.help = Help;
+    return f;
 }
 
-void floppyCMD(const char* s){
-    currentTask = "floppy";
-    if(StringStartsWith(s, "list")) floppy_detect_drives();
-    else if(false){;}       // will contain other floppy commands
-    else{kprint(helpList[3]);}
+#define CMDENTRY(fptr, alias, help) {   \
+    fptr,                               \
+    alias,                              \
+    help                                \
 }
 
-void clearCMD(const char* s){ 
-    if(strLen(s) == 0){
-        currentTask = "clear";
-        ClearScreen(-1);
-        CursorPos = 0;
-    }
-    else{
-        kprint("Invalid option: \"");
-        if(s[0] == ' ') kprint((const char*)((int)s + 1));
-        else kprint(s);
-        kprint("\"");
-    }
-    
-}
+shellfunction CMDs[] = {
+    CMDENTRY(&helpCMD,  "help",     "Shows command list"),
+    CMDENTRY(&echo,     "echo",     "Prints text"),
+    CMDENTRY(&usedmem,  "usedmem",  "Shows dynamic memory usage"),
+    CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives"),
+    CMDENTRY(&clear,    "clear",    "Clears the screen"),
+    CMDENTRY(&hcf,      "hcf",      "Crashes your system")
+};
 
-// Halt and catch fire, this is just a tester function for kpanic
-void HCF(const char* s){
-    int x = 0/0;
+shellfunction* TryGetCMD(char* cmdbuf){
+    for(int x = 0; x < sizeof(CMDs)/sizeof(shellfunction); x++){
+        if(StringStartsWith(cmdbuf, CMDs[x].alias)){
+            return &CMDs[x];
+        }
+    }
+    return 0;
 }
