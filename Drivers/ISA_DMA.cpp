@@ -1,5 +1,6 @@
 #include "ISA_DMA.h"
 #include "port_io.h"
+#include "../Drivers/VGA_Text.h"
 
 
 /*
@@ -55,6 +56,26 @@ enum dma_registers {
     ISA_DMA_REGISTER_Channel7PageAddress = 0x8A,
 };
 
+void maskChannel(uint8_t channel, int masked){
+    uint8_t out = 0;
+    uint16_t port = 0x0A;
+
+    if(masked){
+        out += 8;
+    }
+
+    if(channel >= 4){
+        port += 0xC0;
+        channel -= 4;
+    }
+
+
+    out += channel;
+    outb(port, out);
+
+}
+
+
 // the address should only be 24bits long, and have a total of 0x23ff in size
 void initFloppyDMA(uint32_t address){
 
@@ -82,7 +103,8 @@ void initFloppyDMA(uint32_t address){
 
 
     // mask DMA channel 2 and 0 (assuming 0 is already masked)
-    outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06);
+    //outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06);
+    maskChannel(2, 1);
 
     // reset the master flip-flop
     outb(ISA_DMA_REGISTER_FlipFlopRest, 0xFF);
@@ -104,19 +126,23 @@ void initFloppyDMA(uint32_t address){
     outb(ISA_DMA_REGISTER_Channel2PageAddress, thirdThird);
 
     // unmask DMA channel 2
-    outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    //outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    maskChannel(2, 0);
 
 }
 
 
 void prepare_for_floppyDMA_write(){
-    outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06); // mask channel 2, and 0 (admiting 0 is already masked)
+    // mask channel 2, and 0 (admiting 0 is already masked)
+    // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06);
+    maskChannel(2, 1);
 
     outb(ISA_DMA_REGISTER_Mode, 0x4A); // 01010110
-                                                 //single transfer, address increment, autoinit, read, channel2
+                                                 //single transfer, address increment, auto init, read, channel2
 
     // unmask DMA channel 2
-    outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    maskChannel(2, 1);
 
 }
 
