@@ -2,9 +2,10 @@
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 ## Linker
 LD=/usr/local/i386elfgcc/bin/i386-elf-ld
+
 SRC=$(shell pwd)
 ## Directory to write binaries to
-BIN=WeeBins
+BIN=./WeeBins
 ## Compiler Flags
 FLAGS=-ffreestanding -m32 -g
 
@@ -12,16 +13,14 @@ FLAGS=-ffreestanding -m32 -g
 CPPSRC := $(shell find ./ -name "*.cpp")
 ## C++ target files
 CPPTAR := $(patsubst %.cpp,%.o,$(CPPSRC))
-CPPOBJWithWeridPath := $(addprefix $(BIN)/, $(CPPTAR))
-CPPOBJ := $(subst ./,,$(CPPOBJWithWeridPath))
 
-## Assembly files to ignore in ASMTAR - these need to be compiled to .bin or not at all
-ASMBIN := ./Bootloader/boot.o ./Kernel/empty_end.o ./Bootloader/AvailableMemory.o ./Bootloader/EnterPM.o ./Bootloader/PrintDecimal.o ./Bootloader/PrintString.o ./Bootloader/PrintStringPM.o ./Bootloader/ReadFromDisk.o ./CPU/Interrupts/interrupt.o ./Kernel/IncBins.o 
-ASMSRC := $(shell find ./ -name "*.asm")
-ASMTAR := $(filter-out $(ASMBIN),$(patsubst %.asm,%.o,$(ASMSRC)))
-DoNotIncludeInKernelASM := WeeBins/Bootloader/basic_gdt.o WeeBins/Kernel/kernel_entry.o
-KERNELASMOBJ := $(filter-out $(DoNotIncludeInKernelASM), $(subst ./,,$(addprefix $(BIN)/, $(ASMTAR))))
+## Assembly source files that must be compiled to ELF
+ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/basic_gdt.asm ./Kernel/kernel_entry.asm
+## Assembly target files
+ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
+## Files which must be linked first, if things break just bodge it together
+LDPRIORITY := $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/Keyboard.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/Drivers/VGA_Text.o
 
 all: prebuild build run
 
@@ -31,8 +30,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CPPTAR)
-	echo $(KERNELASMOBJ)
-	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 --start-group  WeeBins/Kernel/kernel_entry.o $(CPPOBJ) $(KERNELASMOBJ) --end-group --oformat binary
+	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat binary ## Pray this works
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 
