@@ -1,6 +1,8 @@
 
 # Work In Progress
 
+<br>
+
 - ***Dynamic Modular Shell***
 
     *Will run executables when processes will be a thing.*
@@ -13,8 +15,11 @@
     *fairly long way from my university.*
 
 <br>
+<br>
 
 ## Planned
+
+<br>
 
 - ***File System support***
 
@@ -22,3 +27,5 @@
     on the floppy disk drivers.*
 
 - ***Process abstraction***
+
+<br>
