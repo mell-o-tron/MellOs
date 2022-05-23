@@ -10,8 +10,8 @@
 ---
 
 [![Button Why]][Why]  
-[![Button Future]][Future]  
-[![Button Changelog]][Changelog]  
+[![Button WIP]][WIP]  
+[![Button Changes]][Changes]  
 [![Button Bugs]][Bugs]
 
 ---
@@ -70,16 +70,23 @@
 
 Special thanks to all of those who contributed.
 
+Feel free to make pull requests, they <br> 
+will be processed whenever possible.
 
+<br>
 
+### Spare Time
 
-### Work in progress
-- Dynamic, Modular Shell (will run executables when processes will be a thing)
-- Floppy Disk Driver (does not work with USB floppy adapter, so I can only work on it when I'm at home, which is quite rare considering I live a fairly long way from my uni)
+I'm doing this in my spare time, which basically <br>
+means 'during a small part of the summer and <br>
+a week or so around Christmas'.
 
-### Future
-- Process abstraction
-- File System support, most likely USTAR (highly dependant on the floppy disk drivers)
+<br>
+
+<!-- Remove With Chosen License
+Feel free to do whatever you like with this, as long <br>
+as you don't physically (nor psychologically) harm <br>
+people or other animals I'm absolutely fine with it. -->
 
 
 <!----------------------------------------------------------------------------->
@@ -89,10 +96,10 @@ Special thanks to all of those who contributed.
 [OSDEV Wiki]: https://wiki.osdev.org/Main_Page
 [RTFM]: https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-3a-3b-3c-and-3d-system-programming-guide.html
 
-[Changelog]: Documentation/Changelog.md
+[Changes]: Documentation/Changelog.md
 [License]: #
-[Future]: Documentation/Future.md
 [Bugs]: Documentation/Bugs.md
+[WIP]: Documentation/WorkInProgress.md
 [Why]: Documentation/Why.md
 
 [Badge License]: https://img.shields.io/badge/License-Unknown-808080.svg?style=for-the-badge
@@ -100,7 +107,7 @@ Special thanks to all of those who contributed.
 
 <!---------------------------------{ Buttons }--------------------------------->
 
-[Button Changelog]: https://img.shields.io/badge/Changelog-37bdb7?style=for-the-badge
-[Button Future]: https://img.shields.io/badge/Future-71a4d7?style=for-the-badge
+[Button Changes]: https://img.shields.io/badge/Changelog-37bdb7?style=for-the-badge
 [Button Bugs]: https://img.shields.io/badge/Bugs-bd4a37?style=for-the-badge
+[Button WIP]: https://img.shields.io/badge/Work_In_Progress-71a4d7?style=for-the-badge
 [Button Why]: https://img.shields.io/badge/Why-bda137?style=for-the-badge
