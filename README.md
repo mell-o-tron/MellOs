@@ -1,5 +1,5 @@
 
-# MellOS
+# MellOS    [![Badge License]][License]
 
 *The minimal, collaboratively written **Mellotron Kernel**.*
 
@@ -77,3 +77,7 @@ As simple as it can get:
 [OSDever.Net]: http://www.osdever.net/tutorials/
 [OSDEV Wiki]: https://wiki.osdev.org/Main_Page
 [RTFM]: https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-3a-3b-3c-and-3d-system-programming-guide.html
+
+[License]: #
+
+[Badge License]: https://img.shields.io/badge/License-Unknown-808080.svg?style=for-the-badge
