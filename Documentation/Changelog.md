@@ -1,5 +1,13 @@
+
 # Contributions
-## 27 APRIL 2022 - Mastcharub:
-1. Added a basic GDT for the Kernel instead of using the one of the Bootloader
-1. Updated the path for the IDT and IRQ (Interrupts stuff)
----
+
+<br>
+
+### <kbd>2022 April 27th</kbd> <kbd>Mastcharub</kbd>
+
+- Added a basic **GDT** for the Kernel instead <br>
+  of using the one of the Bootloader.
+
+- Updated the path for the **IDT** and **IRQ**
+    
+    *( Interrupt stuff )*
