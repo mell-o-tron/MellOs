@@ -38,13 +38,23 @@ helped me move on whenever I got stuck.
 
 <br>
 
-## Future of MellOS
-I'm doing this in my spare time, which basically means "during a small part of the summer and a week or so around Christmas". Feel free to do whatever you like with this, as long as you don't physically (nor psychologically) harm people or other animals I'm absolutely fine with it.
+## Future
 
-Feel free to make pull requests and they'll be processed whenever possible.
+I'm doing this in my spare time, which basically <br>
+means 'during a small part of the summer and <br>
+a week or so around Christmas'.
+
+Feel free to do whatever you like with this, as long <br>
+as you don't physically (nor psychologically) harm <br>
+people or other animals I'm absolutely fine with it.
+
+Feel free to make pull requests, they <br> 
+will be processed whenever possible.
 
 ## Contributions
-Special thanks to all of those who contributed. Your changelogs will be integrated in `contributions.md`
+
+Special thanks to all of those who contributed. <br>
+Your changelogs will be integrated in `contributions.md`
 
 ## Features
 ### Current
