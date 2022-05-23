@@ -5,22 +5,7 @@
 
 <br>
 
-## Why
 
-A while back I was gifted a `1994 Compaq Presario` <br>
-and figured I could use it to learn how to write a <br>
-simple operating system.
-
-I started writing some real mode programs and <br>
-eventually I moved on to a simple 32-bit kernel. 
-
-I decided to share my results and progress for a <br>
-couple of reasons, the main of which might be <br>
-letting you have fun with this as much as I am.
-
-I also wanted to share the ways by which I fixed <br>
-my misconceptions, as well as the resources that <br>
-helped me move on whenever I got stuck.
 
 <br>
 
@@ -38,18 +23,7 @@ helped me move on whenever I got stuck.
 
 <br>
 
-## Future
 
-I'm doing this in my spare time, which basically <br>
-means 'during a small part of the summer and <br>
-a week or so around Christmas'.
-
-Feel free to do whatever you like with this, as long <br>
-as you don't physically (nor psychologically) harm <br>
-people or other animals I'm absolutely fine with it.
-
-Feel free to make pull requests, they <br> 
-will be processed whenever possible.
 
 ## Contributions
 
@@ -75,10 +49,6 @@ As simple as it can get:
 ### Future
 - Process abstraction
 - File System support, most likely USTAR (highly dependant on the floppy disk drivers)
-
-### Bugs and Horrible Code
-- The printy-screeney-bit is all broken and redundant, because it was made in a hurry for a very badly designed system. I updated most of the very badly designed system (it now is a mildly badly designed system), but not that, not yet. Next up, I guess.
-
 
 
 <!----------------------------------------------------------------------------->
