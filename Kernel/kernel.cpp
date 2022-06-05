@@ -22,7 +22,10 @@
 #include "../Utils/dataStructures.h"
 #include "../Shell/shell.h"
 
+#include "../Drivers/Disk.h"
+
 int curMode;					        // Modes:	1: CMD, 2: code, 0: dummy text, 10: shell
+
 
 extern const char Fool[];			    // Test included binaries
 extern const char KPArt[];
@@ -70,6 +73,7 @@ extern "C" void kpanic(struct regs *r){
 	for(;;);
 }
 
+
 extern "C" void main(){
 	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	
@@ -83,7 +87,7 @@ extern "C" void main(){
     initializeMem();
     load_shell();
 
-    
+
     //kprint(strDecapitate("print pal", strLen("print ")));
     //kprint("one\ntwo two \nthree three three \nfour four four four");
     //scrollPageUp();

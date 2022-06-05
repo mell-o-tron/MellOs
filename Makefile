@@ -47,4 +47,5 @@ boot:
 	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
 
 run:
-	qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
+## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
+	qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy -blockdev driver=file,node-name=f0,filename=disk.img -m 128M
