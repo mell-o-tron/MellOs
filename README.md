@@ -50,6 +50,7 @@ As simple as it can get:
 
 ### Steps
 - navigate to the root folder 
+- run ./requirements.sh (this installs all of the required build libraries and Visual Studio Code)
 - run ./cross-compiler.sh (make some tea/coffee/hot chocolate/etc)
 - run make (make some more)
 - every time you make some changes you can run ./commands.sh to test the kernel
