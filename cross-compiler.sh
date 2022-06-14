@@ -2,18 +2,18 @@
 export PREFIX="/usr/local/i386elfgcc"
 export TARGET=i386-elf
 export PATH="$PREFIX/bin:$PATH"
-
-# mkdir /tmp/src
-# cd /tmp/src
-# latest_binutils=$(curl https://ftp.gnu.org/gnu/binutils/ | tac | grep -o -m1 'binutils-[0-9]*\.[0-9]*\.*[0-9]*\.tar\.gz' | tail -1)
-# latest_binutils_directory=$(echo $latest_binutils | sed 's/\.tar\.gz//')
-# curl -O http://ftp.gnu.org/gnu/binutils/$latest_binutils
-# tar xf $latest_binutils
-# mkdir $latest_binutils_directory
-# cd $latest_binutils_directory
-# ../$latest_binutils_directory/configure --target=$TARGET --enable-interwork --enable-multilib --disable-nls --disable-werror --prefix=$PREFIX 2>&1 | tee configure.log
-# make all install 2>&1 | tee make.log
-
+# install bin-utils
+mkdir /tmp/src
+cd /tmp/src
+latest_binutils=$(curl https://ftp.gnu.org/gnu/binutils/ | tac | grep -o -m1 'binutils-[0-9]*\.[0-9]*\.*[0-9]*\.tar\.gz' | tail -1)
+latest_binutils_directory=$(echo $latest_binutils | sed 's/\.tar\.gz//')
+curl -O http://ftp.gnu.org/gnu/binutils/$latest_binutils
+tar xf $latest_binutils
+mkdir $latest_binutils_directory
+cd $latest_binutils_directory
+../$latest_binutils_directory/configure --target=$TARGET --enable-interwork --enable-multilib --disable-nls --disable-werror --prefix=$PREFIX 2>&1 | tee configure.log
+make all install 2>&1 | tee make.log
+# install gcc
 mkdir /tmp/src
 cd /tmp/src
 latest_gcc_version=$(curl http://ftp.gnu.org/gnu/gcc/ | tac | grep -o -m1 'gcc-[0-9]*\.[0-9]*\.*[0-9]*' | tail -1)

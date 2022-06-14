@@ -43,15 +43,16 @@ As simple as it can get:
 
 
 ### The idea of how to get this running
-- Download the kernel and the bootloader
 - Compile the kernel and the bootloader
 - Copy the kernel and the bootloader to the floppy disk
 - Boot the floppy disk
 
 ### Steps
-- navigate to the root folder 
+- install `git`
+- clone this repository `git clone https://github.com/abrahamn/PhillOS`
+- navigate to the root folder `cd phillos`
 - run `sudo ./requirements.sh` (this installs all of the required build libraries and Visual Studio Code)
 - run `sudo ./cross-compiler.sh` (make some tea/coffee/hot chocolate/etc)
 - run `make` (make some more)
 - every time you make some changes you can run `./commands.sh` to test the kernel
-- run `make` some more to verify (this time it's fast)
+- run `make` some more to verify that the kernel still boots up (this time it's fast)
