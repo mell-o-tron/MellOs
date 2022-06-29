@@ -9,30 +9,65 @@
 #define STATUS_DF       0x20
 #define STATUS_ERR      0x01
 
-// Detect IDE Controller and detect ATA Drive Coming Soon...
+void identify_ata(uint8_t drive){
+	// 0xA0 for Master
+	// 0xB0 for Slave
+
+	outb(0x1F6, drive);
+	outb(0x1F2, 0);
+	outb(0x1F3, 0);
+	outb(0x1F4, 0);
+	outb(0x1F5, 0);
+	outb(0x1F7, 0xEC);
+	uint8_t tmp = inb(0x1F7);
+	sleep(2);
+	if(tmp & STATUS_RDY){
+		switch(drive){
+			case 0xA0:
+				kprintCol("Master Drive is the current active Drive \n", DARK_COLOR);
+				break;
+			case 0xB0:
+				kprintCol("Slave Drive is the current active Drive \n", DARK_COLOR);
+				break;
+		}
+	}
+	else
+	{
+		switch(drive){
+			case 0xA0:
+				kprintCol("Master Drive is NOT the current active Drive \n", ERROR_COLOR);
+				break;
+			case 0xB0:
+				kprintCol("Slave Drive is NOT the current active Drive \n", ERROR_COLOR);
+				break;
+			}
+	}
+}
 
 void wait_BSY(){
-	while(inb(0x177) & STATUS_BSY);
+	while(inb(0x1F7) & STATUS_BSY);
 }
 
 void wait_DRQ(){
-	while(!(inb(0x177) & STATUS_RDY));
+	while(!(inb(0x1F7) & STATUS_RDY));
 }
 
-void lba28_read_sector(uint32_t block, uint32_t LBA, uint8_t drive){
+void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
     wait_BSY();
-    outb(0x176, drive | ((LBA >> 24) & 0xF));
-    outb(0x172, 0x01);
-    outb(0x173, (uint8_t) LBA);
-    outb(0x174, (uint8_t)(LBA >> 8));
-	outb(0x175, (uint8_t)(LBA >> 16)); 
-	outb(0x177, 0x20); // 0x20 = 'Read' Command
+    outb(0x1F6, drive | ((LBA >> 24) & 0xF));
+	outb(0x1F1, 0x00);
+    outb(0x1F2, sector);
+    outb(0x1F3, (uint8_t) LBA);
+    outb(0x1F4, (uint8_t)(LBA >> 8));
+	outb(0x1F5, (uint8_t)(LBA >> 16)); 
+	outb(0x1F7, 0x20); // 0x20 = 'Read' Command
 
-    uint16_t *addr = (uint16_t*) block;
+    uint16_t *addr;
 
-    for (int j = 0; j < 0x01; j ++){
+    for (int j = 0; j < sector; j ++){
 		wait_BSY();
 		wait_DRQ();
+		//kprintCol("Reading Sector/s \n\n", ERROR_COLOR);
 
 		for(int i = 0; i < 256; i++){
             addr[i] = inw(0x1F0);
@@ -40,23 +75,30 @@ void lba28_read_sector(uint32_t block, uint32_t LBA, uint8_t drive){
 
 		addr += 256;
 	}
+	kprint("                 ");
+	kprint(toString((uint32_t) addr, 16));
 }
 
-void lba28_write_sector(uint8_t drive, uint32_t LBA, uint32_t* buffer){
+void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *buffer){
 	wait_BSY();
-	outb(0x176, drive | ((LBA >> 24) & 0xF));
-	outb(0x172, 0x01);
-	outb(0x173, (uint8_t) LBA);
-	outb(0x174, (uint8_t) (LBA >> 8));
-	outb(0x175, (uint8_t) (LBA >> 16)); 
-	outb(0x177,0x30); // 0x30 = 'Write' Command
+	outb(0x1F6, drive | ((LBA >> 24) & 0xF));
+	outb(0x1F1, 0x00);
+	outb(0x1F2, sector);
+	outb(0x1F3, (uint8_t) LBA);
+	outb(0x1F4, (uint8_t) (LBA >> 8));
+	outb(0x1F5, (uint8_t) (LBA >> 16)); 
+	outb(0x1F7,0x30); // 0x30 = 'Write' Command
 
-	for (int j = 0; j < 0x01; j++){
+	for (int j = 0; j < sector; j++){
 		wait_BSY();
 		wait_DRQ();
+		//kprintCol("Writing Sector/s \n\n", ERROR_COLOR);
 
 		for(int i = 0; i < 256; i++){
-			outl(0x170, buffer[i]);
+			outl(0x1F0, buffer[i]);
 		}
+
+		outb(0x1F7, 0xE7);
+		sleep(1);
 	}
 }

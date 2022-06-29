@@ -4,6 +4,8 @@
 #include "../CPU/Timer/timer.h"
 #include "VGA_Text.h"
 #include "../Utils/Conversions.h"
+#include "../Misc/colors.h"
 
-void lba28_read_sector(uint32_t block, uint32_t LBA, uint8_t drive);
-void lba28_write_sector(uint8_t drive, uint32_t LBA, uint32_t* buffer);
+void identify_ata(uint8_t drive);
+void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector);
+void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *buffer);
