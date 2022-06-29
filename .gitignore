@@ -3,6 +3,3 @@
 # binaries
 WeeBins/
 os_image.bin
-
-#blockdev
-disk.img
