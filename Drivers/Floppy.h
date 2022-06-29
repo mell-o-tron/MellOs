@@ -1,6 +1,9 @@
+#pragma once
+#include "../Utils/Typedefs.h"
+#include "port_io.h"
+
+
 void floppy_detect_drives();
-void floppy_write_cmd(int base, char cmd);
-unsigned char floppy_read_data(int base);
-void floppy_check_interrupt(int base, int *st0, int *cyl);
-int floppy_calibrate(int base);
-int floppy_reset(int base);
+int floppy_init();
+int floppy_read(int drive, uint32_t lba, void* address, uint16_t count);
+int floppy_write(int drive, uint32_t lba, void* address, uint16_t count);
