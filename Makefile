@@ -1,5 +1,7 @@
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
+
+OBJCP=/usr/local/i386elfgcc/bin/i386-elf-objcopy
 ## Linker
 LD=/usr/local/i386elfgcc/bin/i386-elf-ld
 
@@ -22,7 +24,12 @@ ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 ## Files which must be linked first, if things break just bodge it together
 LDPRIORITY := $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/Keyboard.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/Drivers/VGA_Text.o
 
-all: prebuild build run
+all: prebuild build
+
+debug: prebuild build
+	$(OBJCP) --only-keep-debug $(BIN)/kernel.elf $(BIN)/kernel.sym
+
+	qemu-system-x86_64 -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda disk.img -m 128M -s -S &
 
 prebuild:	## Prebuild instructions
 	clear
@@ -30,9 +37,12 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CPPTAR)
-	$(LD) -o $(BIN)/kernel.bin -Ttext 0x1000 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat binary ## Pray this works
+	$(LD) -o $(BIN)/kernel.elf -Ttext 0x1000 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
+	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
+	dd if=/dev/zero of=osimage_formated.bin bs=512 count=2880 >/dev/null
+	dd if=os_image.bin of=osimage_formated.bin conv=notrunc >/dev/null
 
 boot:
 	nasm Bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i Bootloader
@@ -46,6 +56,6 @@ boot:
 	mkdir -p $(BIN)/$(shell dirname $<)
 	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
 
-run:
+run: prebuild build
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
-	qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy -hda disk.img -m 128M
+	qemu-system-x86_64 -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda disk.img -m 128M

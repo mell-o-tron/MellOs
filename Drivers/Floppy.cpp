@@ -1,9 +1,12 @@
-#include "../Utils/Typedefs.h"
+#include "Floppy.h"
 #include <port_io.h>
 #include "../Drivers/VGA_Text.h"
 #include "../CPU/Timer/timer.h"
 #include "../Utils/Conversions.h"
 #include "../CPU/Interrupts/irq.h"
+#include "../Memory/mem.h"
+#include "../Utils/string.h"
+#include "ISA_DMA.h"
 // Adaptation of Teemu Voipio's driver:
 
 /******************************************************************************
@@ -31,176 +34,87 @@
 
 
 
-/********************************************* To be adapted, not tested yet *********************************************/
 
-// standard base address of the primary floppy controller
-static const int floppy_base = 0x03f0;
+
+
 // standard IRQ number for floppy controllers
 static const int floppy_irq = 6;
-enum { floppy_motor_off = 0, floppy_motor_on, floppy_motor_wait };
 
-enum floppy_registers {
-   FLOPPY_DOR  = 2,  // digital output register
-   FLOPPY_MSR  = 4,  // master status register, read only
-   FLOPPY_FIFO = 5,  // data FIFO, in DMA operation for commands
-   FLOPPY_CCR  = 7   // configuration control register, write only
+enum FloppyRegisters
+{
+    FLOPPY_STATUS_REGISTER_A                = 0x3F0, // read-only
+    FLOPPY_FLOPPY_STATUS_REGISTER_B         = 0x3F1, // read-only
+    FLOPPY_DIGITAL_OUTPUT_REGISTER          = 0x3F2,
+    FLOPPY_TAPE_DRIVE_REGISTER              = 0x3F3,
+    FLOPPY_MAIN_STATUS_REGISTER             = 0x3F4, // read-only
+    FLOPPY_DATARATE_SELECT_REGISTER         = 0x3F4, // write-only
+    FLOPPY_DATA_FIFO                        = 0x3F5,
+    FLOPPY_DIGITAL_INPUT_REGISTER           = 0x3F7, // read-only
+    FLOPPY_CONFIGURATION_CONTROL_REGISTER   = 0x3F7  // write-only
 };
 
-// The commands of interest. There are more, but we only use these here.
-enum floppy_commands {
-   CMD_SPECIFY = 3,            // SPECIFY
-   CMD_WRITE_DATA = 5,         // WRITE DATA
-   CMD_READ_DATA = 6,          // READ DATA
-   CMD_RECALIBRATE = 7,        // RECALIBRATE
-   CMD_SENSE_INTERRUPT = 8,    // SENSE INTERRUPT
-   CMD_SEEK = 15,              // SEEK
+
+enum FloppyCommands
+{
+    FLOPPY_READ_TRACK =                 2,	// generates IRQ6
+    FLOPPY_SPECIFY =                    3,      // * set drive parameters
+    FLOPPY_SENSE_DRIVE_STATUS =         4,
+    FLOPPY_WRITE_DATA =                 5,      // * write to the disk
+    FLOPPY_READ_DATA =                  6,      // * read from the disk
+    FLOPPY_RECALIBRATE =                7,      // * seek to cylinder 0
+    FLOPPY_SENSE_INTERRUPT =            8,      // * ack IRQ6, get status of last command
+    FLOPPY_WRITE_DELETED_DATA =         9,
+    FLOPPY_READ_ID =                    10,	// generates IRQ6
+    FLOPPY_READ_DELETED_DATA =          12,
+    FLOPPY_FORMAT_TRACK =               13,     // *
+    FLOPPY_DUMPREG =                    14,
+    FLOPPY_SEEK =                       15,     // * seek both heads to cylinder X
+    FLOPPY_VERSION =                    16,	// * used during initialization, once
+    FLOPPY_SCAN_EQUAL =                 17,
+    FLOPPY_PERPENDICULAR_MODE =         18,	// * used during initialization, once, maybe
+    FLOPPY_CONFIGURE =                  19,     // * set controller parameters
+    FLOPPY_LOCK =                       20,     // * protect controller params from a reset
+    FLOPPY_VERIFY =                     22,
+    FLOPPY_SCAN_LOW_OR_EQUAL =          25,
+    FLOPPY_SCAN_HIGH_OR_EQUAL =         29
 };
 
 static const char *  const drive_types[8] = {
-    "none",
-    "360kB 5.25\"",
-    "1.2MB 5.25\"",
-    "720kB 3.5\"",
+        "none",
+        "360kB 5.25\"",
+        "1.2MB 5.25\"",
+        "720kB 3.5\"",
 
-    "1.44MB 3.5\"",
-    "2.88MB 3.5\"",
-    "unknown type",
-    "unknown type"
+        "1.44MB 3.5\"",
+        "2.88MB 3.5\"",
+        "unknown type",
+        "unknown type"
 };
 
+enum FLOPPYSpeeds{
+    KB500 = 0,
+    MB1 = 3
+};
 
-void floppy_detect_drives() {
-   outb(0x70, 0x10);
-   unsigned drives = inb(0x71);
-   kprint(" - Floppy drive 0: ");
-   
-   kprint(drive_types[drives >> 4]);
-   kprint("\n");
-   kprint(" - Floppy drive 1: ");
-   kprint(drive_types[drives & 0xf]);
-   kprint("\n");
-
-}
 
 //
 // The MSR byte: [read-only]
 // -------------
 //
 //  7   6   5    4    3    2    1    0
-// MRQ DIO NDMA BUSY ACTD ACTC ACTB ACTA
+// RQM DIO NDMA CB ACTD ACTC ACTB ACTA
 //
 // MRQ is 1 when FIFO is ready (test before read/write)
 // DIO tells if controller expects write (1) or read (0)
 //
 // NDMA tells if controller is in DMA mode (1 = no-DMA, 0 = DMA)
-// BUSY tells if controller is executing a command (1=busy)
+// CB(BUSY) tells if controller is executing a command (1=busy)
 //
 // ACTA, ACTB, ACTC, ACTD tell which drives position/calibrate (1=yes)
 //
 //
 
-void floppy_motor(int base, int onoff);
 
-void floppy_write_cmd(int base, char cmd) {
-    int i; // do timeout, 60 seconds
-    for(i = 0; i < 600; i++) {
-        sleep(1); // sleep 10 ms
-        if(0x80 & inb(base+FLOPPY_MSR)) {
-            return (void) outb(base+FLOPPY_FIFO, cmd);
-        }
-    }
-    printError("floppy_write_cmd: timeout");   
-}
-
-unsigned char floppy_read_data(int base) {
-
-    int i; // do timeout, 60 seconds
-    for(i = 0; i < 600; i++) {
-        sleep(1); // sleep 10 ms
-        if(0x80 & inb(base+FLOPPY_MSR)) {
-            return inb(base+FLOPPY_FIFO);
-        }
-    }
-    printError("floppy_read_data: timeout");
-    return 0; // not reached
-}
-
-void floppy_check_interrupt(int base, int *st0, int *cyl) {
-   
-    floppy_write_cmd(base, CMD_SENSE_INTERRUPT);
-
-    *st0 = floppy_read_data(base);
-    *cyl = floppy_read_data(base);
-}
-
-// Move to cylinder 0, which calibrates the drive..
-int floppy_calibrate(int base) {
-
-    int i, st0, cyl = -1; // set to bogus cylinder
-
-    floppy_motor(base, floppy_motor_on);
-
-    for(i = 0; i < 10; i++) {
-        // Attempt to positions head to cylinder 0
-        floppy_write_cmd(base, CMD_RECALIBRATE);
-        floppy_write_cmd(base, 0); // argument is drive, we only support 0
-
-        irq_wait(floppy_irq);
-        floppy_check_interrupt(base, &st0, &cyl);
-       
-        if(st0 & 0xC0) {
-            static const char * status[] =
-            { 0, "error", "invalid", "drive" };
-            kprint("floppy_calibrate: status =\n"); kprint(status[st0 >> 6]);
-            continue;
-        }
-
-        if(!cyl) { // found cylinder 0 ?
-            floppy_motor(base, floppy_motor_off);
-            return 0;
-        }
-    }
-
-    kprint("floppy_calibrate: 10 retries exhausted\n");
-    floppy_motor(base, floppy_motor_off);
-    return -1;
-}
-
-
-int floppy_reset(int base) {
-
-    outb(base + FLOPPY_DOR, 0x00); // disable controller
-    outb(base + FLOPPY_DOR, 0x0C); // enable controller
-
-    irq_wait(floppy_irq); // sleep until interrupt occurs
-
-    {
-        int st0, cyl; // ignore these here..
-        floppy_check_interrupt(base, &st0, &cyl);
-    }
-
-    // set transfer speed 500kb/s
-    outb(base + FLOPPY_CCR, 0x00);
-
-    //  - 1st byte is: bits[7:4] = steprate, bits[3:0] = head unload time
-    //  - 2nd byte is: bits[7:1] = head load time, bit[0] = no-DMA
-    //
-    //  steprate    = (8.0ms - entry*0.5ms)*(1MB/s / xfer_rate)
-    //  head_unload = 8ms * entry * (1MB/s / xfer_rate), where entry 0 -> 16
-    //  head_load   = 1ms * entry * (1MB/s / xfer_rate), where entry 0 -> 128
-    //
-    floppy_write_cmd(base, CMD_SPECIFY);
-    floppy_write_cmd(base, 0xdf); /* steprate = 3ms, unload time = 240ms */
-    floppy_write_cmd(base, 0x02); /* load time = 16ms, no-DMA = 0 */
-
-    // it could fail...
-    if(floppy_calibrate(base)) return -1;
-    
-    
-    return 0;
-}
-
-//
 // The DOR byte: [write-only]
 // -------------
 //
@@ -214,46 +128,414 @@ int floppy_reset(int base) {
 // NRST is "not reset" so controller is enabled when it's 1
 //
 
-static volatile int floppy_motor_ticks = 0;
-static volatile int floppy_motor_state = 0;
+/*
+ * Data rate   value   Drive Type
+ * 1Mbps        3       2.88M
+ * 500Kbps      0       1.44M, 1.2M
+ */
 
-void floppy_motor(int base, int onoff) {
 
-    if(onoff) {
-        if(!floppy_motor_state) {
-            // need to turn on
-            outb(base + FLOPPY_DOR, 0x1c);
-            sleep(50); // wait 500 ms = hopefully enough for modern drives
+/*
+ * Floppy Util
+ */
+
+
+
+
+
+void lba_2_chs(int sectors_per_track, uint32_t lba, uint16_t* cyl, uint16_t* head, uint16_t* sector);
+void lba_2_chs(uint32_t lba, uint16_t* cyl, uint16_t* head, uint16_t* sector);
+
+void lba_2_chs(int sectors_per_track, uint32_t lba, uint16_t* cyl, uint16_t* head, uint16_t* sector)
+{
+    *cyl    = lba / (2 * sectors_per_track);
+    *head   = ((lba % (2 * sectors_per_track)) / 18);
+    *sector = ((lba % (2 * sectors_per_track)) % sectors_per_track + 1);
+
+}
+
+void lba_2_chs(uint32_t lba, uint16_t* cyl, uint16_t* head, uint16_t* sector)
+{
+    lba_2_chs(18, lba, cyl, head, sector);
+}
+
+
+/*
+ * https://forum.osdev.org/viewtopic.php?t=13538
+ */
+void floppy_detect_drives() {
+    outb(0x70, 0x10);
+    unsigned drives = inb(0x71);
+    kprint(" - Floppy drive 0: ");
+
+    kprint(drive_types[drives >> 4]);
+    kprint("\n");
+    kprint(" - Floppy drive 1: ");
+    kprint(drive_types[drives & 0xf]);
+    kprint("\n");
+
+}
+
+/*
+ * https://wiki.osdev.org/CMOS#Register_0x10
+ * https://forum.osdev.org/viewtopic.php?t=13538
+ */
+uint8_t get_drive_type(){
+    // ask CMOS for floppy drive type
+    outb(0x70, 0x10);
+    uint8_t drives = inb(0x71);
+    if(drives >> 4 == 0){
+        return drives & 0xf;
+    }
+    return drives >> 4;
+
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#The_Proper_Way_to_issue_a_command
+ */
+void floppy_write_cmd(char cmd) {
+    int i; // do timeout, 60 seconds
+    for(i = 0; i < 600; i++) {
+        sleep(1); // sleep 10 ms
+        if(0x80 & inb(FLOPPY_MAIN_STATUS_REGISTER)) {
+            return (void) outb(FLOPPY_DATA_FIFO, cmd);
         }
-        floppy_motor_state = floppy_motor_on;
-    } else {
-        if(floppy_motor_state == floppy_motor_wait) {
-            kprint("floppy_motor: strange, fd motor-state already waiting..\n");
+    }
+    printError("floppy_write_cmd: timeout");
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#The_Proper_Way_to_issue_a_command
+ */
+unsigned char floppy_read_data() {
+
+    int i; // do timeout, 60 seconds
+    for(i = 0; i < 600; i++) {
+        sleep(1); // sleep 10 ms
+        if(0x80 & inb(FLOPPY_MAIN_STATUS_REGISTER)) {
+            return inb(FLOPPY_DATA_FIFO);
         }
-        floppy_motor_ticks = 300; // 3 seconds, see floppy_timer() below
-        floppy_motor_state = floppy_motor_wait;
+    }
+    printError("floppy_read_data: timeout");
+    return 0; // not reached
+}
+
+
+// Floppy Command Definitions
+
+void floppy_configure(bool implied_seek, bool FIFO, bool drive_polling_mode, int threshold);
+void floppy_lock();
+void floppy_reset(bool firstTime);
+void floppy_recalibrate(uint8_t  drive);
+void floppy_sense_interrupt(uint8_t *st0, uint8_t *cyl);
+void specify();
+void drive_select(int drive);
+void floppy_rw_command(int drive, int head, int cyl, int sect, int EOT, uint8_t *st0, uint8_t *st1, uint8_t *st2,
+                       int *headResult, int *cylResult, int *sectResult, int command);
+
+
+// Floppy Commands
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Reinitialization
+ */
+int floppy_init(){
+    floppy_write_cmd(FLOPPY_VERSION);
+    if(floppy_read_data() != 0x90)
+        return -1;
+
+    floppy_configure(true, true, false, 8);
+    floppy_lock();
+    floppy_reset(true);
+
+    // floppy_recalibrate all drives
+    for(int i = 0; i < 4; i++){
+        floppy_recalibrate(i);
+    }
+
+    return 0;
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Drive_Selection
+ */
+void drive_select(int drive){
+    outb(FLOPPY_CONFIGURATION_CONTROL_REGISTER, 0); // This is usually correct, even tho it changes if not using 1.44Mb drive.
+    specify();
+
+    // Select drive in DOR and turn on its motor
+    uint8_t DOR = inb(FLOPPY_DIGITAL_OUTPUT_REGISTER);
+    // turn off all motors | select drive | turn on drive's motor
+    DOR = (DOR & 0xC) | (drive | (1 << (4 + drive)));
+    outb(FLOPPY_DIGITAL_OUTPUT_REGISTER, DOR);
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Specify
+ */
+void specify(){
+    /*
+     * According to the OsDev wiki, these values should change according
+     * to failed operation statistics for performance.
+     * but, because no1 uses floppies, performance isn't that important
+     * so, we'll just use very safe values
+     */
+    int SRT = 8;
+    int HLT = 5;
+    int HUT = 0;
+
+    floppy_write_cmd(FLOPPY_SPECIFY);
+    floppy_write_cmd(SRT << 4 | HUT);
+    floppy_write_cmd(HLT << 1 | 0);
+
+
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Configure
+ */
+void floppy_configure(bool implied_seek, bool FIFO, bool drive_polling_mode, int threshold){
+    floppy_write_cmd(FLOPPY_CONFIGURE);
+    floppy_write_cmd(0); // IDK why this even exists, it is always 0
+    floppy_write_cmd(implied_seek << 6 | !FIFO << 5 | !drive_polling_mode << 4 | threshold - 1);
+    floppy_write_cmd(0); // pre-compensation value - should always be 0
+
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Lock
+ */
+void floppy_lock(){
+    floppy_write_cmd(FLOPPY_LOCK);
+    floppy_read_data();
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Recalibrate
+ */
+void floppy_recalibrate(uint8_t drive){
+    floppy_write_cmd(FLOPPY_RECALIBRATE);
+    floppy_write_cmd(drive);
+
+    irq_wait(floppy_irq);
+    uint8_t st0 = 0;
+    uint8_t cyl = 0;
+    floppy_sense_interrupt(&st0, &cyl);
+
+    if(!(st0 & 0x20))
+        floppy_recalibrate(drive);
+}
+
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Sense_Interrupt
+ */
+void floppy_sense_interrupt(uint8_t *st0, uint8_t *cyl){
+    floppy_write_cmd(FLOPPY_SENSE_INTERRUPT);
+
+    uint8_t RQM;
+    while(true){
+        RQM = inb(FLOPPY_MAIN_STATUS_REGISTER) & 0x80;
+        if(RQM)
+            break;
+    }
+
+    *st0 = floppy_read_data();
+    *cyl = floppy_read_data();
+
+}
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Controller_Reset
+ */
+void floppy_reset(bool firstTime){
+    uint8_t DOR = inb(FLOPPY_DIGITAL_OUTPUT_REGISTER);
+    outb(FLOPPY_DIGITAL_OUTPUT_REGISTER, 0);
+    sleep(10);
+    outb(FLOPPY_DIGITAL_OUTPUT_REGISTER, DOR & 0x8);
+    if(!firstTime){ // check if IRQs were enabled
+        irq_wait(floppy_irq);
     }
 }
 
-void floppy_motor_kill(int base) {
-    outb(base + FLOPPY_DOR, 0x0c);
-    floppy_motor_state = floppy_motor_off;
+
+
+/*
+ * https://wiki.osdev.org/Floppy_Disk_Controller#Read.2FWrite
+ */
+
+int floppy_write(int drive, uint32_t lba, void* address, uint16_t count){
+    initFloppyDMA((uint32_t) address, count);
+
+    drive_select(drive);
+
+    uint16_t cyl;
+    uint16_t head;
+    uint16_t sector;
+    lba_2_chs(lba, &cyl, &head, &sector);
+
+    int EOT = 19;
+
+    uint8_t st0;
+    uint8_t st1;
+    uint8_t st2;
+    int cylOut;
+    int headOut;
+    int sectOut;
+
+
+    for(int i = 0; i < 20; i++){
+
+        prepare_for_floppyDMA_write();
+
+        floppy_rw_command(drive, head, cyl, sector, EOT, &st0, &st1, &st2, &headOut, &cylOut, &sectOut, FLOPPY_WRITE_DATA);
+
+        int error = 0;
+
+        if(st0 >> 6 == 2){error = 1;}
+        if(st1 & 0x80) {error = 1;}
+        if(st0 & 0x08) {error = 1;}
+        if(st0 >> 6 == 3){error = 1;}
+        if(st1 & 0x20) {error = 1;}
+        if(st1 & 0x10) {error = 1;}
+        if(st1 & 0x04) {error = 1;}
+        if((st1|st2) & 0x01) {error = 1;}
+        if(st2 & 0x40) {error = 1;}
+        if(st2 & 0x20) {error = 1;}
+        if(st2 & 0x10) {error = 1;}
+        if(st2 & 0x04) {error = 1;}
+        if(st2 & 0x02) {error = 1;}
+        if(st1 & 0x02) {error = 2;}
+        if(!error){
+            return 0;
+        }
+        if(error > 1){
+            return -2;
+        }
+
+    }
+    return -1;
+
 }
 
-//
-// THIS SHOULD BE STARTED IN A SEPARATE THREAD.
-//
-//
-void floppy_timer() {
-    while(1) {
-        // sleep for 500ms at ainb time, which gives around half
-        // a second jitter, but that's hardly relevant here.
-        sleep(50);
-        if(floppy_motor_state == floppy_motor_wait) {
-            floppy_motor_ticks -= 50;
-            if(floppy_motor_ticks <= 0) {
-                floppy_motor_kill(floppy_base);
-            }
+int floppy_read(int drive, uint32_t lba, void* address, uint16_t count){
+    initFloppyDMA((uint32_t) address, count);
+
+    drive_select(drive);
+
+    uint16_t cyl;
+    uint16_t head;
+    uint16_t sector;
+    lba_2_chs(lba, &cyl, &head, &sector);
+
+    int EOT = 19;
+
+    uint8_t st0;
+    uint8_t st1;
+    uint8_t st2;
+    int cylOut;
+    int headOut;
+    int sectOut;
+
+
+    for(int i = 0; i < 20; i++){
+
+        prepare_for_floppyDMA_read();
+
+        floppy_rw_command(drive, head, cyl, sector, EOT, &st0, &st1, &st2, &headOut, &cylOut, &sectOut, FLOPPY_READ_DATA);
+
+        int error = 0;
+
+        if(st0 >> 6 == 2){error = 1;}
+        if(st1 & 0x80) {error = 1;}
+        if(st0 & 0x08) {error = 1;}
+        if(st0 >> 6 == 3){error = 1;}
+        if(st1 & 0x20) {error = 1;}
+        if(st1 & 0x10) {error = 1;}
+        if(st1 & 0x04) {error = 1;}
+        if((st1|st2) & 0x01) {error = 1;}
+        if(st2 & 0x40) {error = 1;}
+        if(st2 & 0x20) {error = 1;}
+        if(st2 & 0x10) {error = 1;}
+        if(st2 & 0x04) {error = 1;}
+        if(st2 & 0x02) {error = 1;}
+        if(st1 & 0x02) {error = 2;}
+        if(!error){
+            return 0;
         }
+        if(error > 1){
+            return -2;
+        }
+
     }
+    return -1;
+
+}
+
+
+void floppy_rw_command(int drive, int head, int cyl, int sect, int EOT, uint8_t *st0, uint8_t *st1, uint8_t *st2,
+                       int *headResult, int *cylResult, int *sectResult, int command) {
+    int MT = 0x80; // set to 0x80 to enable multi-track, or 0 to disable
+    int MFM = 0x40; //set to 0x40 to enable magnetic-encoding-mode, or 0 to disable. According to the wiki this should always be on
+
+    // Read command = MT bit | MFM bit | 0x6
+    floppy_write_cmd( MFM | MT | command);
+
+    // First parameter byte = (head number << 2) | drive number (the drive number must match the currently selected drive!)
+    floppy_write_cmd((head << 2) | drive);
+
+    // Second parameter byte = cylinder number
+    floppy_write_cmd(cyl);
+
+    // Third parameter byte = head number (yes, this is a repeat of the above value)
+    floppy_write_cmd(head);
+
+    // Fourth parameter byte = starting sector number
+    floppy_write_cmd(sect);
+
+    // Fifth parameter byte = 2 (all floppy drives use 512bytes per sector)
+    floppy_write_cmd(2);
+
+    // Sixth parameter byte = EOT (end of track, the last sector number on the track)
+    floppy_write_cmd(EOT);
+
+    // Seventh parameter byte = 0x1b (GAP1 default size)
+    floppy_write_cmd(0x1b);
+
+    // Eighth parameter byte = 0xff (all floppy drives use 512bytes per sector)
+    floppy_write_cmd(0xff);
+
+    uint8_t RQM;
+    uint8_t MSR;
+    while(true){
+        MSR = inb(FLOPPY_MAIN_STATUS_REGISTER);
+        RQM = (MSR & 0x80) > 1;
+        //kprint(toString(MSR, 2));
+        sleep(10);
+        if(RQM)
+            break;
+    }
+
+    // First result byte = st0 status register
+    *st0 = floppy_read_data();
+
+    // Second result byte = st1 status register
+    *st1 = floppy_read_data();
+
+    // Third result byte = st2 status register
+    *st2 = floppy_read_data();
+
+    // Fourth result byte = cylinder number
+    *cylResult = floppy_read_data();
+
+
+    // Fifth result byte = ending head number
+    *headResult = floppy_read_data();
+
+    // Sixth result byte = ending sector number
+    *sectResult = floppy_read_data();
+
+    // Seventh result byte = 2
+    floppy_read_data();
 }

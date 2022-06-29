@@ -1,6 +1,7 @@
 #include "ISA_DMA.h"
 #include "port_io.h"
 #include "../Drivers/VGA_Text.h"
+#include "../Utils/Conversions.h"
 
 
 /*
@@ -61,7 +62,7 @@ void maskChannel(uint8_t channel, int masked){
     uint16_t port = 0x0A;
 
     if(masked){
-        out += 8;
+        out += 4;
     }
 
     if(channel >= 4){
@@ -77,10 +78,8 @@ void maskChannel(uint8_t channel, int masked){
 
 
 // the address should only be 24bits long, and have a total of 0x23ff in size
-void initFloppyDMA(uint32_t address){
+void initFloppyDMA(uint32_t address, uint16_t count){
 
-    // size of a floppy track (1.44Mib floppy) - 1, admitting 512 bytes sector
-    uint16_t count = 0x23ff;
 
 
     // idk man bitwise operations help idk how to do it without spliting in two before
@@ -137,12 +136,26 @@ void prepare_for_floppyDMA_write(){
     // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06);
     maskChannel(2, 1);
 
-    outb(ISA_DMA_REGISTER_Mode, 0x4A); // 01010110
-                                                 //single transfer, address increment, auto init, read, channel2
+    outb(ISA_DMA_REGISTER_Mode, 0x5A); // 01011010
+    //single transfer, address increment, auto init, write, channel2
 
     // unmask DMA channel 2
     // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    maskChannel(2, 0);
+
+}
+
+void prepare_for_floppyDMA_read(){
+    // mask channel 2, and 0 (admiting 0 is already masked)
+    // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x06);
     maskChannel(2, 1);
+
+    outb(ISA_DMA_REGISTER_Mode, 0x56); // 01010110
+    //single transfer, address increment, autoinit, read, channel2
+
+    // unmask DMA channel 2
+    // outb(ISA_DMA_REGISTER_SingleChannelMask, 0x02);
+    maskChannel(2, 0);
 
 }
 
