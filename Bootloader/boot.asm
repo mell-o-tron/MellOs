@@ -1,4 +1,4 @@
-[org 0x7e00]
+[org 0x7c00]
 
 
 KERNEL_LOCATION equ 0x1000	; Was 0x7e00 but I changed it because of buffer overflow problems
