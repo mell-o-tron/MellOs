@@ -1,85 +1,67 @@
-[org 0x7c00]
+[org 0x7C00]
+[bits 16]
 
+KERNEL_LOCATION equ 0x1000
 
-KERNEL_LOCATION equ 0x1000	; Was 0x7e00 but I changed it because of buffer overflow problems
-				; Implementing SSP asap
-				
+_main16:
+	;save boot disk number
+	mov [BOOT_DISK], dl
 
+	;clear the screen
+	mov ah, 0x00
+	mov al, 0x03
+	int 0x10
 
-mov [BOOT_DISK], dl		; Stores the boot disk number
-
-mov bx, OK
-call PrintString
-
-xor ax, ax			; clear bits of ax
-mov es, ax			; set es to 0
-mov ds, ax			; set ds to 0
-mov bp, 0x8000 		; stack base
-mov sp, bp			; stack pointer to stack base
-					; A:B = A*d16 + B
-mov bx, KERNEL_LOCATION	; ES:BX is the location to read from, e.g. 0x0000:0x9000 = 0x00000 + 0x9000 = 0x9000
-mov dh, 50			; read 35 sectors (blank sectors: empty_end)
-
-call readDisk
-
-
-AFTER_DISK_READ: 
-
-mov bx, NL
-call PrintString
-mov bx, NL
-call PrintString
-
-call getMemoryMap
-
-
-mov ah, 0x0			; clear screen (set text mode)
-mov al, 0x3
-int 0x10
-
-;call GraphicsMode		; uhm, later on
-
-call switchToPM
-
-	jmp $
-
-ERROR:
-    mov bx, ERROR_MSG
-    call PrintString
-    jmp $
-
-GraphicsMode:
-	mov ah, 0		; switch to graphics mode
-	mov al, 0x13
-	int 10h
-	ret
+	;read 50 sectors at kernel location
+	mov bx, KERNEL_LOCATION
+	mov dh, 50
+	call disk_read
 	
+	;disk read end label as return doesn't work
+	disk_read_end:
 
+	;set up segment registers
+	cli
+	mov ax, 0x00
+	mov ds, ax
+	mov es, ax
+	mov ss, ax
+	mov sp, 0x7C00
+	sti
 
-%include "PrintString.asm"
-%include "ReadFromDisk.asm"
-%include "PrintDecimal.asm"
-%include "AvailableMemory.asm"
-%include "basic_gdt.asm"
+	jmp enter_protected_mode
 
-%include "EnterPM.asm"
-
-OK:
-	db 'Ok', 10, 13, 0
-
-NL:
-	db 10, 13, 0
-
-ERROR_MSG:
-	db 10, 13,'Error', 10, 13, 0
-
-Extended_Memory_Size: db 0, 0
+%include"print_string.asm"
+%include"print_dec.asm"
+%include"disk.asm"
+%include"memory.asm"
+%include"protected_mode.asm"
+%include"gdt.asm"
 
 [bits 32]
 
-BEGIN_PM:
-    mov bx, [Extended_Memory_Size] ; record memory size in bx
-	jmp KERNEL_LOCATION	; jumps to entry_kernel
+_main32:
+	;set up segment registers again
+	mov ax, DATA_SEG
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
 
-times 510-($-$$) db 0
-dw 0xaa55
+	;set up the stack
+	mov ebp, 0x90000
+	mov esp, ebp
+	
+	;enable the A20 line
+	in al, 0x92
+	or al, 0x02
+	out 0x92, al
+
+	;jump to kernel location
+	jmp KERNEL_LOCATION
+	
+%include"print_string32.asm"
+
+times 510-($-$$) db 0x00
+dw 0xAA55
