@@ -17,7 +17,7 @@ CPPSRC := $(shell find ./ -name "*.cpp")
 CPPTAR := $(patsubst %.cpp,%.o,$(CPPSRC))
 
 ## Assembly source files that must be compiled to ELF
-ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/basic_gdt.asm ./Kernel/kernel_entry.asm
+ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/gdt.asm ./Kernel/kernel_entry.asm
 ## Assembly target files
 ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
