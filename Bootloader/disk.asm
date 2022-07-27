@@ -15,7 +15,6 @@ disk_read:
 	mov bx, ax
 	call print_dec
     ret
-	;jmp disk_read_end
 
 disk_read_error:
 	push ax
