@@ -1,7 +1,7 @@
 [org 0x7C00]
 [bits 16]
 
-KERNEL_LOCATION equ 0x1000
+KERNEL_LOCATION equ 0x7ef0
 
 _main16:
 	;save boot disk number
