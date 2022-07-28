@@ -1,24 +1,11 @@
 [org 0x7C00]
 [bits 16]
 
-KERNEL_LOCATION equ 0x1000
+KERNEL_LOCATION equ 0x7ef0
 
 _main16:
 	;save boot disk number
 	mov [BOOT_DISK], dl
-
-	;clear the screen
-	mov ah, 0x00
-	mov al, 0x03
-	int 0x10
-
-	;read 50 sectors at kernel location
-	mov bx, KERNEL_LOCATION
-	mov dh, 50
-	call disk_read
-	
-	;disk read end label as return doesn't work
-	disk_read_end:
 
 	;set up segment registers
 	cli
@@ -28,6 +15,16 @@ _main16:
 	mov ss, ax
 	mov sp, 0x7C00
 	sti
+    
+	;clear the screen
+	mov ah, 0x00
+	mov al, 0x03
+	int 0x10
+
+	;read 50 sectors at kernel location
+	mov bx, KERNEL_LOCATION
+	mov dh, 50
+	call disk_read
 
 	jmp enter_protected_mode
 

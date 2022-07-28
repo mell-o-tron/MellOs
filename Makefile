@@ -37,7 +37,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CPPTAR)
-	$(LD) -o $(BIN)/kernel.elf -Ttext 0x1000 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
+	$(LD) -o $(BIN)/kernel.elf -Ttext 0x7ef0 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
