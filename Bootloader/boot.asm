@@ -34,8 +34,7 @@ _main16:
 %include"print_string.asm"
 %include"print_dec.asm"
 %include"disk.asm"
-;%include"memory.asm" ; old memory detection code
-%include"new_memory.asm" ; new memory detection
+%include"memory.asm" ; old memory detection code
 %include"protected_mode.asm"
 %include"gdt.asm"
 
