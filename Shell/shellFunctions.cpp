@@ -18,6 +18,7 @@ static const char *  const helpList[5] = {                  // find better (dyna
     "  usedmem: shows dynamic memory usage\n",
     "  floppy:\n         list: shows list of connected floppy drives\n         []: shows floppy help\n",
     "  clear: clears the screen\n"
+    "  meminfo: shows memory info\n"
     
 };
 
@@ -64,7 +65,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&usedmem,  "usedmem",  "Shows dynamic memory usage"),
     CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives"),
     CMDENTRY(&clear,    "clear",    "Clears the screen"),
-    CMDENTRY(&hcf,      "hcf",      "Crashes your system")
+    CMDENTRY(&hcf,      "hcf",      "Crashes your system"),
+    CMDENTRY(&meminfo,  "meminfo",  "Shows memory info")
 };
 
 shellfunction* TryGetCMD(char* cmdbuf){

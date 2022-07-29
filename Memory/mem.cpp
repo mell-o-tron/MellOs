@@ -8,7 +8,7 @@
  */
 
 
-
+#include "mem.h"
 #define FREE_MEM 0x10000;
 
 void* memset(void* dest, unsigned char val, int count){ 
@@ -57,4 +57,9 @@ void memunrec(){
 
 int getFreeMem(){
    return freeMem; 
+}
+
+mem_t memget(){
+    mem_t* mem = (mem_t*)0x5000;
+    return *mem;
 }

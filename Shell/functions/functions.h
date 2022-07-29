@@ -10,6 +10,7 @@ FHDR(clear);
 
 // memory.cpp
 FHDR(usedmem);
+FHDR(meminfo);
 
 // floppy.cpp
 FHDR(floppy);
