@@ -16,6 +16,9 @@ _main16:
 	mov sp, 0x7C00
 	sti
     
+	call memory_detection
+    call upper_memory_detection
+
 	;clear the screen
 	mov ah, 0x00
 	mov al, 0x03
@@ -31,7 +34,7 @@ _main16:
 %include"print_string.asm"
 %include"print_dec.asm"
 %include"disk.asm"
-%include"memory.asm"
+%include"memory.asm" ; old memory detection code
 %include"protected_mode.asm"
 %include"gdt.asm"
 
@@ -58,7 +61,7 @@ _main32:
 	;jump to kernel location
 	jmp KERNEL_LOCATION
 	
-%include"print_string32.asm"
+;%include"print_string32.asm" ; uncomment incase someone ever uses it.
 
 times 510-($-$$) db 0x00
 dw 0xAA55

@@ -22,6 +22,7 @@ POWER MANAGEMENT:
 
 MEMORY:
     usedmem
+    meminfo
     
 MISC:
     echo #string

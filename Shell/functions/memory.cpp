@@ -8,3 +8,13 @@ FDEF(usedmem){
     kprint(toString(getFreeMem() - 0x10000, 10));
     kprint(" bytes");
 }
+
+FDEF(meminfo){
+    mem_t mem = memget();
+    kprint("Lower memory: ");
+    kprint(toString(mem.lower_size, 10));
+    kprint(" KB\n");
+    kprint("Upper memory: ");
+    kprint(toString(mem.upper_size * 64, 10)); //mem.upper_size contains the size in 64K blocks
+    kprint(" KB\n");
+}
