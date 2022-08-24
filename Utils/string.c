@@ -6,6 +6,7 @@
 ******************************************************************/
 #include "../Memory/mem.h"
 
+
 const char* reverse(const char* str, char* buffer, int len){
 	int i;
 	for (i = 0; i <= len; i++){

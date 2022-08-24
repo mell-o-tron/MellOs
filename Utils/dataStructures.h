@@ -20,9 +20,9 @@ struct ListQueue {
 }__attribute__((packed));
 struct List* newList();
 void listAdd(struct List* myList, int val);
-void listPrint(List* list);
+void listPrint(struct List* list);
 struct ListQueue* newLQueue();
-void lEnqueue (ListQueue* queue, int k);
-void lDequeue (ListQueue* queue);
-int lFirst (ListQueue* queue);
+void lEnqueue (struct ListQueue* queue, int k);
+void lDequeue (struct ListQueue* queue);
+int lFirst (struct ListQueue* queue);
 #endif

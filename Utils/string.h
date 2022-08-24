@@ -1,6 +1,7 @@
 
 #ifndef STRING_H
 #define STRING_H
+#include "Typedefs.h"
 const char* reverse(const char* str, char* buffer, int len);
 int strLen(const char* s);
 bool StringsEqu(const char* s, const char* t);
