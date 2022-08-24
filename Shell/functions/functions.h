@@ -4,18 +4,18 @@
 // Function header to simplify declaring shell commands
 #define FHDR(name) void name(const char* s);
 
-// text.cpp
+// text.c
 FHDR(echo);
 FHDR(clear);
 
-// memory.cpp
+// memory.c
 FHDR(usedmem);
 FHDR(meminfo);
 
-// floppy.cpp
+// floppy.c
 FHDR(floppy);
 
-// misc.cpp
+// misc.c
 FHDR(hcf)
 
 #endif

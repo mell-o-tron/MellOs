@@ -32,7 +32,7 @@ extern const char KPArt[];
 extern const unsigned short MemSize;    // Approximate value of extended memory (under 4 GB)
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-extern "C" void kpanic(struct regs *r){
+extern  void kpanic(struct regs *r){
 	#define ERRCOL 0x47 // Lightgrey on Lightred
 	#define VGAMEM (unsigned char*)0xB8000;
 
@@ -74,7 +74,7 @@ extern "C" void kpanic(struct regs *r){
 }
 
 
-extern "C" void main(){
+extern  void main(){
 	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	
 	GDT_Init();
