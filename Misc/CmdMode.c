@@ -55,7 +55,7 @@ void SetCmdMode(){
 	SetCursorPos(0,0);
 	kprint("CMD mode\n");
 	kprint(Fool);
-    kprintCol("May 23 2021: CMD mode is being replaced by a more complete shell \nPress F5 to enter shell mode\n", ERROR_COLOR);
+    kprintCol("May 23 2021: CMD mode is being replaced by a more complete shell \nPress F5 to enter shell mode\n", NOTE_COLOR);
 	TextCursorPos = CursorPos;
 	SetCursorPosRaw(1920);
 	return;	
