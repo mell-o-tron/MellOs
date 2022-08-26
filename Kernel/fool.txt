@@ -1,8 +1,9 @@
-       	        ╔═╗╔═╗
-╔══╗ ╔══╗╔═════╗║ ║║ ║╔════╗╔════╗
-║  ╚═╝  ║║ ╔═╗ ║║ ║║ ║║ ╔╗ ║║  ══╣
-║ ╔╗ ╔╗ ║║ ╚═══╣║ ║║ ║║ ╚╝ ║╠══  ║
-╚═╝╚═╝╚═╝╚═════╝╚═╝╚═╝╚════╝╚════╝
 
-Version 0 - Dec. 24 2020 - (MLP)
+MMM   MMM EEEEE L     L       OOOOO  SSSS
+M  M M  M E     L     L       O   O S
+M   M   M EEEEE L     L       O   O  SSS
+M       M E     L     L       O   O     S
+M       M EEEEE LLLLL LLLLL   OOOOO SSSS
+
+Version 0 - Aug. 26 2022? - (MLP)
 Insert command...
