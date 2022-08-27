@@ -1,9 +1,8 @@
-
-MMM   MMM EEEEE L     L       OOOOO  SSSS
-M  M M  M E     L     L       O   O S
-M   M   M EEEEE L     L       O   O  SSS
-M       M E     L     L       O   O     S
-M       M EEEEE LLLLL LLLLL   OOOOO SSSS
+       	        ษอปษอป
+ษออป ษออปษอออออปบ บบ บษออออปษออออป
+บ  ศอผ  บบ ษอป บบ บบ บบ ษป บบ  ออน
+บ ษป ษป บบ ศอออนบ บบ บบ ศผ บฬออ  บ
+ศอผศอผศอผศอออออผศอผศอผศออออผศออออผ
 
 Version 0 - Aug. 26 2022? - (MLP)
 Insert command...
