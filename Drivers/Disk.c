@@ -1,4 +1,4 @@
-// Simple Ata HDD (Hard Disk Drive) Polling Driver using PIO Mode (instead of the better DMA)
+// Simple (P)Ata HDD (Hard Disk Drive) Polling Driver using PIO Mode (instead of the better DMA)
 // Inspirations and Sources: (https://wiki.osdev.org/ATA_PIO_Mode)
 
 #include "Disk.h"
@@ -52,7 +52,7 @@ void wait_DRQ(){
 	while(!(inb(0x1F7) & STATUS_RDY));
 }
 
-void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
+uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
     wait_BSY();
     outb(0x1F6, drive | ((LBA >> 24) & 0xF));
 	outb(0x1F1, 0x00);
@@ -67,16 +67,13 @@ void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
     for (int j = 0; j < sector; j ++){
 		wait_BSY();
 		wait_DRQ();
-		//kprintCol("Reading Sector/s \n\n", ERROR_COLOR);
-
 		for(int i = 0; i < 256; i++){
             addr[i] = inw(0x1F0);
         }
 
 		addr += 256;
 	}
-	kprint("                 ");
-	kprint(toString((uint32_t) addr, 16));
+	return addr;
 }
 
 void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *buffer){
@@ -92,7 +89,6 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *
 	for (int j = 0; j < sector; j++){
 		wait_BSY();
 		wait_DRQ();
-		//kprintCol("Writing Sector/s \n\n", ERROR_COLOR);
 
 		for(int i = 0; i < 256; i++){
 			outl(0x1F0, buffer[i]);

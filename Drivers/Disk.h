@@ -7,5 +7,5 @@
 #include "../Misc/colors.h"
 
 void identify_ata(uint8_t drive);
-void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector);
+uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector);
 void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *buffer);
