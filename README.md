@@ -22,7 +22,7 @@ As simple as it can get:
 
 - Simple bootloader, loads the kernel in memory and jumps to it
 - Monolithic kernel
-- Flat memory model (just the strictly necessary segmentation (data/code), no paging)
+- Flat memory model (just the strictly necessary segmentation (data/code), with paging)
 - Interrupt request handling, keyboard and timer support
 - Linear dynamic memory allocation (with some tricks not to make it too inefficient)
 - GDT (Different from the one in the Bootloader)
