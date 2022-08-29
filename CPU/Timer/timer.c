@@ -3,6 +3,7 @@
 #include "../../Drivers/VGA_Text.h"
 #include "../../Utils/Conversions.h"
 #include "../Interrupts/irq.h"
+#include "../Interrupts/idt.h"
 int timer_ticks = 0;
 int seconds = 0;
 
@@ -14,7 +15,7 @@ void timer_phase(int hz)
 	outb(0x40, divisor >> 8);	 /* Set high byte of divisor */
 }
 
-void timer_handler(struct regs *r)
+void timer_handler(regs *r)
 {
 	/* Increment our 'tick count' */
 	timer_ticks++;

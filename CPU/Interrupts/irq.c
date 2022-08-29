@@ -29,7 +29,7 @@ void *irq_routines[16] =
         };
 
 
-void irq_install_handler(int irq, void (*handler)(struct regs *r))
+void irq_install_handler(int irq, void (*handler)(regs *r))
 {
     irq_routines[irq] = (void*)handler;
 }
@@ -84,7 +84,7 @@ void irq_install()
 }
 
 
-extern  void _irq_handler(struct regs *r)
+extern  void _irq_handler(regs *r)
 {
     currentInterrupts[r -> int_no - 32] = 1;
     void (*handler)(struct regs *r);
