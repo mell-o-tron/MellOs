@@ -26,7 +26,7 @@ struct idt_entry idt[256];
 struct idt_ptr _idtp;
 
 
-extern "C" void _idt_load();		// ---> interrupt.asm
+extern  void _idt_load();		// ---> interrupt.asm
 
 
 void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, unsigned char flags)

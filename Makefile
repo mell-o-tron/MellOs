@@ -11,10 +11,10 @@ BIN=./WeeBins
 ## Compiler Flags
 FLAGS=-ffreestanding -m32 -g
 
-## C++ source files
-CPPSRC := $(shell find ./ -name "*.cpp")
-## C++ target files
-CPPTAR := $(patsubst %.cpp,%.o,$(CPPSRC))
+## C source files
+CSRC := $(shell find ./ -name "*.c")
+## C target files
+CTAR := $(patsubst %.c,%.o,$(CSRC))
 
 ## Assembly source files that must be compiled to ELF
 ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/gdt.asm ./Kernel/kernel_entry.asm
@@ -36,7 +36,7 @@ prebuild:	## Prebuild instructions
 	rm -rf $(BIN)
 	mkdir $(BIN)
 
-build: boot $(ASMTAR) $(CPPTAR)
+build: boot $(ASMTAR) $(CTAR)
 	$(LD) -o $(BIN)/kernel.elf -Ttext 0x7ef0 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
@@ -48,13 +48,13 @@ boot:
 	nasm Bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i Bootloader
 	nasm Kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
 
-%.o: %.cpp
+%.o: %.c
 	mkdir -p $(BIN)/$(shell dirname $<)
-	$(CC) $(FLAGS) -c $< -o $(BIN)/$(subst .cpp,.o,$<) $(addprefix -I ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
+	$(CC) $(FLAGS) -c $< -o $(BIN)/$(subst .c,.o,$<) $(addprefix -I ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
 
 %.o : %.asm
 	mkdir -p $(BIN)/$(shell dirname $<)
-	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CPPSRC) | tr ' ' '\n' | sort -u | xargs)))
+	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
 
 run: prebuild build
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M

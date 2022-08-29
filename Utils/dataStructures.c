@@ -20,7 +20,7 @@ void listAdd(struct List* list, int val){
     list -> head = nNode;
 }
 
-void listPrint(List* list){
+void listPrint(struct List* list){
     struct node* tmp = (struct node*)kmalloc(sizeof(struct node));
     tmp = list -> head;
     while(tmp -> next){
@@ -41,7 +41,7 @@ struct ListQueue* newLQueue(){
     return nQueue;
 }
 
-void lEnqueue (ListQueue* queue, int k){
+void lEnqueue (struct ListQueue* queue, int k){
     if(queue->tail) {
         struct node* nNode = (struct node*)kmalloc(sizeof(struct node));
         nNode -> val = k;
@@ -55,12 +55,12 @@ void lEnqueue (ListQueue* queue, int k){
     }
 }
 
-void lDequeue (ListQueue* queue){
+void lDequeue (struct ListQueue* queue){
     if(queue->head){
         queue->head = queue->head->next;
     }
 }
 
-int lFirst (ListQueue* queue){
+int lFirst (struct ListQueue* queue){
     return queue->head->val;
 }
