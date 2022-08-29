@@ -12,6 +12,7 @@ call main		        ; calls kernel function main()
 jmp $
 
 %include "../CPU//Interrupts/interrupt.asm"
+%include "../CPU/Paging/paging.asm"
 
 
 section .rodata		    ; read only data

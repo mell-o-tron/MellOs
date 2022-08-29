@@ -15,6 +15,7 @@
 #include "../CPU/Interrupts/irq.h"
 #include "../CPU/Timer/timer.h"
 #include "../CPU/GDT/gdt.h"
+#include "../CPU/Paging/paging.h"
 #include "../Drivers/Keyboard.h"
 #include "../Drivers/Floppy.h"
 #include "../Drivers/port_io.h"
@@ -77,6 +78,7 @@ extern "C" void kpanic(struct regs *r){
 extern "C" void main(){
 	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	
+	init_paging();
 	GDT_Init();
 	idt_install();
 	isrs_install();
