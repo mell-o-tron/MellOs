@@ -10,6 +10,7 @@
 #include "../Utils/Conversions.h"
 #include "../Utils/string.h"
 #include "../Memory/mem.h"
+#include "../Memory/Paging/paging.h"
 #include "../CPU/Interrupts/idt.h"
 #include "../CPU/Interrupts/isr.h"
 #include "../CPU/Interrupts/irq.h"
@@ -77,6 +78,7 @@ extern  void kpanic(struct regs *r){
 extern  void main(){
 	//asm volatile("1: jmp 1b");		// "entry breakpoint" (debug)
 	
+	init_paging();
 	GDT_Init();
 	idt_install();
 	isrs_install();
