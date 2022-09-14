@@ -26,15 +26,14 @@ MEMORY:
     
 MISC:
     echo #string
-    oldcmd
     
 VARIABLES:
     let #name = #value
     
 
-
-(+ load old modes)
 */
+
+extern char ker_tty[4000];
 
 int CommandCursor;
 extern int CursorPos;
@@ -45,13 +44,12 @@ extern int curColor;
 const char* currentTask;
 
 void load_shell(){
-    curColor = DEFAULT_COLOR;
+    curColor = DARK_COLOR;
     currentTask = "init";
-	ClearScreen(DEFAULT_COLOR);
+	clear_tty(DARK_COLOR, ker_tty);
+    clr_tty_line(24, ker_tty);
+    display_tty(ker_tty);
 	curMode = 10;
-	ColLine(0, BAR_COLOR);
-	ColLine(24, BAR_COLOR);
-	ClrLine(24);
 	SetCursorPos(0,0);
 	kprint("MellOS shell - [");
     kprint("task: ");
@@ -59,8 +57,8 @@ void load_shell(){
     kprint(" | ");
     kprint("dir: -");
     kprint("]\n");
-    kprint("Work in progress, ");
-    kprintCol("press F1 to use the old CMD mode.\n\n", ERROR_COLOR);
+    kprint("Work in progress;\n");
+    kprintCol("Version note: the old \"mode\" system has been removed.\n\n", ERROR_COLOR);
 	CommandCursor = CursorPos;
 	SetCursorPosRaw(1920);
 	return;
@@ -103,7 +101,8 @@ void parseCommand(){
     memunrec();
     kprint("\n");
     CommandCursor = CursorPos;
-    ClrLine(24);
+    clr_tty_line(24, ker_tty);
+    display_tty(ker_tty);
     //SetCursorPosRaw(1920);
     refreshShell();
 }

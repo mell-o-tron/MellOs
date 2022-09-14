@@ -3,8 +3,6 @@
 #include <VGA_Text.h>
 #include <port_io.h>
 #include "../CPU/Interrupts/irq.h"
-#include "../Misc/CmdMode.h"
-#include "../Misc/CodeMode.h"
 #include "../Shell/shell.h"
 
 /********************FUNCTIONS*********************
@@ -91,13 +89,11 @@ void keyboard_handler(struct regs *r)
     		case 0x3a: caps_lock = !caps_lock; break;
     		case 0x1c: 
     			switch(curMode){
-    				case 1: FindCmd(); break;
-    				case 2: Interpret(); break;
-    				case 0: kprintChar('\n', 0);
+    				case 0: kprintChar('\n', 0); break;
                     case 10: parseCommand();
     			}
     			break;
-    		case 0x3b: SetCmdMode(); break;
+    		//case 0x3b: SetCmdMode(); break;
             case 0x3f: load_shell(); break;
     									//ITALIAN KEYBOARD, might not work on others:
     		case 0x56: kprintChar(shift_pressed ? '>' : '<', 0); break;	

@@ -3,11 +3,14 @@
 
 extern uint16_t CursorPos;
 
+extern char ker_tty[4000];
+
 FDEF(echo){
     kprint(s+1);
 }
 
 FDEF(clear){
-    ClearScreen(-1);
+    clear_tty(-1, ker_tty);
     CursorPos = 0;
+    display_tty(ker_tty);
 }
