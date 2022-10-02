@@ -25,9 +25,19 @@
 //////////////////////////////////////////// WOW this code sucks, I'll need to rewrite it entirely with the new shell in mind.
 
 extern int curMode;
-int curColor = DEFAULT_COLOR;
+extern char ker_tty[4000];
+int curColor = DARK_COLOR;
 uint16_t CursorPos = 0; 		// Holds the current position of the cursor
 
+void display_tty(char* tty){
+	for(int i = (int)VIDEO_MEMORY; i < (int)VIDEO_MEMORY + 4000; i += 1)
+			*((char*)i) = tty[i - (int)VIDEO_MEMORY];
+}
+
+void display_tty_line(char* tty, int line){
+	for(int i = (int)VIDEO_MEMORY + (line * 160); i < (int)VIDEO_MEMORY + ((line + 1) * 160); i += 1)
+			*((char*)i) = tty[i - (int)VIDEO_MEMORY];
+}
 
 void SetCursorPosRaw(uint16_t pos){	// Does some I/O black magic 
 	if(pos >= 0 && pos < 2000) {
@@ -75,91 +85,56 @@ void enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 }
 */
 
-void ClearScreen(int col){	//col...or
+void clear_tty(int col, char *tty){	//col...or
 	if(col == -1) col = curColor;		//-1: maintain current colour
-	switch(curMode){
-	case 0:
-		for(int i = (int)VIDEO_MEMORY; i < (int)VIDEO_MEMORY + 4000; i += 1) {
-			if(i % 2 == 0) *((char*)i) = 32;	//Default is spaces
-			else *((char*)i) = col;
-		}
-		break;
-	default:
-		
-		for(int i = (int)VIDEO_MEMORY + 160; i < (int)VIDEO_MEMORY + 3840; i += 1) {
-			if(i % 2 == 0) *((char*)i) = 32;	//Default is spaces
-			else *((char*)i) = col;
-		}
+	for(int i = 0; i < 4000; i += 1) {
+			if(i % 2 == 0) tty[i] = 32;	//Default is spaces
+			else tty[i] = col;
 	}
+
 }
 
-void ColScreen(int col){
-	switch(curMode){
-	case 0:
-		
-		for(int i = (int)VIDEO_MEMORY + 1; i < (int)VIDEO_MEMORY + 4000; i += 2)
-			*((char*)i) = col;
-			break;
-	default:
-		for(int i = (int)VIDEO_MEMORY + 161; i < (int)VIDEO_MEMORY + 3840; i += 2) 
-			*((char*)i) = col;
-		
-		
-	}
+
+void col_tty(int col, char* tty){
+		for(int i = 1; i < 4000; i += 2)
+			tty[i] = col;
 }
 
 					// SET LINE COLOUR
-void ColLine(int line, int col){
-	for(int i = (int)VIDEO_MEMORY + VGA_WIDTH * 2 * line + 1;
-	i < (int)VIDEO_MEMORY + VGA_WIDTH * 2 * (line + 1) + 1; i += 2)  *((char*)i) = col;
+void col_tty_line(int line, int col, char* tty){
+	for(int i = VGA_WIDTH * 2 * line + 1;
+	i < VGA_WIDTH * 2 * (line + 1) + 1; i += 2)  tty[i] = col;
+}
+
+void clr_tty_line(int line, char *tty){
+	for(int i = VGA_WIDTH * 2 * line;
+	i < VGA_WIDTH * 2 * (line + 1); i += 2)  tty[i] = 0; 	// CLR WITH 0s
 		
 }
 
-void ClrLine(int line){
-	for(int i = (int)VIDEO_MEMORY + VGA_WIDTH * 2 * line;
-	i < (int)VIDEO_MEMORY + VGA_WIDTH * 2 * (line + 1); i += 2)  *((char*)i) = 0; 	// CLR WITH 0s
-		
-}
-
-void scrollPageUp(){
-    for(int i = 160*2; i < 4000 - 160; i++) *(VIDEO_MEMORY + i - 160) = *(VIDEO_MEMORY + i);
-}
 
 
-void kprint(const char* s){		// Just a simple print function. Prints to screen at cursor position, moves the cursor at the end. 
+void kprint(const char* s){		// Just a simple print function; prints to screen at cursor position.
 	uint8_t* charPtr = (uint8_t*)s;
 	uint16_t i = CursorPos;
 	while(*charPtr != 0){
 	switch (*charPtr) {
-		case 10:	if(i < 1920){
-                        if(CursorPos >= 1760){
-                            i = 1760;
-                            scrollPageUp();
-                        }else i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
-                    }
-            
-	  			
-			break;
-		case 13:
-			i -= i % VGA_WIDTH;
-			break;
 		default:
         if(i < 1840){
-            *(VIDEO_MEMORY + i * 2) = *charPtr;
-            i++;
+			kprintChar(*charPtr, 0);
+			i++;
         }
         else{
-            scrollPageUp();
-            i = 1760;
-        }
+			clear_tty(curColor, ker_tty);
+			display_tty(ker_tty);
+			CursorPos = 80;
+		}
 	}
 
 	charPtr++;
 	}
-	SetCursorPosRaw(i);
 	return;
 }
-
 
 void kprintCol(const char* s, int col){		//Print: with colours!
   uint8_t* charPtr = (uint8_t*)s;
@@ -167,13 +142,6 @@ void kprintCol(const char* s, int col){		//Print: with colours!
   while(*charPtr != 0)
   {
 	switch (*charPtr) {
-	  case 10:	
-	  		if(CursorPos < 1920)
-	  			i+= VGA_WIDTH - i % VGA_WIDTH;	// ALSO ADDS RETURN TO NEWLINE!!
-			break;
-	  case 13:
-			i -= i % VGA_WIDTH;
-			break;
 	  default:
 	  *(VIDEO_MEMORY + i*2) = *charPtr;
 	  *(VIDEO_MEMORY + i*2 + 1) = col;
@@ -188,7 +156,7 @@ void kprintCol(const char* s, int col){		//Print: with colours!
 
 
 void MoveCursorLR(int i){			// MOVE CURSOR HORIZONTALLY
-	if(CursorPos >= 0 && CursorPos < 2000){
+	if((CursorPos > 0 && i < 0) || (CursorPos < 1999 && i > 0)){
 		switch(curMode){
 			case 0:
 				CursorPos += i;
@@ -201,17 +169,34 @@ void MoveCursorLR(int i){			// MOVE CURSOR HORIZONTALLY
 				}	
 		}
 	}
+	else if (i < 0) {
+		CursorPos = 0;
+		SetCursorPosRaw(CursorPos);
+	}
+	else {
+		CursorPos = 1999;
+		SetCursorPosRaw(CursorPos);
+	}
 	return;
 }
 
 void MoveCursorUD(int i){			// MOVE CURSOR VERTICALLY
-	if(CursorPos >= 0 && CursorPos < 2000){
+
+	if((CursorPos / 80 < 24 && i > 0) || (CursorPos / 80 > 0 && i < 0)){
 		switch(curMode){
 			case 0:
 				CursorPos += VGA_WIDTH * i;
 				SetCursorPosRaw(CursorPos);
-				break;	
+				break;
 		}
+	}
+	else if (i < 0) {
+		CursorPos = 0;
+		SetCursorPosRaw(CursorPos);
+	}
+	else {
+		CursorPos = 1999;
+		SetCursorPosRaw(CursorPos);
 	}
 	return;
 }
@@ -226,57 +211,68 @@ void ScrollVMem(){
 
 
 
-
-
-void kprintChar(const char c, bool caps){
+void print_tty_char(const char c, bool caps, char* tty){
 	int curLine = 1 + CursorPos / VGA_WIDTH;
-    
+
     
 	if(c == 8 || c == 10 || (c >= 32 && c <= 255)) {
 	switch(c){
 		case 10:
 			if(CursorPos < 1920){ 						// newline
-                CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;	
+                CursorPos+=VGA_WIDTH - CursorPos % VGA_WIDTH;
             }
 			break;
 		case 8: 						// backspace
 			if(CursorPos > 0){
 				switch(curMode){
 					case 0:
-						CursorPos--;
-						*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
+						if (CursorPos > 0){
+							CursorPos--;
+							*(tty + CursorPos * 2) = (char)0;
+						}
 						break;
 					default:
 						if(CursorPos > 1920){
 							CursorPos--;
-							*(VIDEO_MEMORY + CursorPos * 2) = (char)0;
-							}
+							*(tty + CursorPos * 2) = (char)0;
+						}
 				}
 			}
 			break;
 		case 127: 						// del
 			if(CursorPos < 2000){
-			*(VIDEO_MEMORY + CursorPos * 2 + 2) = (char)0;
+			*(tty + CursorPos * 2 + 2) = (char)0;
 			}
 			break;
 		default:
-			ScrollVMem();
-			if(c >= 97 && c <= 172 && caps) *(VIDEO_MEMORY + CursorPos * 2) = c - 32; // CAPS
+			//ScrollVMem();
+			if(c >= 97 && c <= 172 && caps) *(tty + CursorPos * 2) = c - 32; // CAPS
 			else if(c >= 48 && c <= 57 && caps){
 				//caps numbers
 			}
-			else *(VIDEO_MEMORY + CursorPos * 2) = c;
+			else *(tty + CursorPos * 2) = c;
 			
-			if(CursorPos < 2000)
+			if(CursorPos < 1999)
 				CursorPos++;
-            else scrollPageUp();
-			
+            else {
+				SetCursorPosRaw(0);
+				clear_tty(curColor, tty);
+				display_tty(tty);
+			}
+
 		}
+		display_tty_line(tty, curLine-1);
 	}
 	
 	SetCursorPosRaw(CursorPos);
 	return;
 }
+
+
+void kprintChar(const char c, bool caps){
+	print_tty_char(c, caps, ker_tty);
+}
+
 
 void printError(const char* s){
     kprintCol(s, ERROR_COLOR);

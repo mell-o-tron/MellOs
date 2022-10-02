@@ -6,6 +6,7 @@
 //IMPLEMENT STACK SMASHING PROTECTOR!!!!
 
 #include "../Utils/Typedefs.h"
+#include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
 #include "../Utils/Conversions.h"
 #include "../Utils/string.h"
@@ -19,18 +20,19 @@
 #include "../Drivers/Keyboard.h"
 #include "../Drivers/Floppy.h"
 #include "../Drivers/port_io.h"
-#include "../Misc/CmdMode.h"
 #include "../Utils/dataStructures.h"
 #include "../Shell/shell.h"
 
 #include "../Drivers/Disk.h"
 
-int curMode;					        // Modes:	1: CMD, 2: code, 0: dummy text, 10: shell
+volatile int curMode = 0;					        // Modes:	0: dummy text, 10: shell
 
 
 extern const char Fool[];			    // Test included binaries
 extern const char KPArt[];
 extern const unsigned short MemSize;    // Approximate value of extended memory (under 4 GB)
+
+char ker_tty[4000];
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
 extern  void kpanic(struct regs *r){
@@ -87,9 +89,16 @@ extern  void main(){
 	timer_install();
 	kb_install();
     initializeMem();
-    load_shell();
 
+    //load_shell();
 
+	clear_tty(DEFAULT_COLOR, ker_tty);
+	display_tty(ker_tty);
+	clear_tty(DARK_COLOR, ker_tty);
+	display_tty_line(ker_tty, 1);
+
+	kprint("Press f5 to enter shell mode\n");
+	kprint("This is a test of the tty system.\n");
     //kprint(strDecapitate("print pal", strLen("print ")));
     //kprint("one\ntwo two \nthree three three \nfour four four four");
     //scrollPageUp();
