@@ -12,16 +12,6 @@ extern const char* currentTask;
 
 extern uint16_t CursorPos;
 
-static const char *  const helpList[5] = {                  // find better (dynamic) way
-    "  help: shows command list\n",
-    "  echo [text]: prints text\n",
-    "  usedmem: shows dynamic memory usage\n",
-    "  floppy:\n         list: shows list of connected floppy drives\n         []: shows floppy help\n",
-    "  clear: clears the screen\n"
-    "  meminfo: shows memory info\n"
-    
-};
-
 #define CMDENTRY(fptr, alias, help, usage) {    \
     fptr,                                       \
     alias,                                      \
