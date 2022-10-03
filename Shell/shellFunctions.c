@@ -12,14 +12,23 @@ extern const char* currentTask;
 
 extern uint16_t CursorPos;
 
-static const char *  const helpList[5] = {                  // find better (dynamic) way
-    "  help: shows command list\n",
-    "  echo [text]: prints text\n",
-    "  usedmem: shows dynamic memory usage\n",
-    "  floppy:\n         list: shows list of connected floppy drives\n         []: shows floppy help\n",
-    "  clear: clears the screen\n"
-    "  meminfo: shows memory info\n"
-    
+#define CMDENTRY(fptr, alias, help, usage) {    \
+    fptr,                                       \
+    alias,                                      \
+    help,                                       \
+    usage                                       \
+}
+
+void helpCMD(const char* s);
+
+shellfunction CMDs[] = {
+    CMDENTRY(&helpCMD,  "help",     "Shows command list", "help"),
+    CMDENTRY(&echo,     "echo",     "Prints text", "echo [text]"),
+    CMDENTRY(&usedmem,  "usedmem",  "Shows dynamic memory usage", "usedmem"),
+    CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives", "floppy"),
+    CMDENTRY(&clear,    "clear",    "Clears the screen", "clear"),
+    CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
+    CMDENTRY(&meminfo,  "meminfo",  "Shows memory info", "meminfo")
 };
 
 // Bind this to CMDs and use the help texts for each command (that's the better way ^)
@@ -27,8 +36,13 @@ void helpCMD(const char* s){
     if(strLen(s) == 0){
         currentTask = "help";
         kprint("List of commands:\n");
-        for(int i = 0; i < sizeof(helpList)/sizeof(char*); i++)
-            kprint(helpList[i]);
+        for(int i = 0; i < sizeof(CMDs)/sizeof(shellfunction); i++) {
+            kprint("   ");
+            kprint(CMDs[i].usage);
+            kprint(": ");
+            kprint(CMDs[i].help);
+            kprint("\n");
+        }
     }
     else{
         kprint("Invalid option: \"");
@@ -52,22 +66,6 @@ shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
     f.help = Help;
     return f;
 }
-
-#define CMDENTRY(fptr, alias, help) {   \
-    fptr,                               \
-    alias,                              \
-    help                                \
-}
-
-shellfunction CMDs[] = {
-    CMDENTRY(&helpCMD,  "help",     "Shows command list"),
-    CMDENTRY(&echo,     "echo",     "Prints text"),
-    CMDENTRY(&usedmem,  "usedmem",  "Shows dynamic memory usage"),
-    CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives"),
-    CMDENTRY(&clear,    "clear",    "Clears the screen"),
-    CMDENTRY(&hcf,      "hcf",      "Crashes your system"),
-    CMDENTRY(&meminfo,  "meminfo",  "Shows memory info")
-};
 
 shellfunction* TryGetCMD(char* cmdbuf){
     for(int x = 0; x < sizeof(CMDs)/sizeof(shellfunction); x++){
