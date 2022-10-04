@@ -16,6 +16,10 @@ FHDR(meminfo);
 FHDR(floppy);
 
 // misc.c
-FHDR(hcf)
+FHDR(hcf);
+
+// driver_addon.c
+FHDR(time);
+FHDR(boottime);
 
 #endif

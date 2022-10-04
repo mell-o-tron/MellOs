@@ -1,6 +1,6 @@
 global Fool
 
-Fool: incbin "fool.txt"
+Fool: incbin "fool_new.txt"
 db 0
 
 
