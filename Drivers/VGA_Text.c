@@ -146,6 +146,8 @@ void kprintCol(const char* s, int col){		//Print: with colours!
 	  	i += 80;
 		i -= i%80;
 		break;
+	  case 0x0d:
+	  	break;
 	  default:
 	  *(VIDEO_MEMORY + i*2) = *charPtr;
 	  *(VIDEO_MEMORY + i*2 + 1) = col;
