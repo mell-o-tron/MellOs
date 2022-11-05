@@ -1,6 +1,6 @@
 # nasm and qemu
-sudo apt install nasm
-sudo apt install qemu
+sudo apt-get install nasm
+sudo apt-get install qemu
 sudo apt-get install qemu-kvm
 
 # GCC cross compiler for i386 systems (might take quite some time, prepare food)
@@ -13,6 +13,9 @@ sudo apt install libgmp3-dev
 sudo apt install libmpc-dev
 sudo apt install libmpfr-dev
 sudo apt install texinfo
+
+#cURL (needed to clone some required files)
+sudo apt-get install curl
 
 export PREFIX="/usr/local/i386elfgcc"
 export TARGET=i386-elf
