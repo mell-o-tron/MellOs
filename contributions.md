@@ -10,6 +10,9 @@
 ### 29 JUNE 2022 - MAstcharub:
 1. Fixed Write Sector Function in the Disk Driver.
 1. Added `identify_ata` function in the Disk Driver.
+---
+### 5 NOVEMBER 2022 - YehudaElyasaf:
+1. Added cURL installation to Debian's setup script.
 
 TODO: Add Shell Comand for `identify_ata`.
 
