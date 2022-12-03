@@ -25,10 +25,10 @@ void beep(unsigned int freq, unsigned int time) {
     if (!freq) freq = 950;
     if (!time) time = 18;
     if (time == 0) {
-        print("beep warning: 'time' played is zero.");
+        kprint("beep warning: 'time' played is zero.");
         return;
     }
     PlaySound(freq);
-    timer_wait(time);
+    sleep(time);
     Quiet();
 }
