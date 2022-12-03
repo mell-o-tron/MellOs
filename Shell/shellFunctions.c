@@ -4,6 +4,8 @@
 #include "../Memory/mem.h"
 #include "../Drivers/Floppy.h"
 #include "../Utils/string.h"
+#include "../Shell/shell.h"
+#include "../CPU/Timer/timer.h"
 
 #include "shellFunctions.h"
 #include "./functions/functions.h"
@@ -28,7 +30,9 @@ shellfunction CMDs[] = {
     CMDENTRY(&floppy,   "floppy",   "Shows list of connected floppy drives", "floppy"),
     CMDENTRY(&clear,    "clear",    "Clears the screen", "clear"),
     CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
-    CMDENTRY(&meminfo,  "meminfo",  "Shows memory info", "meminfo")
+    CMDENTRY(&meminfo,  "meminfo",  "Shows memory info", "meminfo"),
+    CMDENTRY(&boottime,  "time",  "Shows time lasted since system boot", "time"),
+    CMDENTRY(&time,  "cmos",  "Shows CMOS time and date", "cmos")
 };
 
 // Bind this to CMDs and use the help texts for each command (that's the better way ^)

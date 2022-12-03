@@ -1,8 +1,21 @@
-       	        ษอปษอป
+
+                ษอปษอป
 ษออป ษออปษอออออปบ บบ บษออออปษออออป
 บ  ศอผ  บบ ษอป บบ บบ บบ ษป บบ  ออน
 บ ษป ษป บบ ศอออนบ บบ บบ ศผ บฬออ  บ
 ศอผศอผศอผศอออออผศอผศอผศออออผศออออผ
 
 A minimal, collaboratively written kernel.
+Written by a group of people in their free time.
+Includes:
+ Simple bootloader,
+ Monolithic kernel,
+ Flat memory model,
+ Interrupt request handling, keyboard and timer support
+ Linear dynamic memory allocation,
+ GDT (Different from the one in the Bootloader),
+ TTY-ish system to print to screen: allows to print to one of many canvases.
 
+Github code link: https://github.com/mell-o-tron/MellOs
+
+Press F5 to enter shell.

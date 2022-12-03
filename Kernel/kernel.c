@@ -31,7 +31,7 @@ volatile int curMode = 0;					        // Modes:	0: dummy text, 10: shell
 extern const char Fool[];			    // Test included binaries
 extern const char KPArt[];
 extern const unsigned short MemSize;    // Approximate value of extended memory (under 4 GB)
-
+extern int curColor;
 char ker_tty[4000];
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
@@ -87,21 +87,17 @@ extern  void main(){
 	irq_install();
 	asm volatile ("sti");
 	timer_install();
-	kb_install();
-    initializeMem();
+	initializeMem();
 
-    //load_shell();
 
 	clear_tty(DEFAULT_COLOR, ker_tty);
 	display_tty(ker_tty);
-	clear_tty(DARK_COLOR, ker_tty);
+	clear_tty(DEFAULT_COLOR, ker_tty);
 	display_tty_line(ker_tty, 1);
-
-	kprint("Press f5 to enter shell mode\n");
-	kprint("This is a test of the tty system.\n");
-    //kprint(strDecapitate("print pal", strLen("print ")));
-    //kprint("one\ntwo two \nthree three three \nfour four four four");
-    //scrollPageUp();
-    
+	int curColor = DEFAULT_COLOR;
+	SetCursorPosRaw(0);
+	kprintCol(Fool, DEFAULT_COLOR);
+	SetCursorPosRaw(1920);
+	kb_install();
 	return;
 }

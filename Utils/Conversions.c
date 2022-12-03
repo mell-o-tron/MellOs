@@ -42,7 +42,44 @@ const char* toString(int n, int base) {
 	char revBuf[128];
 	//asm volatile("1: jmp 1b");
 	return reverse(buffer, revBuf, i-1);
-} 
+}
+
+const char* kprintInt(int n) {
+
+	char* buffer = toStringRes;
+	int base = 10;
+	int m = n;
+	int i = 0;
+    
+    if(n < 0){                 // Negative integers
+        m = -n;
+    }
+	
+    while(m != 0){
+		buffer[i] = (char)((m % base)+ (m % base > 9 ? 55 : 48));
+		m = m / base;
+		i++;
+	}
+    
+    if(n < 0){
+        buffer[i] = '-';
+        i++;
+    }
+    
+    if(n == 0){
+        buffer[i] = '0';
+        i++;
+    }
+	
+	buffer[i] = '\0';
+	char revBuf[128];
+	//asm volatile("1: jmp 1b");
+	if (n<10){
+	    kprint("0");
+	    kprint(reverse(buffer, revBuf, i-1));
+	} else {
+	kprint(reverse(buffer, revBuf, i-1));}
+}	
 
 int oct2bin(unsigned char *str, int size) {
     int n = 0;
