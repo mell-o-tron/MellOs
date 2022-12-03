@@ -112,6 +112,7 @@ void clr_tty_line(int line, char *tty){
 		
 }
 
+void kprintChar(const char c, bool caps);
 
 
 void kprint(const char* s){		// Just a simple print function; prints to screen at cursor position.

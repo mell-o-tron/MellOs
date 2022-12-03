@@ -1,7 +1,10 @@
 // Written by KingUndeadCodes (https://www.github.com/KingUndeadCodes/)
 // Check out my OS (https://www.github.com/KingUndeadCodes/Pumpkin-OS)
 
+#include "../Utils/Typedefs.h"
 #include "../CPU/Timer/timer.h"
+#include "../Drivers/port_io.h"
+#include "../Drivers/VGA_Text.h"
 
 static void PlaySound(unsigned int nFrequence) {
     unsigned char x;

@@ -8,6 +8,7 @@
 ***********************************************************/
 
 #include <string.h>
+#include "../Drivers/VGA_Text.h"
 
 char toStringRes[128];
 

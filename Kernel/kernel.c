@@ -5,6 +5,7 @@
 
 //IMPLEMENT STACK SMASHING PROTECTOR!!!!
 
+
 #include "../Utils/Typedefs.h"
 #include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
@@ -24,6 +25,7 @@
 #include "../Shell/shell.h"
 
 #include "../Drivers/Disk.h"
+#include "../Drivers/PCSpeaker.h"
 
 volatile int curMode = 0;					        // Modes:	0: dummy text, 10: shell
 
