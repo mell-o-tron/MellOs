@@ -1,9 +1,7 @@
 section .text
 [bits 32]
 
-global MemSize
-    MemSize: db 0, 0
-    mov [MemSize], bx   ; Get memory size from bx
+mov [MemSize], bx   ; Get memory size from bx
 
 [extern main]
 [extern kpanic]
@@ -14,6 +12,10 @@ jmp $
 %include "../CPU//Interrupts/interrupt.asm"
 %include "../Memory/Paging/paging.asm"
 
+
+section .data
+    global MemSize
+    MemSize: db 0, 0
 
 section .rodata		    ; read only data
 

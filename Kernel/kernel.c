@@ -12,6 +12,7 @@
 #include "../Utils/Conversions.h"
 #include "../Utils/string.h"
 #include "../Memory/mem.h"
+#include "../Memory/cmos_memsize.h"
 #include "../Memory/Paging/paging.h"
 #include "../CPU/Interrupts/idt.h"
 #include "../CPU/Interrupts/isr.h"
@@ -101,5 +102,6 @@ extern  void main(){
 	kprintCol(Fool, DEFAULT_COLOR);
 	SetCursorPosRaw(1920);
 	kb_install();
+	
 	return;
 }

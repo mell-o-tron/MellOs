@@ -59,7 +59,11 @@ int getFreeMem(){
    return freeMem; 
 }
 
+
+/* the following is used to get somewhat of a memory map, set up by the bootloader */
+
 mem_t memget(){
     mem_t* mem = (mem_t*)0x5000;
     return *mem;
 }
+

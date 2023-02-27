@@ -31,6 +31,7 @@ shellfunction CMDs[] = {
     CMDENTRY(&clear,    "clear",    "Clears the screen", "clear"),
     CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
     CMDENTRY(&meminfo,  "meminfo",  "Shows memory info", "meminfo"),
+    CMDENTRY(&cmosmem,  "cmosmem",  "Shows CMOS memory info", "cmosmem"),
     CMDENTRY(&boottime,  "time",  "Shows time lasted since system boot", "time"),
     CMDENTRY(&time,  "cmos",  "Shows CMOS time and date", "cmos")
 };

@@ -27,4 +27,16 @@ upper_memory_detection:
     mov [0x5002], ax
     ret
 
+    
+    
+; detects contiguous memory after 0x100000
+
+detect_cont_memory:     ; TODO error management
+    mov ax, 0x8A
+    mov dx, 0
+    int 0x15  ; result in AX
+    mov bx, ax
+    ret
+    
+    
 memory_failed: db "Failed to detect memory", 0

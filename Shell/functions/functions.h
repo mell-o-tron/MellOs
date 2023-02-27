@@ -11,6 +11,7 @@ FHDR(clear);
 // memory.c
 FHDR(usedmem);
 FHDR(meminfo);
+FHDR(cmosmem);
 
 // floppy.c
 FHDR(floppy);
