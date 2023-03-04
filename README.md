@@ -15,8 +15,15 @@ I'm doing this in my spare time, which basically means "during a small part of t
 
 Feel free to make pull requests and they'll be processed whenever possible.
 
-## Contributions
-Special thanks to all of those who contributed. Your changelogs will be integrated in `contributions.md`
+## Documentations
+WIP, there's a markdown file in each directory, which will contain the docs. If you change or add something, try to integrate your change into the docs from now on. 
+
+## Anything-here
+If you make a useful change or addition, you are allowed to use the `anything_here` file to write whatever you feel like writing; rules are: 
+
+- You may only add content, not delete
+- Be polite
+- Be creative
 
 ## Features
 ### Current
