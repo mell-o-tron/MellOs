@@ -19,7 +19,6 @@ _main16:
     
     ; the result of these calls is stored in memory, for the kernel to fetch later
 	call memory_detection
-    call upper_memory_detection
 	
 	;clear the screen
 	mov ah, 0x00
