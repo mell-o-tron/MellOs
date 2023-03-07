@@ -67,3 +67,8 @@ mem_t memget(){
     return *mem;
 }
 
+mem_t upper_memget (){
+    mem_t* mem = (mem_t*)0x5100;
+    return *mem;
+}
+

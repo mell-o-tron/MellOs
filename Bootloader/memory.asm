@@ -56,12 +56,36 @@ memory_detection:
     
 ; detects contiguous memory after 0x100000
 
-detect_cont_memory:     ; TODO error management
-    mov ax, 0x8A
-    mov dx, 0
+detect_cont_memory:
+    mov ah, 0x88
     int 0x15  ; result in AX
     mov bx, ax
+    
+    jc mem_error
+    
+    ret
+
+
+mmap_1_entry equ 0x5100
+    
+; e801
+upper_mem_map:
+    mov ax, 0xe801
+    int 0x15
+    jc mem_error
+    mov [mmap_1_entry], ax          ; extended 1 (up to 15MB between 1MB and 16MB)
+    mov [mmap_1_entry + 2], bx      ; extended 2 (number of contiguous 64KB blocks
+                                    ;             between 16MB and 4GB)
     ret
     
+mem_error:
+	push ax
+	mov bx, memory_failed
+	call print_string
+	jmp $
+
+	
+
+
     
-memory_failed: db "Failed to detect memory", 0
+memory_failed: db 10, 13, "Failed to detect memory", 0

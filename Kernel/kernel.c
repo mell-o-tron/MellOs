@@ -103,5 +103,6 @@ extern  void main(){
 	SetCursorPosRaw(1920);
 	kb_install();
 	
+	
 	return;
 }

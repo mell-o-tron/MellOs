@@ -9,7 +9,7 @@ SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=./WeeBins
 ## Compiler Flags
-FLAGS=-ffreestanding -m32 -g
+FLAGS=-ffreestanding -m32 -g 
 
 ## C source files
 CSRC := $(shell find ./ -name "*.c")
