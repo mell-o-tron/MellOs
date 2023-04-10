@@ -5,14 +5,14 @@
 
 /************************************ LINKED LIST ******************************************/
 struct List* newList(){
-    struct List* nList = (struct List*)kmalloc(sizeof(struct List));
-    nList -> head = (struct node*)kmalloc(sizeof(struct node));
+    struct List* nList = (struct List*)linear_alloc(sizeof(struct List));
+    nList -> head = (struct node*)linear_alloc(sizeof(struct node));
     nList -> head -> val = 0;
     return nList;
 }
 
 void listAdd(struct List* list, int val){
-    struct node* nNode = (struct node*)kmalloc(sizeof(struct node));
+    struct node* nNode = (struct node*)linear_alloc(sizeof(struct node));
     nNode -> val = val;
     if(list -> head -> next)
         nNode -> next = list -> head -> next;
@@ -21,7 +21,7 @@ void listAdd(struct List* list, int val){
 }
 
 void listPrint(struct List* list){
-    struct node* tmp = (struct node*)kmalloc(sizeof(struct node));
+    struct node* tmp = (struct node*)linear_alloc(sizeof(struct node));
     tmp = list -> head;
     while(tmp -> next){
         kprintChar(tmp -> val, 0);
@@ -35,7 +35,7 @@ void listPrint(struct List* list){
 
 /************************************ QUEUE ******************************************/
 struct ListQueue* newLQueue(){
-    struct ListQueue* nQueue = (struct ListQueue*)kmalloc(sizeof(struct ListQueue));
+    struct ListQueue* nQueue = (struct ListQueue*)linear_alloc(sizeof(struct ListQueue));
     struct List* list = newList();
     nQueue->list = list;
     return nQueue;
@@ -43,7 +43,7 @@ struct ListQueue* newLQueue(){
 
 void lEnqueue (struct ListQueue* queue, int k){
     if(queue->tail) {
-        struct node* nNode = (struct node*)kmalloc(sizeof(struct node));
+        struct node* nNode = (struct node*)linear_alloc(sizeof(struct node));
         nNode -> val = k;
         queue->tail->next = nNode;
         queue->tail = nNode;

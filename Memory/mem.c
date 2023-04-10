@@ -9,7 +9,9 @@
 
 
 #include "mem.h"
-#define FREE_MEM 0x10000;
+#include "./../Drivers/VGA_Text.h"
+#include "../Misc/colors.h"
+#define FREE_MEM 0x100000
 
 void* memset(void* dest, unsigned char val, int count){ 
 	unsigned char* destC = (unsigned char*)dest;
@@ -31,11 +33,24 @@ void initializeMem(){
     freeMem = FREE_MEM;
 }
 
+
+extern char ker_tty[4000];
+
 /* allocate space linearly (Welcome to the worst allocation method ever), starting from address 0x10000 */
-void* kmalloc(int size){
+void* linear_alloc (int size){
     memset((void*)freeMem, 0, size); 
     void* address = (void*)freeMem;
     freeMem += size;
+    
+    if(freeMem > upper_memget().lower_size + FREE_MEM){
+        // display out of memory error
+        clear_tty(DEFAULT_COLOR, ker_tty);
+        display_tty(ker_tty);
+        SetCursorPosRaw(0);
+        kprint("\n> Kernel Error - Out of memory :(");
+        while(1){;}
+    }
+    
     return address;
 }
 /* "free" last bytes of memory */
@@ -62,7 +77,7 @@ int getFreeMem(){
 
 /* the following is used to get somewhat of a memory map, set up by the bootloader */
 
-mem_t memget(){
+mem_t memget(){                     // These values better be protected somehow... TODO
     mem_t* mem = (mem_t*)0x5000;
     return *mem;
 }
@@ -71,4 +86,3 @@ mem_t upper_memget (){
     mem_t* mem = (mem_t*)0x5100;
     return *mem;
 }
-

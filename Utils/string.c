@@ -10,7 +10,7 @@
 const char* reverse(const char* str, char* buffer, int len){
 	int i;
 	for (i = 0; i <= len; i++){
-		buffer[i] = str[len - i];
+		buffer[i] = str[len - 1 - i];
 	}
 	buffer[i] = '\0';
 	return buffer;
@@ -70,7 +70,7 @@ int strFindChar(const char* s, char c){
 const char* strDecapitate(const char* s, int n){            // Uses Dynamic Memory Allocation, be careful.
     int newLen = strLen(s) - n;
     if(newLen <= 0) return ""; 
-    char* t = (char*)kmalloc(sizeof(char) * (newLen + 1));
+    char* t = (char*)linear_alloc(sizeof(char) * (newLen + 1));
     for(int i = 0; i < newLen; i++)
         t[i] = s[i + n];
     return t;

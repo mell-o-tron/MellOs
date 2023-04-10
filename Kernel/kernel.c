@@ -102,7 +102,7 @@ extern  void main(){
 	kprintCol(Fool, DEFAULT_COLOR);
 	SetCursorPosRaw(1920);
 	kb_install();
-	
+
 	
 	return;
 }

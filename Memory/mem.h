@@ -8,7 +8,7 @@ typedef struct {
 mem_t memget(void);
 mem_t upper_memget (void);
 void* memset(void* dest, unsigned char val, int count);
-void* kmalloc(int size);
+void* linear_alloc(int size);
 void memcut(int size);
 void memreset();
 void memrec();

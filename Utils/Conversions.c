@@ -44,7 +44,7 @@ const char* toString(int n, int base) {
 	char revBuf[128];
 	//asm volatile("1: jmp 1b");
     
-	return reverse(buffer, revBuf, i-1);
+	return reverse(buffer, revBuf, i);
 }
 
 const char* kprintInt(int n) {
