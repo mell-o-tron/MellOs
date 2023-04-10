@@ -13,7 +13,11 @@
 #include "../Misc/colors.h"
 #define FREE_MEM 0x100000
 
-void* memset(void* dest, unsigned char val, int count){ 
+void* memset(void* dest, unsigned char val, size_t count){ 
+    /* Indicate failure */
+    if (!dest)
+        return NULL;
+
 	unsigned char* destC = (unsigned char*)dest;
 	int i;
 	for (i = 0; i < count; i++)
@@ -22,12 +26,15 @@ void* memset(void* dest, unsigned char val, int count){
 }
 
 /* Copy blocks of memory */
-void memcp(unsigned char* source, unsigned char* dest, int count){
+void memcp(unsigned char* source, unsigned char* dest, size_t count){
+    if (!source || !dest)
+        return;
+
     for (int i = 0; i < count; i++)
         *(dest + i) = *(source + i);
 }
 
-int freeMem = FREE_MEM;
+static size_t freeMem = FREE_MEM;
 
 void initializeMem(){
     freeMem = FREE_MEM;
@@ -37,7 +44,11 @@ void initializeMem(){
 extern char ker_tty[4000];
 
 /* allocate space linearly (Welcome to the worst allocation method ever), starting from address 0x10000 */
-void* linear_alloc (int size){
+void* linear_alloc (size_t size){
+    /* Don't want to be returning block sizes of zero */
+    if (!size)
+        return NULL;
+
     memset((void*)freeMem, 0, size); 
     void* address = (void*)freeMem;
     freeMem += size;
@@ -54,14 +65,14 @@ void* linear_alloc (int size){
     return address;
 }
 /* "free" last bytes of memory */
-void memcut(int size) {freeMem -= size;}
+void memcut(size_t size) {freeMem -= size;}
 
 /* free the whole dynamic memory */
 void memreset(){freeMem = FREE_MEM;}
 
 
 /* the following two functions can be called at the beginning and end of a function; they implement a sort of "scoping" for dynamic memory, that makes the whole system a bit less shit */
-int tmpMem;
+static size_t tmpMem;
 void memrec(){
     tmpMem = freeMem;
 }
