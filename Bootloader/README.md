@@ -11,7 +11,7 @@ There are several ways to detect memory in the bootloader. We're using two diffe
 - The first uses `INT 0x15 EAX=0xe820` and stores the result at memory location `0x5000`
 - The second uses `INT 0x15 AX=0xe801` and stores the result at memory location `0x5100`:
 
-```
+```nasm
 upper_mem_map:
     mov ax, 0xe801
     int 0x15
