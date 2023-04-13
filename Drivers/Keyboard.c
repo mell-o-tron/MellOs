@@ -52,15 +52,31 @@ const char kbdus[128] =
     0,	/* All other keys are undefined */
 };
 
-bool shift_pressed = false;
-bool caps_lock = false;
+enum scan_codes 
+{
+    LEFT_ARROW_PRESSED = 0x4b,
+    RIGHT_ARROW_PRESSED = 0x4d,
+    DOWN_ARROW_PRESSED = 0x48,
+    UP_ARROW_PRESSED = 0x50,
+    LEFT_SHIFT_PRESSED = 0x2a,
+    CAPS_LOCK_PRESSED = 0x3a,
+    RETURN_PRESSED = 0x1c,
+    F5_PRESSED = 0x3f,
+
+    LEFT_SHIFT_RELEASED = 0xaa
+};
 
 void keyboard_handler(struct regs *r)
 {
+    /* static prevents these variables from being reassigned back to false after the function returns and gets called again
+    * and it keeps the variables local to this function */
+    static bool shift_pressed = false;
+    static bool caps_lock = false;
+
     unsigned char scancode;
 
     scancode = inb(0x60);
-    
+
     /* If the top bit of the byte we read from the keyboard is
     *  set, that means that a key has just been released */
     if (scancode & 0x80)
@@ -72,7 +88,7 @@ void keyboard_handler(struct regs *r)
     	
     	
     	switch(scancode){
-    		case 0xaa: shift_pressed = false; break;
+    		case LEFT_SHIFT_RELEASED: shift_pressed = false; break;
     		
     	}
 	
@@ -81,20 +97,20 @@ void keyboard_handler(struct regs *r)
     {
     	
     	switch(scancode){
-    		case 0x4b: MoveCursorLR(-1); break;
-    		case 0x4d: MoveCursorLR(1); break;
-    		case 0x48: MoveCursorUD(-1); break;
-    		case 0x50: MoveCursorUD(1); break;
-    		case 0x2a: shift_pressed = true; break;
-    		case 0x3a: caps_lock = !caps_lock; break;
-    		case 0x1c: 
+    		case LEFT_ARROW_PRESSED: MoveCursorLR(-1); break;
+    		case RIGHT_ARROW_PRESSED: MoveCursorLR(1); break;
+    		case DOWN_ARROW_PRESSED: MoveCursorUD(-1); break;
+    		case UP_ARROW_PRESSED: MoveCursorUD(1); break;
+    		case LEFT_SHIFT_PRESSED: shift_pressed = true; break;
+    		case CAPS_LOCK_PRESSED: caps_lock = !caps_lock; break;
+    		case RETURN_PRESSED: 
     			switch(curMode){
     				case 0: kprintChar('\n', 0); break;
                     case 10: parseCommand();
     			}
     			break;
     		//case 0x3b: SetCmdMode(); break;
-            case 0x3f: load_shell(); break;
+            case F5_PRESSED: load_shell(); break;
     									//ITALIAN KEYBOARD, might not work on others:
     		case 0x56: kprintChar(shift_pressed ? '>' : '<', 0); break;	
     		default: kprintChar(kbdus[scancode], shift_pressed | caps_lock);
