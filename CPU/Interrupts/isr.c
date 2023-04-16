@@ -41,6 +41,7 @@ extern  void _isr28();
 extern  void _isr29();
 extern  void _isr30();
 extern  void _isr31();
+extern  void _syscall();
 
 void isrs_install()
 {
@@ -77,11 +78,20 @@ void isrs_install()
 	idt_set_gate(30, (unsigned)_isr30, 0x08, 0x8E);
 	idt_set_gate(31, (unsigned)_isr31, 0x08, 0x8E);
 	
+	idt_set_gate(0x80, (unsigned)_syscall, 0x08, 0x8E);
+	
 }
 
 extern  void _fault_handler(struct regs *r)
 {
+                                    
+    if (r -> int_no == -0x80){      // heh, unsigned, lazy
+        kprint("syscall!\n");
+        kprint(toString(r -> err_code, 10));
+		return;
+    }
     
+	
     if (r->int_no < 32)
     {
 		kpanic(r);

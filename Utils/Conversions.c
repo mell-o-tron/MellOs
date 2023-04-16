@@ -11,8 +11,13 @@
 #include "../Drivers/VGA_Text.h"
 
 char toStringRes[128];
-
+char revBuf[128];
 const char* toString(int n, int base) {
+    
+    for (int i = 0; i < 128; i++){
+        toStringRes[i] = 0;
+        revBuf[i] = 0;
+    }
     
 	char* buffer = toStringRes;
 	
@@ -41,7 +46,7 @@ const char* toString(int n, int base) {
     }
 	
 	buffer[i] = '\0';
-	char revBuf[128];
+	
 	//asm volatile("1: jmp 1b");
     
 	return reverse(buffer, revBuf, i);

@@ -31,18 +31,19 @@ As simple as it can get:
 
 - Simple bootloader, loads the kernel in memory and jumps to it
 - Monolithic kernel
-- Flat memory model (just the strictly necessary segmentation (data/code), paging is in the making)
+- Paging
 - Interrupt request handling, keyboard and timer support
-- Linear dynamic memory allocation (with some tricks not to make it too inefficient - placeholder for future decent allocation method)
+- Linear dynamic memory allocation (for the lower part of memory)
 - GDT (Different from the one in the Bootloader)
 - TTY-ish system to print to screen: allows to print to one of many canvases
 
 ### Work in progress
 - Dynamic, Modular Shell (will run executables when processes will be a thing)
 - File System
-- Paging
+- Paging is still a bit of a WIP
+- Syscalls, flat binary loading
 
 ### Future
-- Process abstraction
+- Actual processes
 
 
