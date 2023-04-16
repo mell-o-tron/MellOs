@@ -117,7 +117,7 @@ extern  void main(){
     kprintCol(Fool, DEFAULT_COLOR);
 
     kb_install();
-
+    
     
     void * code_loc = (void*) 0x400000;
     void * print_loc = (void*) 0x1000;
@@ -125,5 +125,6 @@ extern  void main(){
     load_flat_binary_at(syscall_test, 7, code_loc);
     run_flat_binary(code_loc);
 
+    
     return;
 }

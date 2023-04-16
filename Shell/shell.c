@@ -80,11 +80,15 @@ void refreshShell(){
 char CommandBuffer[128];
 void findCommand(){
     SetCursorPosRaw(CommandCursor);
-    char* c = (char*)(0xB8000 + 2 * 1920);
-	int i;
-	for(i = 0; i < 2000 - CursorPos; i += 1)
-		CommandBuffer[i] = *(c + 2 * i);
-	CommandBuffer[i] = 0;
+    char* c = ker_tty;
+	int i = 0;
+    int j = 0;
+    for (int i = 1920 * 2; i < 4000; i += 2){
+        CommandBuffer[j] = c[i];
+        j++;
+    }
+	CommandBuffer[j] = 0;
+    
 }
 
 void parseCommand(){
@@ -105,4 +109,5 @@ void parseCommand(){
     display_tty(ker_tty);
     //SetCursorPosRaw(1920);
     refreshShell();
+    
 }

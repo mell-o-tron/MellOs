@@ -106,11 +106,13 @@ void keyboard_handler(struct regs *r)
     		case RETURN_PRESSED: 
     			switch(curMode){
     				case 0: kprintChar('\n', 0); break;
-                    case 10: parseCommand();
+                    case 10: 
+                        parseCommand();
+                        
     			}
     			break;
     		//case 0x3b: SetCmdMode(); break;
-            case F5_PRESSED: load_shell(); break;
+            case F5_PRESSED: load_shell();  break;
     									//ITALIAN KEYBOARD, might not work on others:
     		case 0x56: kprintChar(shift_pressed ? '>' : '<', 0); break;	
     		default: kprintChar(kbdus[scancode], shift_pressed | caps_lock);

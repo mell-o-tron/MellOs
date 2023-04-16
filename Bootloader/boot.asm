@@ -29,7 +29,7 @@ _main16:
 
 	;read 50 sectors at kernel location
 	mov bx, KERNEL_LOCATION
-	mov dh, 50
+	mov dh, 60
 	call disk_read
 
 	; WHATEVER IS PUT INTO BX HERE WILL BE WRITTEN INTO THE MEMSIZE VARIABLE!
