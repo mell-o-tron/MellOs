@@ -7,7 +7,7 @@
 #include "idt.h"
 #include "../../Drivers/VGA_Text.h"
 #include "../../Kernel/kernel.h"
-
+#include "../../SystemCalls/syscalls.h"
 
 extern  void _isr0();
 extern  void _isr1();
@@ -87,7 +87,8 @@ extern  void _fault_handler(struct regs *r)
                                     
     if (r -> int_no == -0x80){      // heh, unsigned, lazy
         kprint("syscall!\n");
-        kprint(toString(r -> err_code, 10));
+        //kprint(toString(r -> err_code, 10));
+		syscall_stub(r, r -> err_code);
 		return;
     }
     

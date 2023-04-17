@@ -115,7 +115,7 @@ extern  void main(){
     int curColor = DEFAULT_COLOR;
     SetCursorPosRaw(0);
     kprintCol(Fool, DEFAULT_COLOR);
-
+    kprintCol("\n", DEFAULT_COLOR);
     kb_install();
     
     
