@@ -43,7 +43,7 @@ extern  void kpanic(struct regs *r){
     
     #define ERRCOL 0x47 // Lightgrey on Lightred
     #define VGAMEM (unsigned char*)0xB8000;
-
+    char keyboard_stack[256];
     char panicscreen[4000];
     const char* components[] = {
         KPArt,
