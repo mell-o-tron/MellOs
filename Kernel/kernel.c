@@ -31,9 +31,10 @@
 
 volatile int curMode = 0;                            // Modes:    0: dummy text, 10: shell
 
-
+extern bool kb_ready;
 extern const char Fool[];                // Test included binaries
 extern const char KPArt[];
+unsigned char Keyboard_Stack;
 extern const unsigned short MemSize;    // Approximate value of extended memory (under 4 GB)
 extern int curColor;
 char ker_tty[4000];
@@ -43,7 +44,7 @@ extern  void kpanic(struct regs *r){
     
     #define ERRCOL 0x47 // Lightgrey on Lightred
     #define VGAMEM (unsigned char*)0xB8000;
-    char keyboard_stack[256];
+    
     char panicscreen[4000];
     const char* components[] = {
         KPArt,
@@ -118,13 +119,13 @@ extern  void main(){
     kprintCol("\n", DEFAULT_COLOR);
     kb_install();
     
-    
     void * code_loc = (void*) 0x400000;
     void * print_loc = (void*) 0x1000;
     
     load_flat_binary_at(syscall_test, 7, code_loc);
     run_flat_binary(code_loc);
 
-    
-    return;
+    await(0x3f);
+    load_shell();
+    keyboard_old();
 }

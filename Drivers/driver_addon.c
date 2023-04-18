@@ -5,7 +5,8 @@
 #include "../Drivers/port_io.h"
 #include "../Shell/shell.h"
 #include "../Misc/colors.h"
-
+#include "../Drivers/Keyboard.h"
+#include "../CPU/Timer/timer.h"
 extern int seconds;
 
 void time(const char* s){
@@ -31,19 +32,22 @@ void time(const char* s){
     unsigned char yvalue = inb(0x71);
     yvalue = ((yvalue / 16) * 10) + (yvalue & 0xf);
     kprint("CMOS time:  ");
-    kprintInt(hvalue);
+    kprint(toString(hvalue,10));
     kprint(":");
-    kprintInt(mvalue);
+    kprint(toString(mvalue,10));
     kprint(":");
-    kprintInt(svalue);
+    kprint(toString(svalue,10));
     kprint("   ");
-    kprintInt(movalue);
+    kprint(toString(movalue,10));
     kprint("/");
-    kprintInt(dvalue);
+    kprint(toString(dvalue,10));
     kprint("/");
-    kprintInt(yvalue);
+    kprint(toString(yvalue,10));
 }
 void boottime(){
 	kprint("Uptime:");
-	kprintInt(seconds);
+	kprint(toString(seconds,10));
+	kprint("\nPress Space to continue...");
+	await(0x39);
+	kprint("\nContinuing...");
 }

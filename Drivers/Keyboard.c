@@ -11,7 +11,8 @@
 **************************************************/
 
 extern int curMode;					// CURRENT MODE
-
+unsigned char scancode;
+bool kb_ready;
 const char kbdus[128] =
 {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
@@ -68,18 +69,13 @@ enum scan_codes
 
 void keyboard_handler(struct regs *r)
 {
-    /* static prevents these variables from being reassigned back to false after the function returns and gets called again
-    * and it keeps the variables local to this function */
+    scancode = inb(0x60);
+    kb_ready = true;
+}
+void keyboard_proc(){
     static bool shift_pressed = false;
     static bool caps_lock = false;
-
-    unsigned char scancode;
-
-    scancode = inb(0x60);
-
-    /* If the top bit of the byte we read from the keyboard is
-    *  set, that means that a key has just been released */
-    if (scancode & 0x80)
+	if (scancode & 0x80)
     {
         /* You can use this one to see if the user released the
         *  shift, alt, or control keys... */
@@ -119,6 +115,30 @@ void keyboard_handler(struct regs *r)
     	}
         
     }
+    kb_ready = false;
+}	
+void get_keyboard()
+{
+        while(1){
+        	if (scancode != 0 && kb_ready){
+        		kprint(toString(scancode, 16)); // get the output printed, to be replaced
+        		break; 
+        	}
+        }
+}
+void await(unsigned char trigger){
+        while(1){
+        	if (scancode == trigger && kb_ready){
+        		break; 
+        	}
+        }
+}
+void keyboard_old(){ // here to simulate how old versions worked, to be replaced
+    while(1){
+        	if (kb_ready){
+        		keyboard_proc();
+        	}
+        }
 }
 void kb_install()
 {
