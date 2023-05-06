@@ -5,7 +5,7 @@
 º É» É» ºº ÈÍÍÍ¹º ºº ºº È¼ ºÌÍÍ  º
 ÈÍ¼ÈÍ¼ÈÍ¼ÈÍÍÍÍÍ¼ÈÍ¼ÈÍ¼ÈÍÍÍÍ¼ÈÍÍÍÍ¼
 
-Last "major" update - 16 apr 2023; currently working on code execution and system calls
+Latest "major" update - 06 May 2023; added proper kmalloc & started working on "placeholder_fs" file system.
 
 Github code link: https://github.com/mell-o-tron/MellOs
 

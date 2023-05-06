@@ -52,7 +52,7 @@ void wait_DRQ(){
 	while(!(inb(0x1F7) & STATUS_RDY));
 }
 
-uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
+uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr){
     wait_BSY();
     outb(0x1F6, drive | ((LBA >> 24) & 0xF));
 	outb(0x1F1, 0x00);
@@ -62,21 +62,33 @@ uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector){
 	outb(0x1F5, (uint8_t)(LBA >> 16)); 
 	outb(0x1F7, 0x20); // 0x20 = 'Read' Command
 
-    uint16_t *addr;
-
+	
+	uint16_t *tmp = addr;
+	
     for (int j = 0; j < sector; j ++){
 		wait_BSY();
 		wait_DRQ();
 		for(int i = 0; i < 256; i++){
-            addr[i] = inw(0x1F0);
+            tmp[i] = inw(0x1F0);
         }
 
-		addr += 256;
+		tmp += 256;
 	}
 	return addr;
 }
 
-void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *buffer){
+void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *buffer){
+	
+	// TODO figure out whether the following is needed/works
+	uint32_t new_buffer [128 * sector];
+	
+	for (int i = 0; i < 128; i++){				// 32 bit, else it would not work idk
+		new_buffer[i] = 0;
+		new_buffer[i] |= buffer[2 * i] & 0xFFFF;
+		new_buffer[i] |= (buffer[2 * i + 1] & 0xFFFF) << 16;
+	
+	}
+	
 	wait_BSY();
 	outb(0x1F6, drive | ((LBA >> 24) & 0xF));
 	outb(0x1F1, 0x00);
@@ -86,15 +98,19 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint32_t *
 	outb(0x1F5, (uint8_t) (LBA >> 16)); 
 	outb(0x1F7,0x30); // 0x30 = 'Write' Command
 
+	uint32_t *tmp = new_buffer;
+	
 	for (int j = 0; j < sector; j++){
 		wait_BSY();
 		wait_DRQ();
 
-		for(int i = 0; i < 256; i++){
-			outl(0x1F0, buffer[i]);
+		for(int i = 0; i < 128; i++){
+			outl(0x1F0, tmp[i]);
 		}
 
 		outb(0x1F7, 0xE7);
 		sleep(1);
+		
+		tmp += 128;
 	}
 }
