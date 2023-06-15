@@ -98,7 +98,7 @@ void parseCommand(){
     else{
         shellfunction* cmd = TryGetCMD(CommandBuffer);
         if(cmd != 0){
-            cmd->fptr(strDecapitate(CommandBuffer, strLen(cmd->alias)));
+            cmd->fptr(strDecapitate(CommandBuffer, strlen(cmd->alias)));
         }
         else {kprint("\""); kprint(CommandBuffer); kprint("\" is not a command");}
     }

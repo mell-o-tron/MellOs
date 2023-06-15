@@ -38,7 +38,7 @@ shellfunction CMDs[] = {
 
 // Bind this to CMDs and use the help texts for each command (that's the better way ^)
 void helpCMD(const char* s){
-    if(strLen(s) == 0){
+    if(strlen(s) == 0){
         currentTask = "help";
         kprint("List of commands:\n");
         for(int i = 0; i < sizeof(CMDs)/sizeof(shellfunction); i++) {

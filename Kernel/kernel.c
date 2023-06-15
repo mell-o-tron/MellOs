@@ -29,6 +29,7 @@
 #include "../Drivers/PCSpeaker.h"
 #include "../Processes/flat_binary_loader.h"
 #include "../Utils/bitmap.h"
+#include "../Utils/assert.h"
 #include "../Memory/dynamic_mem.h"
 #include "../FileSystem/placeholder_fs.h"
 
@@ -125,7 +126,9 @@ extern  void main(){
     kb_install();
     
     
-    // TESTING
+    ///////////////////////////////////////////////////////////
+    
+    // TESTING LAND
     
                                                 // dynamic memory allocation setup test
     set_alloc_bitmap((bitmap_t) 0x400000, 10000);
@@ -181,10 +184,14 @@ extern  void main(){
     }
     
     
+    ///////////////////////////////////////////////////////////
+    
     // INACTIVE TESTING
     
-                                                // FS test
+    ///////////////////////////////////////////////////////////
     /*
+                                                // FS test
+    
     new_file(0xA0, "PALLE", 0, 0, 3, 1);
     
     int *file_num = 0;
@@ -203,15 +210,18 @@ extern  void main(){
     
     
      
-    clear_tty(ker_tty, DEFAULT_COLOR);
+    clear_tty(DEFAULT_COLOR, ker_tty);
     display_tty(ker_tty);
     
-//     SetCursorPosRaw(0);
+    SetCursorPosRaw(0);
     
     kprint("\nnumber of files:");
     kprint(toString(*file_num, 10));
     kprint("\n");
     list_files (files, *file_num);*/
+    
+    ///////////////////////////////////////////////////////////
+    
                                                 // disk tests
     /*
     uint16_t addr_w [256];
@@ -238,5 +248,6 @@ extern  void main(){
         display_tty(ker_tty);
     }
         */
+    
     return;
 }

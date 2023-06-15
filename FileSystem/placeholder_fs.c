@@ -3,25 +3,106 @@
 #include "placeholder_fs.h"
 #include "../Utils/Typedefs.h"
 #include "../Utils/Conversions.h"
+#include "../Utils/string.h"
 #include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
 
 
-// The first sector contains a magic number and a bitmap of sectors
+// The first sector will contain a magic number and a bitmap of sectors
 // The second few sectors contain the meta-meta-data of the files in root       TBD     #sec / dir
 // These MMD consist of the file number, the type (0 file, 1 dir), the permissions, the first sector and the number of sectors assigned.
 
 #define SECTORS_PER_DIRECTORY 1
 
 
-char byte_from_16arr (uint16_t* array, int i){
-    int j = i / 2;
-    int r = i % 2;
-    return (array[j] >> (8 * r)) & 0xff;
+void write_file_to_byte_array(const file_mmd* file, unsigned char* byte_array) {
+    // Copy file_name string to byte array
+    strcpy((char*)byte_array, file->file_name);
+    byte_array += strlen(file->file_name) + 1;  // Move the byte pointer to next position
+    
+    // Copy type, permissions, first_sector as char values to byte array
+    *(byte_array++) = file->type;
+    *(byte_array++) = file->permissions;
+    *(byte_array++) = (char)(file->first_sector);
+    
+    // Split num_sectors into four bytes and copy to byte array
+    *(byte_array++) = (char)(file->num_sectors >> 24);
+    *(byte_array++) = (char)(file->num_sectors >> 16);
+    *(byte_array++) = (char)(file->num_sectors >> 8);
+    *(byte_array++) = (char)(file->num_sectors);
 }
 
+unsigned char* write_files_to_byte_array(file_mmd** file_list, int file_num, int * total_size_return){
+    
+    // Calculate the total size required for the byte array (4 = header size)
+    int total_size = 4;
+    for (int i = 0; i < 2; i++) {
+        total_size += strlen(file_list[i]->file_name) + 1;  // Include the null terminator
+        total_size += sizeof(char) * 3;  // type, permissions, first_sector
+        total_size += sizeof(int);  // num_sectors
+    }
+    
+    unsigned char* byte_array = (unsigned char*)kmalloc(total_size);
+    // Split file_num into four bytes and copy to byte array
+    *(byte_array++) = (char)(file_num >> 24);
+    *(byte_array++) = (char)(file_num >> 16);
+    *(byte_array++) = (char)(file_num >> 8);
+    *(byte_array++) = (char)(file_num);
+    
+    // Write the struct values to the byte array
+    unsigned char* current_byte = byte_array;
+    for (int i = 0; i < 2; i++) {
+        write_file_to_byte_array(file_list[i], current_byte);
+        current_byte += strlen(file_list[i]->file_name) + 1 + sizeof(char) * 3 + sizeof(int);
+    }
+    *total_size_return = total_size;
+    
+    return byte_array - 4; // Subtract header length
+}
 
+file_mmd** get_files_from_byte_array(const unsigned char* byte_array, int* file_num_return) {
+    
+    int file_num = 0;
+    file_num |= *(byte_array++) << 24;
+    file_num |= *(byte_array++) << 16;
+    file_num |= *(byte_array++) << 8;
+    file_num |= *(byte_array++);
+    
+    *file_num_return = file_num;
 
+    
+    // Allocate memory for the struct pointers
+    file_mmd** file_list = (file_mmd**)kmalloc(file_num * sizeof(file_mmd*));
+    
+    // Iterate over the byte array to reconstruct struct instances
+    const unsigned char* current_byte = byte_array;
+    for (size_t i = 0; i < file_num; i++) {
+        // Allocate memory for the struct instance
+        file_list[i] = (file_mmd*)kmalloc(sizeof(file_mmd));
+        
+        // Copy file_name string from byte array
+        size_t file_name_length = strlen((const char*)current_byte) + 1;
+        file_list[i]->file_name = (char*)kmalloc(file_name_length);
+        strcpy(file_list[i]->file_name, (const char*)current_byte);
+        current_byte += file_name_length;  // Move the byte pointer to next position
+        
+        // Copy type, permissions, first_sector as char values from byte array
+        file_list[i]->type = *(current_byte++);
+        file_list[i]->permissions = *(current_byte++);
+        file_list[i]->first_sector = (int)(*current_byte++);
+        
+        // Reconstruct num_sectors from four bytes in the byte array
+        file_list[i]->num_sectors = 0;
+        file_list[i]->num_sectors |= (int)(*current_byte++) << 24;
+        file_list[i]->num_sectors |= (int)(*current_byte++) << 16;
+        file_list[i]->num_sectors |= (int)(*current_byte++) << 8;
+        file_list[i]->num_sectors |= (int)(*current_byte++);
+    }
+    
+    return file_list;
+}
+
+/* let's not use this in the beginning (indi bininging), ignore the FS recognition part for now*/
 int recognise_PFS(int disk) {
 
     uint16_t addr_r [256];
@@ -37,197 +118,12 @@ int recognise_PFS(int disk) {
 
 file_mmd ** get_root_files (int disk, int** file_num){
     
-    file_mmd **result = kmalloc(sizeof(file_mmd*) * 10);
+    /* should simply read the files from disk and send them through get_files_from_byte_array, and set filenum to the file number */
     
-    if(result == NULL) {
-            kprint("malloc failed: get_root_files, result\n");
-            for(;;);
-    }
+    /* ATTENTION the disk r/w functions are a bit weird and buggy, modify them if needed */
     
-    int nfiles = 10;
-    
-    uint16_t addr_r [256 * SECTORS_PER_DIRECTORY];
-    
-    
-    LBA28_read_sector(disk, 1, SECTORS_PER_DIRECTORY, addr_r);          // TESTING TODO change this to sector 2
-    
-    kprint("\n");
-    for (int i = 0; i < 15; i++){
-        kprint(toString(byte_from_16arr(addr_r, i), 16));
-        kprint(" ");
-    }
-    kprint("\n");
-    
-    int i = 0;
-    int struct_num = 0;
-    
-    
-    
-    
-    while(i < 512 * SECTORS_PER_DIRECTORY){
-        
-        if (byte_from_16arr(addr_r, i) == 0 || 
-            byte_from_16arr(addr_r, i) == '\n'){
-//             kprint("done");
-            break;
-        }
-//         else{
-//             kprint(" char = ");
-//             kprint(toString(byte_from_16arr(addr_r, i), 16));
-//         }
-        
-        char* file_name = kmalloc(17);
-        
-        if(file_name == NULL) {
-            kprint("malloc failed: get_root_files, file name\n");
-            for(;;);
-        }
-        
-        for (int c = 0; c < 17; c++) file_name[c] = 0;
-        
-        int k = 0; 
-        for (;k < 16; k++){
-            char c = byte_from_16arr(addr_r, k + i);
-            if (c == 0 || c == '\n') break;
-            file_name[k] = c;
-        }
-//         kprint("\n name len = ");
-//         kprint(toString(k, 10));
-//         
-//         kprint("\n name = ");
-//         kprint(file_name);
-//         kprint("\n");
-//         
+    /* TODO */
 
-        
-        i+=k;
-        
-           
-        
-        
-        char type           = byte_from_16arr(addr_r, i+1);
-        char permissions    = byte_from_16arr(addr_r, i+2);
-        int first_sector    = byte_from_16arr(addr_r, i + 3) | (byte_from_16arr(addr_r, i+4) << 8) | (byte_from_16arr(addr_r, i+5) << 16) | (byte_from_16arr(addr_r, i+6) << 24);
-        int num_sectors     = byte_from_16arr(addr_r, i + 7) | (byte_from_16arr(addr_r, i+8) << 8) | (byte_from_16arr(addr_r, i+9) << 16) | (byte_from_16arr(addr_r, i+10) << 24);
-        
-//         kprint("\n type = ");
-//         kprint(toString(type, 16));
-//         kprint("  p = "); 
-//         kprint(toString(permissions, 16));
-//         kprint("  fs = "); 
-//         kprint(toString(first_sector, 16));
-//         kprint("  ns = "); 
-//         kprint(toString(num_sectors, 16));
-//         kprint("  "); 
-
-        
-        i += 11;
-        
-        
-        
-        
-        if (struct_num > nfiles) {
-            krealloc(result, nfiles * sizeof(file_mmd*), 2 * nfiles * sizeof(file_mmd*));
-            nfiles *= 2;
-        }
-        
-        file_mmd * new_mmd = kmalloc (sizeof(file_mmd));
-        
-        if(new_mmd == NULL) {
-            kprint("malloc failed: get_root_files, new_mmd\n");
-            for(;;);
-        }
-        
-        
-        new_mmd -> file_name = file_name;
-        new_mmd -> type = type;
-        new_mmd -> permissions = permissions;
-        new_mmd -> first_sector = first_sector;
-        new_mmd -> num_sectors = num_sectors;
-        
-        result[struct_num] = new_mmd;
-        struct_num++;
-        
-    }
-    
-    
-    krealloc(result, nfiles * sizeof(file_mmd*), struct_num * sizeof(file_mmd*));
-    if(result == NULL) {
-        kprint("realloc failed: get_root_files, result\n");
-        for(;;);
-    }
-    
-    
-    *(*file_num) = struct_num;
-    return result;
-
-}
-
-
-void write_mmd_list (int disk, file_mmd ** mmd, int number){
-    uint16_t addr_w [128 * SECTORS_PER_DIRECTORY];
-    
-    for (int i = 0; i < 128 * SECTORS_PER_DIRECTORY; i++){
-        addr_w[i] = 0;
-    }
-    
-    int j = 0;
-    int j_side = 0;
-    
-    for (int i = 0; i < number; i++){
-        char* file_name  = mmd[i] -> file_name;
-        char type        = mmd[i] -> type;
-        char permissions = mmd[i] -> permissions;
-        int first_sector = mmd[i] -> first_sector;
-        int num_sectors  = mmd[i] -> num_sectors;
-        
-        int k = 0;
-        while(file_name[k] != 0){
-            
-            addr_w[j] = addr_w[j] | (file_name[k] << (8 * j_side));
-            
-            if (j_side == 1) j++;
-            j_side = (j_side + 1) % 2;
-            k++;
-        }
-        
-        if (j_side == 1) j++;
-        j_side = (j_side + 1) % 2;
-        
-        addr_w[j] = addr_w[j] | (type << (8 * j_side));
-        
-        if (j_side == 1) j++;
-        j_side = (j_side + 1) % 2;
-        
-        addr_w[j] = addr_w[j] | (permissions << (8 * j_side));
-        if (j_side == 1) j++;
-        j_side = (j_side + 1) % 2;
-        
-        for (int l = 0; l < 4; l++){
-            addr_w[j] = addr_w[j] | ( ((first_sector >> 8 * l) & 0xFF) << (8 * j_side));
-            if (j_side == 1) j++;
-            j_side = (j_side + 1) % 2;
-        }
-        
-        for (int l = 0; l < 4; l++){
-            addr_w[j] = addr_w[j] | ( ((num_sectors >> 8 * l) & 0xFF) << (8 * j_side));
-            if (j_side == 1) j++;
-            j_side = (j_side + 1) % 2;
-        }
-        
-        
-    }
-    
-   kprint("\n");
-     
-     for (int i = 0; i < 15; i++){
-         kprint(toString(byte_from_16arr(addr_w, i), 16));
-         kprint(" ");
-     }
-    
-    
-    LBA28_write_sector(disk, 1, SECTORS_PER_DIRECTORY, addr_w);
-    
 }
 
 
@@ -247,34 +143,9 @@ void list_files (file_mmd ** mmd, int number){
     }
 }
 
-// FIXME doestn't work for some reason that maybe has to do with the disk drivers
-
 void new_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors){
-    
-    int *num_files;
-    
-    file_mmd** files = get_root_files(disk, &num_files);
-    
-    if (*num_files == 0)
-        files = kmalloc(sizeof(file_mmd*));
-    else
-        krealloc(files, *num_files * sizeof(file_mmd*), (*num_files+1) * sizeof(file_mmd*));
-    
-    file_mmd * new_mmd = kmalloc (sizeof(file_mmd));
 
-    new_mmd -> file_name = name;
-    new_mmd -> type = type;
-    new_mmd -> permissions = permissions;
-    new_mmd -> first_sector = first_sector;
-    new_mmd -> num_sectors = num_sectors;
-    
-    files[*num_files] = new_mmd;
-
-    write_mmd_list(disk, files, *num_files + 1);
-    
-    for (int i = 0; i < *num_files + 1; i++){
-        kfree (files[i], sizeof(file_mmd));
-    }
-    kfree (files, (*num_files + 1 ) * sizeof(file_mmd *));
+    /* should get file list, append a file, and rewrite the whole thing to disk. I know it's a bit silly, but it's called "placeholder_fs" for a reason lol*/
+    /* TODO */
     
 }

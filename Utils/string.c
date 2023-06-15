@@ -1,11 +1,11 @@
 /*********************** FUNCTIONS ********************************
 * reverse: reverses a string                                      *
-* strLen: returns length of a string                              *
+* strlen: returns length of a string                              *
 * StringsEqu: returns true if strings are equal (max len 80)      *
 * StringStartsWith: returns true if s starts with t (max len 80)  *
 ******************************************************************/
 #include "../Memory/mem.h"
-
+#include "assert.h"
 
 const char* reverse(const char* str, char* buffer, int len){
 	int i;
@@ -16,7 +16,7 @@ const char* reverse(const char* str, char* buffer, int len){
 	return buffer;
 }
 
-int strLen(const char* s){
+int strlen(const char* s){
 	int res;
 	for(res = 0; s[res] != 0; res++);
 	return res;
@@ -24,7 +24,7 @@ int strLen(const char* s){
 
 
 bool StringsEqu(const char* s, const char* t){
-	const char* g = strLen(s) > strLen(t)? s : t;
+	const char* g = strlen(s) > strlen(t)? s : t;
 	
 	bool res = true;
 	int i = 0;
@@ -67,11 +67,19 @@ int strFindChar(const char* s, char c){
 }
 
 
-const char* strDecapitate(const char* s, int n){            // Uses Dynamic Memory Allocation, be careful.
-    int newLen = strLen(s) - n;
+const char* strDecapitate(const char* s, int n){            // Uses Dynamic Memory Allocation, be careful. TODO change this to kmalloc (or, better, implement without dynamic memory allocation)
+    int newLen = strlen(s) - n;
     if(newLen <= 0) return ""; 
     char* t = (char*)linear_alloc(sizeof(char) * (newLen + 1));
     for(int i = 0; i < newLen; i++)
         t[i] = s[i + n];
     return t;
+}
+
+char * strcpy(char *strDest, const char *strSrc)
+{
+    assert(strDest!=NULL && strSrc!=NULL);
+    char *temp = strDest;
+    while((*strDest++=*strSrc++) != '\0');
+    return temp;
 }
