@@ -17,3 +17,5 @@ void list_files (file_mmd ** mmd, int number);
 void write_mmd_list (int disk, file_mmd ** mmd, int number);
 
 void new_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors);
+
+void initial_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors);

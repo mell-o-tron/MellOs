@@ -44,6 +44,7 @@ void identify_ata(uint8_t drive){
 	}
 }
 
+// TODO implement something on the lines of "took too long to respond"
 void wait_BSY(){
 	while(inb(0x1F7) & STATUS_BSY);
 }
@@ -53,6 +54,8 @@ void wait_DRQ(){
 }
 
 uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr){
+	LBA = LBA & 0x0FFFFFFF;
+	
     wait_BSY();
     outb(0x1F6, drive | ((LBA >> 24) & 0xF));
 	outb(0x1F1, 0x00);
@@ -77,40 +80,34 @@ uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16
 	return addr;
 }
 
+
+// WARNING this only writes the lowest 8 bits of what's in the buffer, and leaves gaps. Idk if this can be done another way, in such case please look into it.
 void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *buffer){
 	
-	// TODO figure out whether the following is needed/works
-	uint32_t new_buffer [128 * sector];
-	
-	for (int i = 0; i < 128; i++){				// 32 bit, else it would not work idk
-		new_buffer[i] = 0;
-		new_buffer[i] |= buffer[2 * i] & 0xFFFF;
-		new_buffer[i] |= (buffer[2 * i + 1] & 0xFFFF) << 16;
-	
-	}
+	LBA = LBA & 0x0FFFFFFF;
 	
 	wait_BSY();
-	outb(0x1F6, drive | ((LBA >> 24) & 0xF));
-	outb(0x1F1, 0x00);
-	outb(0x1F2, sector);
-	outb(0x1F3, (uint8_t) LBA);
-	outb(0x1F4, (uint8_t) (LBA >> 8));
-	outb(0x1F5, (uint8_t) (LBA >> 16)); 
-	outb(0x1F7,0x30); // 0x30 = 'Write' Command
+	outb(0x1F6, drive | ((LBA >> 24) & 0xF));		// send drive and bits 24 - 27 of LBA
+	outb(0x1F1, 0x00);								// ?
+	outb(0x1F2, sector);							// send number of sectors
+	outb(0x1F3, (uint8_t) LBA);						// send bits 0-7 of LBA
+	outb(0x1F4, (uint8_t) (LBA >> 8));				// 8-15
+	outb(0x1F5, (uint8_t) (LBA >> 16)); 			// 16-23
+	outb(0x1F7,0x30); 								// 0x30 = 'Write' Command
 
-	uint32_t *tmp = new_buffer;
+	uint32_t *tmp = buffer;
 	
 	for (int j = 0; j < sector; j++){
 		wait_BSY();
 		wait_DRQ();
 
-		for(int i = 0; i < 128; i++){
+		for(int i = 0; i < 256; i++){
 			outl(0x1F0, tmp[i]);
 		}
 
 		outb(0x1F7, 0xE7);
 		sleep(1);
 		
-		tmp += 128;
+		tmp += 256;
 	}
 }

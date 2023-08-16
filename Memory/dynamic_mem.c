@@ -100,5 +100,6 @@ void* krealloc (void* oldloc, int oldsize, int newsize){
     int min = (oldsize > newsize) ? newsize : oldsize;
     memcp(oldloc, newloc, min);
     return newloc;    
+    
 #endif
 }

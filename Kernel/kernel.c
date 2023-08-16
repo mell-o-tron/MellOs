@@ -174,14 +174,14 @@ extern  void main(){
     
     bitmap_t allocation_bitmap = get_allocation_bitmap();
 
-    
+    /*
                                                 // print first 50 bits of the allocation bitmap
     for (int i = 0; i < 50; i++){
         if (get_bitmap (allocation_bitmap, i) == 1)
             kprintChar('1', 0);
         else
             kprintChar('0', 0);
-    }
+    }*/
     
     
     ///////////////////////////////////////////////////////////
@@ -189,42 +189,58 @@ extern  void main(){
     // INACTIVE TESTING
     
     ///////////////////////////////////////////////////////////
-    /*
+    
                                                 // FS test
     
-    new_file(0xA0, "PALLE", 0, 0, 3, 1);
     
-    int *file_num = 0;
-
-    file_mmd **files = get_root_files(0xA0, &file_num);
-
-    if(files == NULL) {
-        kprint("files is null");
-        for(;;);
-    }
+//     uint16_t addr_w [256];          // TESTING zero out disk at beginning
+//     uint16_t addr_r [256];
+//     
+//     for (int i = 0 ; i < 256; i++){
+//         addr_w[i] = 0;
+//         addr_r[i] = 0;
+//     }
+//     
+//     
+//     LBA28_write_sector(0xA0, 1, 1, addr_w);
+//     
+//     initial_file(0xA0, "FIRST", 0, 0, 3, 1);
+//     
+//     for(;;);
     
-    if(files[0] == NULL){
-        kprint("files[0] is null");
-        for(;;);
-    }
+//     new_file(0xA0, "PALLE", 0, 0, 3, 1);
     
-    
-     
-    clear_tty(DEFAULT_COLOR, ker_tty);
-    display_tty(ker_tty);
-    
-    SetCursorPosRaw(0);
-    
-    kprint("\nnumber of files:");
-    kprint(toString(*file_num, 10));
-    kprint("\n");
-    list_files (files, *file_num);*/
+//     int *file_num = 0;
+// 
+//     file_mmd **files = get_root_files(0xA0, &file_num);
+// 
+//     if(files == NULL) {
+//         kprint("files is null");
+//         for(;;);
+//     }
+//     
+//     if(files[0] == NULL){
+//         kprint("files[0] is null");
+//         for(;;);
+//     }
+//     
+//     
+//      
+//     clear_tty(DEFAULT_COLOR, ker_tty);
+//     display_tty(ker_tty);
+//     
+//     SetCursorPosRaw(0);
+//     
+//     kprint("\nnumber of files:");
+//     kprint(toString(*file_num, 10));
+//     kprint("\n");
+//     list_files (files, *file_num);
     
     ///////////////////////////////////////////////////////////
     
                                                 // disk tests
-    /*
-    uint16_t addr_w [256];
+    
+    /*uint16_t addr_w [256];
     uint16_t addr_r [256];
     
     for (int i = 0 ; i < 256; i++){
@@ -233,13 +249,12 @@ extern  void main(){
     }
     
     
-    
-    
-    for (int i = 0 ; i < 5; i++){
-        addr_w[i] = 'q' + i;              // & 0xff ~ only read lowest 8 bits
-    }
+//     for (int i = 0 ; i < 10; i++){
+//         addr_w[i] = ('a' + i);              // & 0xff ~ only read lowest 8 bits
+//     }
     
     LBA28_write_sector(0xA0, 1, 1, addr_w);
+    
     LBA28_read_sector(0xA0, 1, 1, addr_r);
     
     for (int i = 0 ; i < 256; i++){
