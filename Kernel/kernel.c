@@ -117,12 +117,12 @@ extern  void main(){
 
     clear_tty(DEFAULT_COLOR, ker_tty);
     display_tty(ker_tty);
-    clear_tty(DEFAULT_COLOR, ker_tty);
-    display_tty_line(ker_tty, 1);
-    int curColor = DEFAULT_COLOR;
+//     clear_tty(DEFAULT_COLOR, ker_tty);
+//     display_tty_line(ker_tty, 1);
+//     int curColor = DEFAULT_COLOR;
     SetCursorPosRaw(0);
-    kprintCol(Fool, DEFAULT_COLOR);
-    kprintCol("\n", DEFAULT_COLOR);
+    kprint(Fool);
+    kprint("\n");
     kb_install();
     
     
@@ -169,9 +169,6 @@ extern  void main(){
     
     kprint(toString(kfree(code_loc, 15), 10));  // kfree test
     
-    
-    kprint("\n");
-    
     bitmap_t allocation_bitmap = get_allocation_bitmap();
 
     /*
@@ -193,48 +190,69 @@ extern  void main(){
                                                 // FS test
     
     
-//     uint16_t addr_w [256];          // TESTING zero out disk at beginning
-//     uint16_t addr_r [256];
-//     
-//     for (int i = 0 ; i < 256; i++){
-//         addr_w[i] = 0;
-//         addr_r[i] = 0;
-//     }
-//     
-//     
-//     LBA28_write_sector(0xA0, 1, 1, addr_w);
-//     
-//     initial_file(0xA0, "FIRST", 0, 0, 3, 1);
-//     
-//     for(;;);
+    /*uint16_t addr_w [256];          // TESTING zero out disk at beginning
+    uint16_t addr_r [256];
+
+    for (int i = 0 ; i < 256; i++){
+        addr_w[i] = 0;
+        addr_r[i] = 0;
+	}
+	
+	
+	LBA28_write_sector(0xA0, 1, 1, addr_w);
+	
+	int result = initial_file(0xA0, "FIRST", 0, 0, 3, 1);
     
-//     new_file(0xA0, "PALLE", 0, 0, 3, 1);
+    if (result < 0){
+        kprint("wat");
+        for (;;);
+    }
     
-//     int *file_num = 0;
-// 
-//     file_mmd **files = get_root_files(0xA0, &file_num);
-// 
-//     if(files == NULL) {
-//         kprint("files is null");
-//         for(;;);
-//     }
-//     
-//     if(files[0] == NULL){
-//         kprint("files[0] is null");
-//         for(;;);
-//     }
-//     
-//     
-//      
-//     clear_tty(DEFAULT_COLOR, ker_tty);
-//     display_tty(ker_tty);
-//     
-//     SetCursorPosRaw(0);
-//     
-//     kprint("\nnumber of files:");
-//     kprint(toString(*file_num, 10));
-//     kprint("\n");
-//     list_files (files, *file_num);
+	
+	
+    
+	result = new_file(0xA0, "SECOND", 0, 0, 3, 1);
+    
+    if (result < 0){
+        kprint("wat_1");
+        for (;;);
+    }
+    
+	int *file_num = 0;
+    
+	file_mmd **files = get_root_files(0xA0, &file_num);
+	if(files == NULL) {
+	    kprint("files is null");
+	    for(;;);
+	}
+	
+	if(files[0] == NULL){
+	    kprint("files[0] is null");
+	    for(;;);
+	}
+	
+	kprint(toString(*file_num, 10));
+	
+    clear_tty(DEFAULT_COLOR, ker_tty);
+	display_tty(ker_tty);
+	
+	SetCursorPosRaw(0);
+    
+	list_files (files, *file_num);
+    
+    for(;;);*/
+	/*
+	
+	 
+	clear_tty(DEFAULT_COLOR, ker_tty);
+	display_tty(ker_tty);
+	
+	SetCursorPosRaw(0);
+	
+	kprint("\nnumber of files:");
+	kprint(toString(*file_num, 10));
+	kprint("\n");
+	list_files (files, *file_num);*/
     
     ///////////////////////////////////////////////////////////
     

@@ -86,7 +86,7 @@ extern  void _fault_handler(struct regs *r)
 {
                                     
     if (r -> int_no == -0x80){      // heh, unsigned, lazy
-        kprint("syscall!\n");
+        kprint("syscall!\n");		// TESTING
         //kprint(toString(r -> err_code, 10));
 		syscall_stub(r, r -> err_code);
 		return;

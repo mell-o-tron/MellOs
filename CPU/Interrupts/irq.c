@@ -43,15 +43,15 @@ void irq_uninstall_handler(int irq)
 
 void irq_remap(void)
 {
-    outb(0x20, 0x11);
-    outb(0xA0, 0x11);
-    outb(0x21, 0x20);
+    outb(0x20, 0x11);       // Initialize both PICs
+    outb(0xA0, 0x11);       
+    outb(0x21, 0x20);       // Set vector offsets
     outb(0xA1, 0x28);
-    outb(0x21, 0x04);
-    outb(0xA1, 0x02);
-    outb(0x21, 0x01);
+    outb(0x21, 0x04);       // tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
+    outb(0xA1, 0x02);       // tell Slave PIC its cascade identity (0000 0010)
+    outb(0x21, 0x01);       // have the PICs use 8086 mode (and not 8080 mode)
     outb(0xA1, 0x01);
-    outb(0x21, 0x0);
+    outb(0x21, 0x0);        // set masks
     outb(0xA1, 0x0);
 }
 
@@ -99,11 +99,11 @@ extern  void _irq_handler(regs *r)
 
     if (r->int_no >= 40)
     {
-        outb(0xA0, 0x20);
+        outb(0xA0, 0x20);   // END OF INTERRUPT command to PIC2
     }
 
 
-    outb(0x20, 0x20);
+    outb(0x20, 0x20);       // END OF INTERRUPT command to PIC1
 }
 
 void irq_wait(int n){
