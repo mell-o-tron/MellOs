@@ -39,7 +39,7 @@ If you make a useful change or addition, you are allowed to use the `anything_he
 
 ### Work in progress
 - Dynamic, Modular Shell (will run executables when processes will be a thing)
-- File System
+- File System (placeholder)
 - Syscalls, flat binary loading
 
 ### Future

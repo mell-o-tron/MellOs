@@ -84,6 +84,13 @@ uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16
 // WARNING this only writes the lowest 8 bits of what's in the buffer, and leaves gaps. Idk if this can be done another way, in such case please look into it.
 void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *buffer){
 	
+	kprint("\nwriting: ");
+	kprint(toString(sector, 10));
+	kprint(" sectors at LBA: ");
+	kprint(toString(LBA, 10));
+	kprint("\n");
+	
+	
 	LBA = LBA & 0x0FFFFFFF;
 	
 	wait_BSY();
@@ -110,4 +117,10 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *
 		
 		tmp += 256;
 	}
+}
+
+
+disk_info retrieve_disk_info(){
+	disk_info* dinfo = (disk_info*)0x5200;
+	return *dinfo;
 }

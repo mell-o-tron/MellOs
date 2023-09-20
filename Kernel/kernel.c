@@ -7,6 +7,7 @@
 
 
 #include "../Utils/Typedefs.h"
+#include "../Utils/error_handling.h"                // read docs!
 #include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
 #include "../Utils/Conversions.h"
@@ -171,6 +172,10 @@ extern  void main(){
     
     bitmap_t allocation_bitmap = get_allocation_bitmap();
 
+    bitmap_t disk_bitmap = create_bitmap (kmalloc(100), 100);
+    
+    
+    
     /*
                                                 // print first 50 bits of the allocation bitmap
     for (int i = 0; i < 50; i++){
@@ -187,36 +192,31 @@ extern  void main(){
     
     ///////////////////////////////////////////////////////////
     
-                                                // FS test
+                                               
     
-    
-    /*uint16_t addr_w [256];          // TESTING zero out disk at beginning
+    /*
+    uint16_t addr_w [256];          // TESTING zero out disk at beginning
     uint16_t addr_r [256];
 
     for (int i = 0 ; i < 256; i++){
         addr_w[i] = 0;
         addr_r[i] = 0;
 	}
+	addr_w[0] = 'A';
 	
-	
-	LBA28_write_sector(0xA0, 1, 1, addr_w);
-	
-	int result = initial_file(0xA0, "FIRST", 0, 0, 3, 1);
+	LBA28_write_sector(0xA0, 1, 1, addr_w);        // disk write test
+    LBA28_write_sector(0xA0, 2, 1, addr_w);
+    LBA28_write_sector(0xA0, 3, 1, addr_w);
     
-    if (result < 0){
-        kprint("wat");
-        for (;;);
-    }
     
-	
-	
+
     
-	result = new_file(0xA0, "SECOND", 0, 0, 3, 1);
+                                                    // FS test
     
-    if (result < 0){
-        kprint("wat_1");
-        for (;;);
-    }
+    msg_on_fail(initial_file_alloc(0xA0, "FIRST", 0, 0, 1, disk_bitmap, 100), "initial file allocation failed");
+    
+    
+	wat_on_fail(new_file_alloc(0xA0, "SECOND", 0, 0, 1, disk_bitmap, 100));
     
 	int *file_num = 0;
     
@@ -240,7 +240,29 @@ extern  void main(){
     
 	list_files (files, *file_num);
     
-    for(;;);*/
+    uint16_t* file_content0 = kmalloc(512 * sizeof (uint16_t));
+    uint16_t* file_content1 = kmalloc(512 * sizeof (uint16_t));
+    
+    for(int i = 0; i < 512; i++)
+        file_content0[i] = 0;
+    
+    file_content0[0] = 'p';
+    file_content0[1] = 'a';
+    file_content0[2] = 'l';
+    file_content0[3] = 'l';
+    file_content0[4] = 'e';
+    
+    msg_on_fail(write_file (0xA0, files[0], file_content0, 1), "write error");
+    
+    msg_on_fail(read_file (0xA0, files[0], file_content1, 1), "read error");
+    
+    
+    for(int i = 0; i < 512; i++)
+        kprintChar(file_content1[i], 0);        // TODO does not print, figure out why
+        
+    */
+    
+    for(;;);
 	/*
 	
 	 

@@ -2,7 +2,9 @@
 #include "../Memory/dynamic_mem.h"
 #include "placeholder_fs.h"
 #include "../Utils/Typedefs.h"
+#include "../Utils/error_handling.h"
 #include "../Utils/Conversions.h"
+#include "../Utils/bitmap.h"
 #include "../Utils/string.h"
 #include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
@@ -187,14 +189,14 @@ void list_files (file_mmd ** mmd, int number){
     }
 }
 
-int new_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors){
+maybe_void new_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
 
     /* should get file list, append a file, and rewrite the whole thing to disk. I know it's a bit silly, but it's called "placeholder_fs" for a reason lol*/
     int *file_num = 0;
     
     file_mmd * new = kmalloc(sizeof(file_mmd));
     
-    if (!new) return -1;
+    if (!new) fail(1);
     
     new -> file_name = name;
     new -> type = type;
@@ -204,12 +206,12 @@ int new_file (int disk, char* name, char type, char permissions, int first_secto
     
     file_mmd ** old_files = get_root_files (disk, &file_num);
     
-    if (!old_files) return -2;
+    if (!old_files) fail(2);
 //     file_mmd ** new_files = krealloc (old_files, *file_num * sizeof(file_mmd *), (*file_num + 1) * sizeof(file_mmd *));
 
     file_mmd ** new_files = kmalloc(sizeof(file_mmd *) * (*file_num + 1));
     
-    if (!new_files) return -1;
+    if (!new_files) fail(1);
     
     for (int i = 0; i < *file_num ; i++) new_files[i] = old_files[i];
     
@@ -223,26 +225,31 @@ int new_file (int disk, char* name, char type, char permissions, int first_secto
     int total_size;
     unsigned char * new_file_array = write_files_to_byte_array (new_files, *file_num + 1, &total_size);
     
-    if(!new_file_array) return -2;
+    if(!new_file_array) fail(2);
     
     uint16_t * array_16 = kmalloc(total_size * sizeof(uint16_t));
     
-    if (!array_16) return -1;
+    if (!array_16) fail(1);
     
     for (int i = 0 ; i < total_size; i++)
         array_16[i] = (uint16_t)new_file_array[i];
     
     LBA28_write_sector(disk, 1, SECTORS_PER_DIRECTORY, array_16);
     
-    return 0;
+    if(first_sector + num_sectors > bitmap_size) fail(3);
+    
+    for(int i = first_sector; i < first_sector + num_sectors; i++)
+        set_bitmap(disk_bitmap, i);
+    
+    succeed;
 }
 
 
-int initial_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors){
+maybe_void initial_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
     int *file_num = 0;
     
     file_mmd * new = kmalloc(sizeof(file_mmd));
-    if (!new) return 0;
+    if (!new) fail(1);
     new -> file_name = name;
     new -> type = type;
     new -> permissions = permissions;
@@ -250,23 +257,80 @@ int initial_file (int disk, char* name, char type, char permissions, int first_s
     new -> num_sectors = num_sectors;
     
     file_mmd ** new_files = kmalloc(sizeof(file_mmd *));
-    if (!new_files) return 0;
+    if (!new_files) fail(1);
     
     new_files [0] = new;
     int total_size;
     
     unsigned char * new_file_array = write_files_to_byte_array (new_files, 1, &total_size);
-    if(!new_file_array) return -2;
+    if(!new_file_array) fail(2);
     
 //     kprint(toString(total_size, 10));
 
     uint16_t * array_16 = kmalloc(total_size * sizeof(uint16_t));
-    if (!array_16) return 0;
+    if (!array_16) fail(1);
     
     for (int i = 0 ; i < total_size; i++)
         array_16[i] = (uint16_t)new_file_array[i];
     
     LBA28_write_sector(disk, 1, SECTORS_PER_DIRECTORY, array_16);
     
-    return 0;
+    if(first_sector + num_sectors > bitmap_size) fail(3);
+    
+    for(int i = first_sector; i < first_sector + num_sectors; i++)
+        set_bitmap(disk_bitmap, i);
+    
+    succeed;
+}
+
+maybe_int get_free_sector(int size, bitmap_t disk_bitmap, int bitmap_size){
+    int consecutive = 0;
+    int result = 1 + SECTORS_PER_DIRECTORY;     // sectors start from 1, + root directory space.
+    for (int i = 1+ SECTORS_PER_DIRECTORY; i < bitmap_size; i++){
+        if (get_bitmap(disk_bitmap, i) == 0)
+            consecutive ++;
+        else{
+            consecutive = 0;
+            result = i+1;
+        }
+        if (consecutive >= size) return result;
+    }
+    fail(1);
+}
+
+maybe_void new_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+    int position = get_free_sector(num_sectors, disk_bitmap, bitmap_size);
+    if(position < 0) fail(1);
+    return msg_on_fail(
+        new_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
+        "new file creation failed (called from new_file_alloc)"
+    );
+}
+
+maybe_void initial_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+    int position = get_free_sector(num_sectors, disk_bitmap, bitmap_size);
+    if(position < 0) fail(1);
+    return msg_on_fail(
+        initial_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
+        "new file creation failed (called from initial_file_alloc)"
+    );
+}
+
+
+maybe_void write_file (int disk, file_mmd* file, uint16_t* contents, int content_size){
+    if (content_size != file -> num_sectors) fail(1);      // size measured in sectors
+    
+    LBA28_write_sector(disk, file -> first_sector, content_size, contents);
+    succeed;
+}
+
+maybe_void read_file (int disk, file_mmd* file, uint16_t* contents, int content_size){
+    if (content_size != file -> num_sectors) fail(1);      // size measured in sectors
+    
+    LBA28_read_sector(disk, file -> first_sector, content_size, contents);
+    
+    //TODO check if read went ok
+    
+    succeed;
+    
 }

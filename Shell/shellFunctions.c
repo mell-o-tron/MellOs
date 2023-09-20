@@ -33,7 +33,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&meminfo,  "meminfo",  "Shows memory info", "meminfo"),
     CMDENTRY(&cmosmem,  "cmosmem",  "Shows CMOS memory info", "cmosmem"),
     CMDENTRY(&boottime,  "time",  "Shows time lasted since system boot", "time"),
-    CMDENTRY(&time,  "cmos",  "Shows CMOS time and date", "cmos")
+    CMDENTRY(&time,  "cmos",  "Shows CMOS time and date", "cmos"),
+    CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo")
 };
 
 // Bind this to CMDs and use the help texts for each command (that's the better way ^)

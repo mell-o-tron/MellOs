@@ -19,4 +19,7 @@ typedef uint8_t bool;
 
 #define NULL (void*)0
 
+typedef int maybe_void;
+typedef int maybe_int;
+
 #endif

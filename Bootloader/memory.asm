@@ -88,4 +88,4 @@ mem_error:
 
 
     
-memory_failed: db 10, 13, "Failed to detect memory", 0
+memory_failed: db 10, 13, "MEMDTCTERR", 0

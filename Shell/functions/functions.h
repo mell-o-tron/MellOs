@@ -22,5 +22,5 @@ FHDR(hcf);
 // driver_addon.c
 FHDR(time);
 FHDR(boottime);
-
+FHDR(diskinfo);
 #endif
