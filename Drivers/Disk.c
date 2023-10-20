@@ -120,7 +120,15 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *
 }
 
 
-disk_info retrieve_disk_info(){
-	disk_info* dinfo = (disk_info*)0x5200;
+raw_disk_info retrieve_disk_info(){
+	raw_disk_info* dinfo = (raw_disk_info*)0x5200;
 	return *dinfo;
+}
+
+void decode_raw_disk_info(raw_disk_info dinfo, disk_info * result){
+	result -> drivetype = dinfo.bl;
+	result -> sectors = dinfo.cl & 0b00111111;
+	result -> cylinders = ((dinfo.cl & 0b11000000) << 2) | dinfo.ch;
+    result -> heads = dinfo.dh;
+    result -> drives = dinfo.dl;
 }

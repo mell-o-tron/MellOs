@@ -37,15 +37,17 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CTAR)
-	$(LD) -o $(BIN)/kernel.elf -Ttext 0x7ef0 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
+	$(LD) -o $(BIN)/kernel.elf -Ttext 0x8200 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
-	cat $(BIN)/boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
+	cat $(BIN)/boot.bin $(BIN)/stage_2.bin > $(BIN)/both_boot.bin
+	cat $(BIN)/both_boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 	dd if=/dev/zero of=osimage_formated.bin bs=512 count=2880 >/dev/null
 	dd if=os_image.bin of=osimage_formated.bin conv=notrunc >/dev/null
 
 boot:
 	nasm Bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i Bootloader
+	nasm Bootloader/stage_2.asm -f bin -o $(BIN)/stage_2.bin -i Bootloader
 	nasm Kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
 
 %.o: %.c

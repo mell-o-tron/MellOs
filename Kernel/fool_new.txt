@@ -3,7 +3,8 @@
 |       ||  -__||  |  |   -   ||__ --|
 |__|_|__||_____||__|__|_______||_____|
 
-Latest "major" update - 06 May 2023; added proper kmalloc & started working on "placeholder_fs" file system.
+Latest Notable Changes - 20 Oct 2023; added second stage bootloader.
+Known issues: The disk drive is not working correctly because the BIOS routine for reading the disk parameters is broken.
 
 Github code link: https://github.com/mell-o-tron/MellOs
 
