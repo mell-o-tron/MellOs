@@ -19,7 +19,12 @@ typedef uint8_t bool;
 
 #define NULL (void*)0
 
-typedef int maybe_void;
-typedef int maybe_int;
+typedef struct {
+    bool is_some;
+    int val;
+
+} maybe_int;
+
+typedef maybe_int maybe_void;
 
 #endif

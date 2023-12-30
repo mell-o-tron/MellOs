@@ -1,5 +1,6 @@
 #include "../CPU/Interrupts/idt.h"
 #include "../Drivers/VGA_Text.h"
+#include "syscalls.h"
 
 int syscall_stub (regs *r, int number){
     switch (number) {

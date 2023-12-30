@@ -1,9 +1,14 @@
 #pragma once
 #include "Typedefs.h"
-#define fail(code) if (code > 0) return (-code); else return code
-#define succeed return 0
-#define failed(x) x < 0
-#define succeeded(x) x >= 0
+#include "assert.h"
+
+#define fail(code) return (maybe_int){false, code}
+#define succeed() return (maybe_int){true, 0}
+#define just(code) (maybe_int){true, code}
+#define failed(x) !x.is_some
+#define succeeded(x) x.is_some
+
+int unwrap (maybe_int x);
 
 int halt_on_fail (maybe_void x);
 int wat_on_fail (maybe_void x);

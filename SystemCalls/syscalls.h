@@ -1,3 +1,4 @@
+#pragma once
 #include "./../CPU/Interrupts/idt.h"
 
 int syscall_stub (regs *r, int number);

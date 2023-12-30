@@ -241,7 +241,7 @@ maybe_void new_file (int disk, char* name, char type, char permissions, int firs
     for(int i = first_sector; i < first_sector + num_sectors; i++)
         set_bitmap(disk_bitmap, i);
     
-    succeed;
+    succeed();
 }
 
 
@@ -280,37 +280,37 @@ maybe_void initial_file (int disk, char* name, char type, char permissions, int 
     for(int i = first_sector; i < first_sector + num_sectors; i++)
         set_bitmap(disk_bitmap, i);
     
-    succeed;
+    succeed();
 }
 
 maybe_int get_free_sector(int size, bitmap_t disk_bitmap, int bitmap_size){
     int consecutive = 0;
     int result = 1 + SECTORS_PER_DIRECTORY;     // sectors start from 1, + root directory space.
-    for (int i = 1+ SECTORS_PER_DIRECTORY; i < bitmap_size; i++){
+    for (int i = 1 + SECTORS_PER_DIRECTORY; i < bitmap_size; i++){
         if (get_bitmap(disk_bitmap, i) == 0)
             consecutive ++;
         else{
             consecutive = 0;
             result = i+1;
         }
-        if (consecutive >= size) return result;
+        if (consecutive >= size) return just(result);
     }
     fail(1);
 }
 
 maybe_void new_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
-    int position = get_free_sector(num_sectors, disk_bitmap, bitmap_size);
+    int position = msg_on_fail(get_free_sector(num_sectors, disk_bitmap, bitmap_size), "get free sector failed (called from new_file_alloc)");
     if(position < 0) fail(1);
-    return msg_on_fail(
+    msg_on_fail(
         new_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
         "new file creation failed (called from new_file_alloc)"
     );
 }
 
 maybe_void initial_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
-    int position = get_free_sector(num_sectors, disk_bitmap, bitmap_size);
+    int position = msg_on_fail(get_free_sector(num_sectors, disk_bitmap, bitmap_size), "get free sector failed (called from initial_file_alloc)");
     if(position < 0) fail(1);
-    return msg_on_fail(
+    msg_on_fail(
         initial_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
         "new file creation failed (called from initial_file_alloc)"
     );
@@ -321,7 +321,7 @@ maybe_void write_file (int disk, file_mmd* file, uint16_t* contents, int content
     if (content_size != file -> num_sectors) fail(1);      // size measured in sectors
     
     LBA28_write_sector(disk, file -> first_sector, content_size, contents);
-    succeed;
+    succeed();
 }
 
 maybe_void read_file (int disk, file_mmd* file, uint16_t* contents, int content_size){
@@ -331,6 +331,6 @@ maybe_void read_file (int disk, file_mmd* file, uint16_t* contents, int content_
     
     //TODO check if read went ok
     
-    succeed;
+    succeed();
     
 }
