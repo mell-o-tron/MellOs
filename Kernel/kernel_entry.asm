@@ -1,15 +1,18 @@
-section .text
 [bits 32]
 
-mov [MemSize], bx   ; Get memory size from bx
-
+section .entry
 [extern main]
 [extern kpanic]
-call main		        ; calls kernel function main()
 
-jmp $
+[global start_kernel]
+start_kernel:
+    mov [MemSize], bx   ; Get memory size from bx
+    call main		        ; calls kernel function main()
 
-%include "../CPU//Interrupts/interrupt.asm"
+    jmp $
+
+section .text
+%include "../CPU/Interrupts/interrupt.asm"
 %include "../Memory/Paging/paging.asm"
 
 
