@@ -21,9 +21,6 @@ ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/gdt.asm ./Kernel/kernel_entry.as
 ## Assembly target files
 ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
-## Files which must be linked first, if things break just bodge it together
-LDPRIORITY := $(BIN)/Kernel/kernel_entry.o $(BIN)/Kernel/kernel.o $(BIN)/Drivers/Keyboard.o $(BIN)/CPU/Interrupts/irq.o $(BIN)/Drivers/VGA_Text.o
-
 all: prebuild build
 
 debug: prebuild build
@@ -37,7 +34,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CTAR)
-	$(LD) -o $(BIN)/kernel.elf -Ttext 0x8200 $(LDPRIORITY) --start-group $(filter-out $(LDPRIORITY),$(shell find ./ -name "*.o" | xargs)) --end-group --oformat elf32-i386 ## Pray this works
+	$(LD) -o $(BIN)/kernel.elf -TKernel/kernel.ld $(shell find ./ -name "*.o" | xargs)
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/stage_2.bin > $(BIN)/both_boot.bin
 	cat $(BIN)/both_boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
