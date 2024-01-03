@@ -84,9 +84,9 @@ const char* kprintInt(int n) {
 	//asm volatile("1: jmp 1b");
 	if (n<10){
 	    kprint("0");
-	    kprint(reverse(buffer, revBuf, i-1));
+	    kprint(buffer);
 	} else {
-	kprint(reverse(buffer, revBuf, i-1));}
+	kprint(reverse(buffer,revBuf,i));}
 }	
 
 int oct2bin(unsigned char *str, int size) {
