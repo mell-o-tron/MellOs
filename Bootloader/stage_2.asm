@@ -8,7 +8,7 @@ call print_string
 
 ;read the kernel (60 sectors)
 mov bx, KERNEL_LOCATION
-mov al, 60		; read 60 sectors
+mov al, 61		; read 61 sectors
 mov ch, 0x00		; from cylinder 0
 mov cl, 0x04		; from sector 4 (counting from 1)
 mov dh, 0x00		; from head 0
