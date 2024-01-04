@@ -30,3 +30,7 @@ sudo make install-target-libgcc
 echo HERE U GO MAYBE:
 ls /usr/local/i386elfgcc/bin
 export PATH="$PATH:/usr/local/i386elfgcc/bin"
+
+cp ~/.bashrc ~/.bashrc.backup
+echo -e "\nexport PATH=\"/usr/local/i386elfgcc/bin:\$PATH\"" >> ~/.bashrc
+echo "Added compiler to system path, a backup of the .bashrc was made at ~/.bashrc.backup"

@@ -1,9 +1,9 @@
 ## Compiler
-CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
+CC=i386-elf-gcc
 
-OBJCP=/usr/local/i386elfgcc/bin/i386-elf-objcopy
+OBJCP=i386-elf-objcopy
 ## Linker
-LD=/usr/local/i386elfgcc/bin/i386-elf-ld
+LD=i386-elf-ld
 
 SRC=$(shell pwd)
 ## Directory to write binaries to
@@ -21,6 +21,8 @@ ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/gdt.asm ./Kernel/kernel_entry.as
 ## Assembly target files
 ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
+LIBGCC_DIR := $(shell dirname $(shell find $(shell dirname $(shell which $(CC)))/../ -name 'libgcc.a' -print -quit))
+
 all: prebuild build
 
 debug: prebuild build
@@ -34,7 +36,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CTAR)
-	$(LD) -o $(BIN)/kernel.elf -TKernel/kernel.ld $(shell find ./ -name "*.o" | xargs)
+	$(LD) -o $(BIN)/kernel.elf -TKernel/kernel.ld $(shell find ./ -name "*.o" | xargs) -L"$(LIBGCC_DIR)" -lgcc
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/stage_2.bin > $(BIN)/both_boot.bin
 	cat $(BIN)/both_boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
