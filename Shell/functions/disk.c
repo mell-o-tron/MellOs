@@ -9,7 +9,7 @@ FDEF(diskinfo){
         kprint("info allocation failed");
         return;
     }
-    kprint("WARNING: these results are not correct, there is still something wrong with the disk param BIOS routine\n");
+
     raw_disk_info dinfo = retrieve_disk_info();
     kprint("raw disk info:");
     kprint("\n  bl: ");
@@ -25,7 +25,7 @@ FDEF(diskinfo){
     kprint("\n");
     decode_raw_disk_info(dinfo, res);
 
-    kprint("diskinfo:\n");
+    kprint("\ndiskinfo:\n");
     kprint("  Drive type: ");
     switch (res->drivetype){
         case 0x01: kprint("360K"); break;
@@ -37,7 +37,8 @@ FDEF(diskinfo){
         case 0x10: kprint("ATAPI Removable Media Device"); break;
         default: kprint ("unrecognized");
     }
-    kprint(toString(res->drivetype, 10));
+    kprint(" - 0x");
+    kprint(toString(res->drivetype, 16));
     kprint("\n  Max Sectors: ");
     kprint(toString(res->sectors, 10));
     kprint("\n  Max heads: ");
