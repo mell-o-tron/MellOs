@@ -5,6 +5,7 @@
 #include "shellFunctions.h"
 #include "../Memory/mem.h"
 #include "../Utils/Conversions.h"
+#include "../CPU/Timer/timer.h"
 /*
 
 ///////////////////////////////////// To add: command buffer, scroll navigation
@@ -57,8 +58,6 @@ void load_shell(){
     kprint(" | ");
     kprint("dir: -");
     kprint("]\n");
-    kprint("Work in progress;\n");
-    kprintCol("Version note: the old \"mode\" system has been removed.\n\n", ERROR_COLOR);
 	CommandCursor = CursorPos;
 	SetCursorPosRaw(1920);
 	return;

@@ -23,4 +23,9 @@ FHDR(hcf);
 FHDR(time);
 FHDR(boottime);
 FHDR(diskinfo);
+
+// files.c
+FHDR(change_dir);
+FHDR(list_files);
+FHDR(make_dir);
 #endif

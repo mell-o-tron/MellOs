@@ -3,8 +3,12 @@
 |       ||  -__||  |  |   -   ||__ --|
 |__|_|__||_____||__|__|_______||_____|
 
-Latest Notable Changes - 20 Oct 2023; added second stage bootloader.
-Known issues: The disk drive is not working correctly because the BIOS routine for reading the disk parameters is broken.
+Latest Notable Changes - 13 Aug 2024; fixed disk drivers.
+
+Known issues:
+    - FS commands eventually result in page faults or allocation errors
+    - sleep does not work in FS commands called from shell(?);
+      it has thus been deactivated.
 
 Github code link: https://github.com/mell-o-tron/MellOs
 

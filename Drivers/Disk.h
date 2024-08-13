@@ -25,8 +25,8 @@ typedef struct{
 raw_disk_info;
 
 void identify_ata(uint8_t drive);
-uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr);
-void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *buffer);
+uint16_t* LBA28_read_sector(uint8_t drive, uint32_t LBA, uint8_t sector_count, uint16_t *addr);
+void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector_count, uint16_t *buffer);
 
 void decode_raw_disk_info(raw_disk_info dinfo, disk_info * result);
 raw_disk_info retrieve_disk_info();

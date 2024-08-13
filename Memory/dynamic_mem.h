@@ -13,3 +13,5 @@ int kfree(void* loc, int size);
 int kdisintegrate(void* loc, int size);
 
 void* krealloc (void* oldloc, int oldsize, int newsize);
+
+bitmap_t get_allocation_bitmap();

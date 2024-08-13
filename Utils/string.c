@@ -23,19 +23,18 @@ int strlen(const char* s){
 }
 
 
-bool StringsEqu(const char* s, const char* t){
-	const char* g = strlen(s) > strlen(t)? s : t;
-	
-	bool res = true;
-	int i = 0;
-	do{
-		if(s[i] != t[i] || i > 80){
-			res = false;
-			break;
-		}
-		else i++;
-	}while(g[i] != 0);
-	return res;
+bool StringsEqu(const char* s, const char* t) {
+    if (strlen(s) != strlen(t)) {
+        return false;
+    }
+    
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] != t[i]) {
+            return false;
+        }
+    }
+    
+    return true; 
 }
 
 bool StringStartsWith(const char* s, const char* t){

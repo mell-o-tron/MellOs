@@ -40,6 +40,7 @@ int msg_on_fail (maybe_void x, const char * msg){
         kprint(toString(x.val, 10));
         for(;;);
     }
+
     return unwrap(x);
 }
 

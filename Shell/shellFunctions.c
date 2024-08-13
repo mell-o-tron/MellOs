@@ -34,8 +34,10 @@ shellfunction CMDs[] = {
     CMDENTRY(&cmosmem,  "cmosmem",  "Shows CMOS memory info", "cmosmem"),
     CMDENTRY(&boottime,  "time",  "Shows time lasted since system boot", "time"),
     CMDENTRY(&time,     "cmos",  "Shows CMOS time and date", "cmos"),
-    CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo")
-
+    CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
+    CMDENTRY(&change_dir,"cd",  "Changes current directory", "cd [name of dir]"),
+    CMDENTRY(&list_files,"ls",  "Shows list of files", "ls"),
+    CMDENTRY(&make_dir  ,"mkdir",  "Creates new directory", "mkdir [name of new directory]")
 };
 
 // Bind this to CMDs and use the help texts for each command (that's the better way ^)

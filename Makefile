@@ -57,4 +57,4 @@ boot:
 
 run: prebuild build
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
-	qemu-system-x86_64 -d cpu_reset -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda test_disk.img -m 128M
+	qemu-system-x86_64 -d cpu_reset -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -drive format=raw,file=test_disk.img, -m 128M

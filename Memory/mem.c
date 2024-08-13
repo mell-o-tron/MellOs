@@ -43,6 +43,8 @@ void initializeMem(){
 
 extern char ker_tty[4000];
 
+// TODO make this compliant with error handling
+
 /* allocate space linearly (Welcome to the worst allocation method ever), starting from address 0x10000 */
 void* linear_alloc (size_t size){
     /* Don't want to be returning block sizes of zero */
@@ -53,14 +55,16 @@ void* linear_alloc (size_t size){
     void* address = (void*)freeMem;
     freeMem += size;
     
-    if(freeMem > upper_memget().lower_size + FREE_MEM){
-        // display out of memory error
-        clear_tty(DEFAULT_COLOR, ker_tty);
-        display_tty(ker_tty);
-        SetCursorPosRaw(0);
-        kprint("\n> Kernel Error - Out of memory :(");
-        while(1){;}
-    }
+    // TODO fix the below code, maybe upper_memget not doing what it used to?
+    
+//     if(freeMem > upper_memget().lower_size + FREE_MEM){
+//         // display out of memory error
+//         clear_tty(DEFAULT_COLOR, ker_tty);
+//         display_tty(ker_tty);
+//         SetCursorPosRaw(0);
+//         kprint("\n> Linear allocation error - Out of memory :(");
+//         while(1){;}
+//     }
     
     return address;
 }

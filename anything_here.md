@@ -8,3 +8,16 @@ Bloody hell Stephen, this better be good...
 "We Impose Order On The Chaos Of Organic Evolution. You Exist Because We Allow It. And You Will End Because We Demand It."
 
 *And now for something completely different*
+
+### banana
+>This is the night mail crossing the Border,
+>
+Bringing the cheque and the postal order,
+>
+Letters for the rich, letters for the poor,
+>
+The shop at the corner, the girl next door.
+>
+Pulling up Beattock, a steady climb:
+>
+The gradient's against her, but she's on time.

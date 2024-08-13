@@ -17,8 +17,10 @@
 // The second few sectors contain the meta-meta-data of the files in root       TBD     #sec / dir
 // These MMD consist of the file number, the type (0 file, 1 dir), the permissions, the first sector and the number of sectors assigned.
 
-#define SECTORS_PER_DIRECTORY 1
 extern char ker_tty[4000];
+
+// sector of current directory
+extern int CURRENT_DIRECTORY;
 
 void write_file_to_byte_array(const file_mmd* file, unsigned char* byte_array) {
     // Copy file_name string to byte array
@@ -120,7 +122,7 @@ file_mmd** get_files_from_byte_array(const unsigned char* byte_array, int* file_
 }
 
 /* let's not use this in the beginning (indi bininging), ignore the FS recognition part for now*/
-int recognise_PFS(int disk) {
+int recognise_PFS(uint8_t disk) {
 
     uint16_t addr_r [256];
     
@@ -133,7 +135,9 @@ int recognise_PFS(int disk) {
 }
 
 
-file_mmd ** get_root_files (int disk, int** file_num){
+// TODO make this compliant with error handling
+
+file_mmd ** get_root_files (uint8_t disk, int** file_num){
     
     /* should simply read the files from disk and send them through get_files_from_byte_array, and set filenum to the file number */
     uint16_t * addr = kmalloc(SECTORS_PER_DIRECTORY * 256 * sizeof(uint16_t));
@@ -144,28 +148,19 @@ file_mmd ** get_root_files (int disk, int** file_num){
     
     if(!addr_8) return NULL;
     
-    LBA28_read_sector(disk, 1, SECTORS_PER_DIRECTORY, addr);
+//     kprint(toString(CURRENT_DIRECTORY, 16));
+    
+    
+    LBA28_read_sector(disk, CURRENT_DIRECTORY, SECTORS_PER_DIRECTORY, addr);
+    
     
     for (int i = 0 ; i < 256; i++)
         addr_8[i] = addr[i] & 0xFF, 0;              // & 0xff ~ only read lowest 8 bits
     
     int * file_num_return = 0;
-    
-    kprint("bits follow: ");
-    /*
-    for (int i = 0; i < 10; i++){
-        kprint("0x");
-        kprint(toString(addr_8[i], 16));
-        kprint(" ");
-    }*/
-    
-    kprint("  ");
-    
     file_mmd ** result = get_files_from_byte_array(addr_8, file_num_return);
     
     if (!result) return NULL;
-    
-    kprint(toString(*file_num_return, 10));
     
     file_num = &file_num_return;
     
@@ -173,23 +168,8 @@ file_mmd ** get_root_files (int disk, int** file_num){
 }
 
 
-void list_files (file_mmd ** mmd, int number){
-    for (int i = 0; i < number; i++){
-        kprint("file name: ");
-        kprint(mmd[i] -> file_name);
-        kprint("\nfile type: ");
-        kprint(toString(mmd[i] -> type, 16));
-        kprint("\nfile permissions: ");
-        kprint(toString(mmd[i] -> permissions, 16));
-        kprint("\nfirst sector: ");
-        kprint(toString(mmd[i] -> first_sector, 16));
-        kprint("\nnumber of sectors: ");
-        kprint(toString(mmd[i] -> num_sectors, 16));
-        kprint("\n\n");
-    }
-}
 
-maybe_void new_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+maybe_void new_file (uint8_t disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
 
     /* should get file list, append a file, and rewrite the whole thing to disk. I know it's a bit silly, but it's called "placeholder_fs" for a reason lol*/
     int *file_num = 0;
@@ -205,6 +185,8 @@ maybe_void new_file (int disk, char* name, char type, char permissions, int firs
     new -> num_sectors = num_sectors;
     
     file_mmd ** old_files = get_root_files (disk, &file_num);
+
+    
     
     if (!old_files) fail(2);
 //     file_mmd ** new_files = krealloc (old_files, *file_num * sizeof(file_mmd *), (*file_num + 1) * sizeof(file_mmd *));
@@ -216,8 +198,6 @@ maybe_void new_file (int disk, char* name, char type, char permissions, int firs
     for (int i = 0; i < *file_num ; i++) new_files[i] = old_files[i];
     
     kfree(old_files, sizeof(file_mmd *) * (*file_num));
-    
-    kprint(toString(*file_num, 10));
     
     new_files [*file_num] = new;
     
@@ -233,8 +213,10 @@ maybe_void new_file (int disk, char* name, char type, char permissions, int firs
     
     for (int i = 0 ; i < total_size; i++)
         array_16[i] = (uint16_t)new_file_array[i];
+
     
-    LBA28_write_sector(disk, 1, SECTORS_PER_DIRECTORY, array_16);
+    // rewrite the directory with the updated file list
+    LBA28_write_sector(disk, CURRENT_DIRECTORY, SECTORS_PER_DIRECTORY, array_16);
     
     if(first_sector + num_sectors > bitmap_size) fail(3);
     
@@ -245,7 +227,7 @@ maybe_void new_file (int disk, char* name, char type, char permissions, int firs
 }
 
 
-maybe_void initial_file (int disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+maybe_void initial_file (uint8_t disk, char* name, char type, char permissions, int first_sector, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
     int *file_num = 0;
     
     file_mmd * new = kmalloc(sizeof(file_mmd));
@@ -273,7 +255,7 @@ maybe_void initial_file (int disk, char* name, char type, char permissions, int 
     for (int i = 0 ; i < total_size; i++)
         array_16[i] = (uint16_t)new_file_array[i];
     
-    LBA28_write_sector(disk, 1, SECTORS_PER_DIRECTORY, array_16);
+    LBA28_write_sector(disk, CURRENT_DIRECTORY, SECTORS_PER_DIRECTORY, array_16);
     
     if(first_sector + num_sectors > bitmap_size) fail(3);
     
@@ -285,8 +267,8 @@ maybe_void initial_file (int disk, char* name, char type, char permissions, int 
 
 maybe_int get_free_sector(int size, bitmap_t disk_bitmap, int bitmap_size){
     int consecutive = 0;
-    int result = 1 + SECTORS_PER_DIRECTORY;     // sectors start from 1, + root directory space.
-    for (int i = 1 + SECTORS_PER_DIRECTORY; i < bitmap_size; i++){
+    int result = 1;
+    for (int i = 1; i < bitmap_size; i++){
         if (get_bitmap(disk_bitmap, i) == 0)
             consecutive ++;
         else{
@@ -298,33 +280,36 @@ maybe_int get_free_sector(int size, bitmap_t disk_bitmap, int bitmap_size){
     fail(1);
 }
 
-maybe_void new_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+maybe_int new_file_alloc(uint8_t disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
     int position = msg_on_fail(get_free_sector(num_sectors, disk_bitmap, bitmap_size), "get free sector failed (called from new_file_alloc)");
     if(position < 0) fail(1);
     msg_on_fail(
         new_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
         "new file creation failed (called from new_file_alloc)"
     );
+    
+    return just(position);
 }
 
-maybe_void initial_file_alloc(int disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
+maybe_void initial_file_alloc(uint8_t disk, char* name, char type, char permissions, int num_sectors, bitmap_t disk_bitmap, int bitmap_size){
     int position = msg_on_fail(get_free_sector(num_sectors, disk_bitmap, bitmap_size), "get free sector failed (called from initial_file_alloc)");
     if(position < 0) fail(1);
     msg_on_fail(
         initial_file (disk, name, type, permissions, position, num_sectors, disk_bitmap, bitmap_size),
         "new file creation failed (called from initial_file_alloc)"
     );
+    succeed();
 }
 
 
-maybe_void write_file (int disk, file_mmd* file, uint16_t* contents, int content_size){
+maybe_void write_file (uint8_t disk, file_mmd* file, uint16_t* contents, int content_size){
     if (content_size != file -> num_sectors) fail(1);      // size measured in sectors
     
     LBA28_write_sector(disk, file -> first_sector, content_size, contents);
     succeed();
 }
 
-maybe_void read_file (int disk, file_mmd* file, uint16_t* contents, int content_size){
+maybe_void read_file (uint8_t disk, file_mmd* file, uint16_t* contents, int content_size){
     if (content_size != file -> num_sectors) fail(1);      // size measured in sectors
     
     LBA28_read_sector(disk, file -> first_sector, content_size, contents);

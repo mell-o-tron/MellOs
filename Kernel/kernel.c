@@ -3,11 +3,9 @@
 * GR.  MODE: 0xA000  *
 *********************/
 
-//IMPLEMENT STACK SMASHING PROTECTOR!!!!
-
 
 #include "../Utils/Typedefs.h"
-#include "../Utils/error_handling.h"                // read docs!
+#include "../Utils/error_handling.h"                // ATTENTION read docs about error handling before contributing!
 #include "../Misc/colors.h"
 #include "../Drivers/VGA_Text.h"
 #include "../Utils/Conversions.h"
@@ -33,7 +31,7 @@
 #include "../Utils/assert.h"
 #include "../Memory/dynamic_mem.h"
 #include "../FileSystem/placeholder_fs.h"
-
+#include "../FileSystem/fs_interface.h"
 
 volatile int curMode = 0;                            // Modes:    0: dummy text, 10: shell
 
@@ -42,9 +40,14 @@ extern const char Fool[];                           // Test included binaries
 extern const char KPArt[];
 extern const unsigned short MemSize;                // General purpose thing with misleading name
 extern int curColor;
+
+///////////////////////// GLOBAL VARS
 char ker_tty[4000];
-
-
+int CURRENT_DIRECTORY;                              // sector of current directory
+volatile uint8_t master_drive = 0xE0;
+bitmap_t disk_bitmap;
+volatile int disk_bitmap_size = 100;
+/////////////////////////
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
 extern  void kpanic(struct regs *r){
@@ -125,6 +128,7 @@ extern  void main(){
     kprint(Fool);
     kprint("\n");
     kb_install();
+    CURRENT_DIRECTORY = 1;      // sector 1
     
     
     ///////////////////////////////////////////////////////////
@@ -172,7 +176,7 @@ extern  void main(){
     
     bitmap_t allocation_bitmap = get_allocation_bitmap();
 
-    bitmap_t disk_bitmap = create_bitmap (kmalloc(100), 100);
+    disk_bitmap = create_bitmap (kmalloc(100), 100);
     
     
     
@@ -185,42 +189,68 @@ extern  void main(){
             kprintChar('0', 0);
     }*/
     
-    
-    ///////////////////////////////////////////////////////////
-    
-    // INACTIVE TESTING
-    
-    ///////////////////////////////////////////////////////////
-    
-                                               
-    
-    /*
-    uint16_t addr_w [256];          // TESTING zero out disk at beginning
-    uint16_t addr_r [256];
 
-    for (int i = 0 ; i < 256; i++){
-        addr_w[i] = 0;
-        addr_r[i] = 0;
-	}
-	addr_w[0] = 'A';
-	
-	LBA28_write_sector(0xA0, 1, 1, addr_w);        // disk write test
-    LBA28_write_sector(0xA0, 2, 1, addr_w);
-    LBA28_write_sector(0xA0, 3, 1, addr_w);
+////////////////////////////////////////////////////////////////////////////////// DISK TEST
     
+//     identify_ata(0xA0);
     
+//     master_drive = 0xE0;
+    
+//     uint16_t addr_w [2048];          // TESTING zero out disk at beginning
+//     uint16_t addr_r [2048];
+// 
+//     for (int i = 0 ; i < 2048; i++){
+//         addr_w[i] = 0;
+//         addr_r[i] = 0;
+// 	}
+// 	
+//     
+//     LBA28_write_sector(master_drive, 0, 4, addr_w);        // zero out four sectors of disk
+//     LBA28_write_sector(master_drive, 4, 4, addr_w);        // zero out four sectors of disk
+//     LBA28_write_sector(master_drive, 8, 4, addr_w);        // zero out four sectors of disk
+// 	
+//     for (int i = 0 ; i < 0x100; i++){
+//         addr_w[i] = 0x6969;
+// 	}
+// 
+//     for (int i = 0x100 ; i < 0x200; i++){
+//         addr_w[i] = 0x7070;
+// 	}
+// 
+// 	for (int i = 0x200 ; i < 0x300; i++){
+//         addr_w[i] = 0x7171;
+// 	}
+// 	
+// 	for (int i = 0x300; i < 0x400; i++){
+//         addr_w[i] = 0x7272;
+// 	}
+// 	
+//     LBA28_write_sector(master_drive, 5, 4, addr_w);        // disk write test
+//     
+//     LBA28_read_sector(master_drive, 5, 4, addr_r);
+//     
+//     kprint(toString(addr_r[0], 16));
+//     kprint("\n");
+//     kprint(toString(addr_r[0x100], 16));
+//     kprint("\n");
+//     kprint(toString(addr_r[0x200], 16));
+//     kprint("\n");
+//     kprint(toString(addr_r[0x300], 16));
+//     kprint("\n");
 
+
+
+//////////////////////////////////////////////////////////////////////////////// FS TEST
+
+//     clear_tty(DEFAULT_COLOR, ker_tty);
+// 	display_tty(ker_tty);
+//     SetCursorPosRaw(0);
+
+    msg_on_fail(initial_file_alloc(master_drive, "FIRST", 0, 0, 1, disk_bitmap, disk_bitmap_size), "initial file allocation failed");
     
-                                                    // FS test
+    int *file_num = 0;
     
-    msg_on_fail(initial_file_alloc(0xA0, "FIRST", 0, 0, 1, disk_bitmap, 100), "initial file allocation failed");
-    
-    
-	wat_on_fail(new_file_alloc(0xA0, "SECOND", 0, 0, 1, disk_bitmap, 100));
-    
-	int *file_num = 0;
-    
-	file_mmd **files = get_root_files(0xA0, &file_num);
+	file_mmd **files = get_root_files(master_drive, &file_num);
 	if(files == NULL) {
 	    kprint("files is null");
 	    for(;;);
@@ -231,78 +261,36 @@ extern  void main(){
 	    for(;;);
 	}
 	
-	kprint(toString(*file_num, 10));
 	
-    clear_tty(DEFAULT_COLOR, ker_tty);
-	display_tty(ker_tty);
-	
-	SetCursorPosRaw(0);
+// 	kprint(toString(*file_num, 10));
+//     list_files_debug(files, *file_num);
     
-	list_files (files, *file_num);
+    msg_on_fail (make_directory (master_drive, "newdir", disk_bitmap, disk_bitmap_size), "new dir creation failed");
     
-    uint16_t* file_content0 = kmalloc(512 * sizeof (uint16_t));
-    uint16_t* file_content1 = kmalloc(512 * sizeof (uint16_t));
-    
-    for(int i = 0; i < 512; i++)
-        file_content0[i] = 0;
-    
-    file_content0[0] = 'p';
-    file_content0[1] = 'a';
-    file_content0[2] = 'l';
-    file_content0[3] = 'l';
-    file_content0[4] = 'e';
-    
-    msg_on_fail(write_file (0xA0, files[0], file_content0, 1), "write error");
-    
-    msg_on_fail(read_file (0xA0, files[0], file_content1, 1), "read error");
+    files = get_root_files(master_drive, &file_num);
     
     
-    for(int i = 0; i < 512; i++)
-        kprintChar(file_content1[i], 0);        // TODO does not print, figure out why
-        
-    */
+//     list_files_debug(files, *file_num);
     
+    msg_on_fail(change_directory(files[1]), "cd failed");
+    
+    files = get_root_files(master_drive, &file_num);
+    
+//     kprint("\n");
+    
+//     list_files_debug(files, *file_num);
+    
+    msg_on_fail(change_directory(files[0]), "cd failed");
+    
+    files = get_root_files(master_drive, &file_num);
+    
+//     kprint("\n");
+    
+//     list_files_debug(files, *file_num);
+    
+   
     for(;;);
-	/*
-	
-	 
-	clear_tty(DEFAULT_COLOR, ker_tty);
-	display_tty(ker_tty);
-	
-	SetCursorPosRaw(0);
-	
-	kprint("\nnumber of files:");
-	kprint(toString(*file_num, 10));
-	kprint("\n");
-	list_files (files, *file_num);*/
-    
-    ///////////////////////////////////////////////////////////
-    
-                                                // disk tests
-    
-    /*uint16_t addr_w [256];
-    uint16_t addr_r [256];
-    
-    for (int i = 0 ; i < 256; i++){
-        addr_w[i] = 0;
-        addr_r[i] = 0;
-    }
-    
-    
-//     for (int i = 0 ; i < 10; i++){
-//         addr_w[i] = ('a' + i);              // & 0xff ~ only read lowest 8 bits
-//     }
-    
-    LBA28_write_sector(0xA0, 1, 1, addr_w);
-    
-    LBA28_read_sector(0xA0, 1, 1, addr_r);
-    
-    for (int i = 0 ; i < 256; i++){
-        kprintChar(addr_r[i] & 0xFF, 0);              // & 0xff ~ only read lowest 8 bits
-        kprintChar((addr_r[i] >> 8) & 0xFF, 0);
-        display_tty(ker_tty);
-    }
-        */
+
     
     return;
 }

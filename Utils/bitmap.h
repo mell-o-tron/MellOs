@@ -10,4 +10,3 @@ char get_bitmap(bitmap_t b, int i);
 
 bitmap_t create_bitmap(void* loc, int n);
 
-bitmap_t get_allocation_bitmap();
