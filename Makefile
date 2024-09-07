@@ -1,9 +1,14 @@
-## Compiler
+# If the compiler is not in the system's PATH variable,
+# assume it's installed to /usr/local
+ifeq ($(shell which i386-elf-gcc),)
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
-
 OBJCP=/usr/local/i386elfgcc/bin/i386-elf-objcopy
-## Linker
 LD=/usr/local/i386elfgcc/bin/i386-elf-ld
+else
+CC=i386-elf-gcc
+OBJCP=i386-elf-objcopy
+LD=i386-elf-ld
+endif
 
 SRC=$(shell pwd)
 ## Directory to write binaries to

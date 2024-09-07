@@ -137,7 +137,7 @@ extern  void main(){
     
                                                 // dynamic memory allocation setup test
     set_alloc_bitmap((bitmap_t) 0x400000, 10000);
-    set_dynamic_mem_loc (0x400000 + 10000/2);
+    set_dynamic_mem_loc ((void*)(0x400000 + 10000/2));
     
     set_bitmap(get_allocation_bitmap(), 8);     // first fit algo check
     
