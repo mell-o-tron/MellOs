@@ -139,9 +139,9 @@ int  kprintChar(const char c, bool caps);
 
 
 int kprint(const char* s){		// Just a simple print function; prints to screen at cursor position.
-	if (!s) return;
+	if (!s) return -1;
 	
-	assert (ker_tty);
+	assert ((long)ker_tty);
 	uint8_t* charPtr = (uint8_t*)s;
 	uint16_t i = CursorPos;
 	while(*charPtr != 0){
