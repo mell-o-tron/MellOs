@@ -54,14 +54,18 @@ enum scan_codes
 {
     LEFT_ARROW_PRESSED = 0x4b,
     RIGHT_ARROW_PRESSED = 0x4d,
-    DOWN_ARROW_PRESSED = 0x48,
-    UP_ARROW_PRESSED = 0x50,
+    DOWN_ARROW_PRESSED = 0x50,
+    UP_ARROW_PRESSED = 0x48,
     LEFT_SHIFT_PRESSED = 0x2a,
     CAPS_LOCK_PRESSED = 0x3a,
     RETURN_PRESSED = 0x1c,
     F5_PRESSED = 0x3f,
-    LEFT_SHIFT_RELEASED = 0xaa
+    LEFT_SHIFT_RELEASED = 0xaa,
+    CTRL_PRESSED = 0x1d,
+    CTRL_RELEASED = 0x9d
 };
+
+/* KEYBOARD BUFFER */
 
 char* keyboard_buffer;
 uint32_t keyboard_buffer_size = 1000;
@@ -89,12 +93,42 @@ void rem_from_kb_buffer(){
     buf_bot = ((buf_bot + 1) % keyboard_buffer_size);
 }
 
+/* ACTION BUFFER - used for cursor movements and the like */
+
+char* action_buffer;
+uint32_t action_buffer_size = 1000;
+
+uint32_t act_buf_bot = 0;
+uint32_t act_buf_top = 0;
+
+void add_to_act_buffer(char action){
+  action_buffer[act_buf_top] = action;
+  act_buf_top = ((act_buf_top + 1) % action_buffer_size);
+}
+
+char get_from_act_buffer(){
+  if (act_buf_bot == act_buf_top)
+    return 0;
+
+  char res = action_buffer[act_buf_bot];
+  act_buf_bot = ((act_buf_bot  + 1) % action_buffer_size);
+
+  return res;
+}
+
+void rem_from_act_buffer(){
+  if (act_buf_bot != act_buf_top)
+    act_buf_bot = ((act_buf_bot + 1) % action_buffer_size);
+}
+
+
 void keyboard_handler(struct regs *r)
 {
     /* static prevents these variables from being reassigned back to false after the function returns and gets called again
     * and it keeps the variables local to this function */
     static bool shift_pressed = false;
     static bool caps_lock = false;
+    static bool ctrl_pressed = false;
 
     unsigned char scancode;
 
@@ -104,37 +138,40 @@ void keyboard_handler(struct regs *r)
     *  set, that means that a key has just been released */
     if (scancode & 0x80)
     {
-        /* You can use this one to see if the user released the
+        /* You can use this one to check if the user released the
         *  shift, alt, or control keys... */
        
-    	//kprint(toString((int)scancode, 16));		// for testing
-    	
+    	// kprint(tostring_inplace((int)scancode, 16));		// for testing
     	
     	switch(scancode){
     		case LEFT_SHIFT_RELEASED: shift_pressed = false; break;
-    		
+            case CTRL_RELEASED: ctrl_pressed = false; break;
     	}
 	
     }
     else
     {
-        char buf [20];
+        // char buf [20];
         // kprint(tostring(scancode, 16, buf));
     	
     	switch(scancode){
-    		case LEFT_ARROW_PRESSED: move_cursor_LR(-1); break;
-    		case RIGHT_ARROW_PRESSED: move_cursor_LR(1); break;
-    		case DOWN_ARROW_PRESSED: move_cursor_UD(-1); break;
-    		case UP_ARROW_PRESSED: move_cursor_UD(1); break;
-    		case LEFT_SHIFT_PRESSED: shift_pressed = true; break;
-    		case CAPS_LOCK_PRESSED: caps_lock = !caps_lock; break;
-
-    		case RETURN_PRESSED: add_to_kb_buffer('\n', 0); break;
+    		case LEFT_ARROW_PRESSED:  add_to_act_buffer('L'); break;
+    		case RIGHT_ARROW_PRESSED: add_to_act_buffer('R'); break;
+    		case DOWN_ARROW_PRESSED:  add_to_act_buffer('D'); break;
+    		case UP_ARROW_PRESSED:    add_to_act_buffer('U'); break;
+    		case LEFT_SHIFT_PRESSED:  shift_pressed = true; break;
+            case CTRL_PRESSED:        ctrl_pressed = true; break;
+    		case CAPS_LOCK_PRESSED:   caps_lock = !caps_lock; break;
+    		case RETURN_PRESSED:      add_to_kb_buffer('\n', 0); break;
 
     		//ITALIAN KEYBOARD, might not work on others:
     		case 0x56: add_to_kb_buffer(shift_pressed ? '>' : '<', 0); break;
             case 0xE: add_to_kb_buffer(8, 0); break;
-    		default: add_to_kb_buffer(kbdus[scancode], shift_pressed | caps_lock);
+    		default:
+              if (ctrl_pressed)
+                add_to_act_buffer(kbdus[scancode]);
+              else
+                add_to_kb_buffer(kbdus[scancode], shift_pressed | caps_lock);
     	}
         
     }
@@ -143,5 +180,7 @@ void keyboard_handler(struct regs *r)
 void kb_install()
 {
     keyboard_buffer = kmalloc(keyboard_buffer_size);
+    action_buffer = kmalloc(action_buffer_size);
+
 	irq_install_handler(1, keyboard_handler);
 }

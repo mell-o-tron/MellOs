@@ -22,4 +22,6 @@ FHDR(newfile);
 FHDR(write_file);
 FHDR(read_file);
 
+// text_editor.c
 
+FHDR(texted);

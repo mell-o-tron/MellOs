@@ -30,7 +30,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&ls, "ls", "Lists files", "ls"),
     CMDENTRY(&newfile, "newfile", "Creates new file", "newfile [name]"),
     CMDENTRY(&write_file, "writefile", "Writes string to file", "writefile [filename] [string]"),
-    CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]")
+    CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]"),
+    CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]")
 };
 
 

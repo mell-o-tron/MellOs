@@ -36,7 +36,11 @@
 // SHELL
 #include "../shell/shell.h"
 
+// FILE SYSTEM
 #include "../file_system/file_system.h"
+
+// TEXT_EDITOR
+#include "../text_editor/text_editor.h"
 
 extern const char KPArt[];
 extern const char Fool[];
@@ -153,14 +157,16 @@ extern void main(){
 
 
     // this clears the disk, remove it to have persistence
-    kprint("Erasing virtual disk (debug)...");
-    prepare_disk_for_fs(32);
-    clear_screen_col(DEFAULT_COLOUR);
+    // kprint("Erasing virtual disk (debug)...");
+    // prepare_disk_for_fs(32);
+    // clear_screen_col(DEFAULT_COLOUR);
+
     set_cursor_pos_raw(0);
     kprint(Fool);
 
     load_shell();
 
+    // init_text_editor("test_file");
 
     /*
     schedule_process(task_1);

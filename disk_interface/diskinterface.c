@@ -21,7 +21,7 @@ uint8_t* read_string_from_disk (uint8_t disk, uint32_t LBA, uint32_t num_sectors
 void write_string_to_disk(char* str, uint8_t disk, uint32_t LBA, uint32_t num_sectors){
     uint16_t * buf = (uint16_t*)kmalloc(256 * num_sectors);
 
-    for (int i = 0; i < 256; i++){
+    for (int i = 0; i < 256 * num_sectors; i++){
         buf[i] = str[2*i] | ((uint16_t)str[2*i+1]<<8);
     }
     LBA28_write_sector(0xA0, LBA, num_sectors, buf);

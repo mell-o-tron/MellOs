@@ -43,11 +43,20 @@ void timer_handler(regs *r)
 			case 8: move_cursor_LR(-1); kprint_char(' ', 0);move_cursor_LR(-1); break;	// backspace
 			default: kprint_char(c, 0);
 		}
+
+		char a = get_from_act_buffer();
+		switch (a) {
+			case 'U': move_cursor_UD(-1);break;
+			case 'D': move_cursor_UD(+1);break;
+			case 'L': move_cursor_LR(-1);break;
+			case 'R': move_cursor_LR(+1);break;
+		}
 	}
 	else {
 		// if the keyboard is not enabled, older keystrokes are eliminated at a rate of 2 chars a second.
 		if (timer_ticks % 9 == 0){
 			rem_from_kb_buffer();
+			rem_from_act_buffer();
 		}
 	}
 

@@ -4,4 +4,4 @@
 #define BAR_COLOUR 0x1E
 #define DARK_COLOUR 0x0F
 #define ERROR_COLOUR 0x74
-
+#define DARK_INVERSE 0xF0
