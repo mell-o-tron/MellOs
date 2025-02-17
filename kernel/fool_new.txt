@@ -1,0 +1,12 @@
+ _______         __ __ _______        
+|   |   |.-----.|  |  |       |.-----.
+|       ||  -__||  |  |   -   ||__ --|
+|__|_|__||_____||__|__|_______||_____|
+
+Latest Notable Changes - 17 Feb 2025; major debloat and rewrite of most systems.
+
+
+Github code link: https://github.com/mell-o-tron/MellOs
+
+Write "help" for a list of commands.
+

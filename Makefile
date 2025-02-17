@@ -7,7 +7,7 @@ LD=/usr/local/i386elfgcc/bin/i386-elf-ld
 
 SRC=$(shell pwd)
 ## Directory to write binaries to
-BIN=./WeeBins
+BIN=./wee_bins
 ## Compiler Flags
 FLAGS=-ffreestanding -m32 -g 
 
@@ -17,7 +17,7 @@ CSRC := $(shell find ./ -name "*.c")
 CTAR := $(patsubst %.c,%.o,$(CSRC))
 
 ## Assembly source files that must be compiled to ELF
-ASMSRC := ./CPU/GDT/gdt_loader.asm ./Bootloader/gdt.asm ./Kernel/kernel_entry.asm
+ASMSRC := ./cpu/gdt/gdt_loader.asm ./bootloader/gdt.asm ./kernel/kernel_entry.asm ./processes/processes_asm.asm
 ## Assembly target files
 ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
@@ -34,7 +34,7 @@ prebuild:	## Prebuild instructions
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CTAR)
-	$(LD) -o $(BIN)/kernel.elf -TKernel/kernel.ld $(shell find ./ -name "*.o" | xargs)
+	$(LD) -o $(BIN)/kernel.elf -Tkernel/kernel.ld $(shell find ./ -name "*.o" | xargs)
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	cat $(BIN)/boot.bin $(BIN)/stage_2.bin > $(BIN)/both_boot.bin
 	cat $(BIN)/both_boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin
@@ -43,9 +43,9 @@ build: boot $(ASMTAR) $(CTAR)
 	dd if=os_image.bin of=osimage_formated.bin conv=notrunc >/dev/null
 
 boot:
-	nasm Bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i Bootloader
-	nasm Bootloader/stage_2.asm -f bin -o $(BIN)/stage_2.bin -i Bootloader
-	nasm Kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
+	nasm bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i bootloader
+	nasm bootloader/stage_2.asm -f bin -o $(BIN)/stage_2.bin -i bootloader
+	nasm kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
 
 %.o: %.c
 	mkdir -p $(BIN)/$(shell dirname $<)
@@ -57,4 +57,4 @@ boot:
 
 run: prebuild build
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
-	qemu-system-x86_64 -d cpu_reset -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -drive format=raw,file=test_disk.img, -m 128M
+	qemu-system-x86_64 -d cpu_reset -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda test_disk.img -m 128M

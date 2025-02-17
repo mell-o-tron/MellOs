@@ -1,0 +1,25 @@
+#pragma once
+
+// Function header to simplify declaring shell commands
+#define FHDR(name) void name(const char* s);
+
+// text.c
+FHDR(echo);
+FHDR(clear);
+
+
+// misc.c
+FHDR(hcf);
+
+// disk.c
+FHDR(diskinfo);
+FHDR(diskread);
+
+// file_sys.c
+
+FHDR(ls);
+FHDR(newfile);
+FHDR(write_file);
+FHDR(read_file);
+
+
