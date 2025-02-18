@@ -8,40 +8,12 @@
 #include "../utils/conversions.h"
 #include "../drivers/keyboard.h"
 
-/*
-
-///////////////////////////////////// To add: command buffer, scroll navigation
 
 
-FLOPPY:
-    floppy list     [detect drives]
-    
 
-FILE SYSTEM: [...]
-
-POWER MANAGEMENT: 
-    shutdown
-    reboot
-
-MEMORY:
-    usedmem
-    meminfo
-    
-MISC:
-    echo #string
-    
-VARIABLES:
-    let #name = #value
-    
-
-*/
-
-
-uint32_t command_cursor;
 char command_buffer[128];
 
 void load_shell(){
-	command_cursor = 0;
 	refreshShell();
 
     uint32_t i = 0;
@@ -76,15 +48,13 @@ void load_shell(){
 }
 
 void refreshShell(){
-	// set_cursor_pos_raw(0);
-	// kprint("MellOS shell\n");
-	// set_cursor_pos_raw(1920);
+	kprint("> ");
 	return;
 }
 
 
 void parseCommand(){
-    // set_cursor_pos_raw(command_cursor);
+    kprint("\n");
     if(command_buffer[0] == 0){;}
     else{
         shellfunction* cmd = TryGetCMD(command_buffer);
@@ -95,9 +65,6 @@ void parseCommand(){
         else {kprint("\""); kprint(command_buffer); kprint("\" is not a command");}
     }
 
-    kprint("\n");
-    command_cursor = get_cursor_pos_raw();
-    clear_line_col(24, DEFAULT_COLOUR);
     //SetCursorPosRaw(1920);
     refreshShell();
     
