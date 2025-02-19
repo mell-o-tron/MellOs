@@ -4,6 +4,7 @@
 #include "port_io.h"
 #include "../cpu/interrupts/irq.h"
 #include "../memory/dynamic_mem.h"
+#include "../data_structures/circular_buffer.h"
 
 /********************FUNCTIONS*********************
 * kb_install: installs keyboard IRQ handler       *
@@ -67,60 +68,38 @@ enum scan_codes
 
 /* KEYBOARD BUFFER */
 
-char* keyboard_buffer;
-uint32_t keyboard_buffer_size = 1000;
-
-uint32_t buf_bot = 0;
-uint32_t buf_top = 0;
+cbuffer_t * keyboard_buffer;
 
 void add_to_kb_buffer(char c, bool is_uppercase){
-  keyboard_buffer[buf_top] = c - (is_uppercase && c <= 122 && c >= 97 ? 32 : 0);;
-  buf_top = ((buf_top + 1) % keyboard_buffer_size);
+  add_to_cbuffer(keyboard_buffer, c, is_uppercase);
 }
 
-char get_from_kb_buffer(){
-  if (buf_bot == buf_top)
-    return 0;
-
-  char res = keyboard_buffer[buf_bot];
-  buf_bot = ((buf_bot + 1) % keyboard_buffer_size);
-
-  return res;
+char get_from_kb_buffer(cbuffer_t buf){
+  return get_from_cbuffer(keyboard_buffer);
 }
 
-void rem_from_kb_buffer(){
-  if (buf_bot != buf_top)
-    buf_bot = ((buf_bot + 1) % keyboard_buffer_size);
+void rem_from_kb_buffer(cbuffer_t buf){
+  
+  if(!keyboard_buffer) return;
+  
+  rem_from_cbuffer(keyboard_buffer);
 }
 
 /* ACTION BUFFER - used for cursor movements and the like */
 
-char* action_buffer;
-uint32_t action_buffer_size = 1000;
+cbuffer_t* action_buffer;
 
-uint32_t act_buf_bot = 0;
-uint32_t act_buf_top = 0;
-
-void add_to_act_buffer(char action){
-  action_buffer[act_buf_top] = action;
-  act_buf_top = ((act_buf_top + 1) % action_buffer_size);
+void add_to_act_buffer(char c){
+  add_to_cbuffer(action_buffer, c, false);
 }
 
-char get_from_act_buffer(){
-  if (act_buf_bot == act_buf_top)
-    return 0;
-
-  char res = action_buffer[act_buf_bot];
-  act_buf_bot = ((act_buf_bot  + 1) % action_buffer_size);
-
-  return res;
+char get_from_act_buffer(cbuffer_t buf){
+  return get_from_cbuffer(action_buffer);
 }
 
-void rem_from_act_buffer(){
-  if (act_buf_bot != act_buf_top)
-    act_buf_bot = ((act_buf_bot + 1) % action_buffer_size);
+void rem_from_act_buffer(cbuffer_t buf){
+  rem_from_cbuffer(action_buffer);
 }
-
 
 void keyboard_handler(struct regs *r)
 {
@@ -178,9 +157,21 @@ void keyboard_handler(struct regs *r)
 }
 
 void kb_install()
-{
-    keyboard_buffer = kmalloc(keyboard_buffer_size);
-    action_buffer = kmalloc(action_buffer_size);
+{   
+    keyboard_buffer = kmalloc(sizeof(cbuffer_t));
+    action_buffer =   kmalloc(sizeof(cbuffer_t));
+    
+    
+    keyboard_buffer -> size = 1000;
+    keyboard_buffer -> top = 0;
+    keyboard_buffer -> bot = 0;
+    keyboard_buffer -> array = kmalloc(keyboard_buffer -> size);
+    
+    action_buffer -> size = 1000;
+    action_buffer -> top = 0;
+    action_buffer -> bot = 0;
+    action_buffer -> array = kmalloc(action_buffer -> size);
+    
 
 	irq_install_handler(1, keyboard_handler);
 }

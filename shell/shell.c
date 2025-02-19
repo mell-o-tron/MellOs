@@ -22,7 +22,6 @@ void load_shell(){
 		switch (c) {
 			case 0: break; // buffer is empty
             case '\n':
-                kprint("\n");
                 parseCommand();
                 i = 0;
                 for (uint32_t j = 0; j < 128; j++)
@@ -44,6 +43,7 @@ void load_shell(){
 		}
     }
 
+    
 	return;
 }
 
@@ -62,7 +62,7 @@ void parseCommand(){
             // execute command
             cmd->fptr(str_decapitate(command_buffer, strlen(cmd->alias)));
         }
-        else {kprint("\""); kprint(command_buffer); kprint("\" is not a command");}
+        else {kprint("\""); kprint(command_buffer); kprint("\" is not a command\n");}
     }
 
     //SetCursorPosRaw(1920);

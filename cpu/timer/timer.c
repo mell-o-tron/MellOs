@@ -21,7 +21,7 @@ void timer_phase(int hz)
 }
 
 void timer_handler(regs *r)
-{
+{	
 	/* Increment our 'tick count' */
 	timer_ticks++;
 

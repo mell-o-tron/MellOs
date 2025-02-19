@@ -5,11 +5,11 @@
 
 
 #include "../utils/typedefs.h"
-#include "../utils/error_handling.h"                // read docs!
+// #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
 #include "../drivers/vga_text.h"
 #include "../utils/conversions.h"
-#include "../utils/string.h"
+// #include "../utils/string.h"
 #include "../cpu/interrupts/idt.h"
 #include "../cpu/interrupts/isr.h"
 #include "../cpu/interrupts/irq.h"
@@ -19,19 +19,19 @@
 #include "../drivers/port_io.h"
 #include "../memory/paging/paging.h"
 #include "../memory/dynamic_mem.h"
-
-#include "../utils/assert.h"
+#include "../data_structures/allocator.h"
+// #include "../utils/assert.h"
 
 // PROCESSES
 #include "../processes/processes.h"
-#include "../processes/stack_utils.h"
+// #include "../processes/stack_utils.h"
 
 // MATH
-#include "../utils/math.h"
+// #include "../utils/math.h"
 
 // DISK
-#include "../drivers/disk.h"
-#include "../disk_interface/diskinterface.h"
+// #include "../drivers/disk.h"
+// #include "../disk_interface/diskinterface.h"
 
 // SHELL
 #include "../shell/shell.h"
@@ -122,7 +122,7 @@ void task_2(){
 }
 
 extern void main(){
-
+    
     // identity-maps 0x0 to 4MB (i.e. 0x400000 - 1)
     init_paging(page_directory, first_page_table);
 
@@ -135,26 +135,29 @@ extern void main(){
     irq_install();
     asm volatile ("sti");
     timer_install();
-
     clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
+    
+    allocator_t allocator;
+    assign_kmallocator(&allocator);
+    
+    set_kmalloc_bitmap((bitmap_t) 0x400000, 10000);   // dynamic memory allocation setup test
+    set_dynamic_mem_loc ((void*)0x400000 + 10000/2);
+    
+    set_bitmap(get_kmallocator_bitmap(), 8);         // first fit algo check
 
     kb_install();
 
-
-    set_alloc_bitmap((bitmap_t) 0x400000, 10000);   // dynamic memory allocation setup test
-    set_dynamic_mem_loc ((void*)0x400000 + 10000/2);
-
-    set_bitmap(get_allocation_bitmap(), 8);         // first fit algo check
-
-    void * code_loc = kmalloc(10);                  // kmalloc test
+    
+    void * code_loc = (void*) kmalloc(10);                  // kmalloc test
 
     if (code_loc == NULL){                          // null check
         kprint_col("KMALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
         for (;;){;}
     }
-
+  
+    
 
     // this clears the disk, remove it to have persistence
     // kprint("Erasing virtual disk (debug)...");
@@ -163,9 +166,9 @@ extern void main(){
 
     set_cursor_pos_raw(0);
     kprint(Fool);
-
+    
     load_shell();
-
+    
     // init_text_editor("test_file");
 
     /*

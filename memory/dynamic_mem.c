@@ -1,86 +1,55 @@
-#include "../utils/bitmap.h"
 #include "../utils/typedefs.h"
 #include "dynamic_mem.h"
 #include "mem.h"
+#include "../data_structures/allocator.h"
+#include "../drivers/vga_text.h"
+#include "../utils/conversions.h"
+
 
 // A bitmap is used to keep track of the memory usage. 
 
-volatile bitmap_t allocation_bitmap = NULL;
-
-volatile int allocation_bitmap_size = 0;
+allocator_t* kmallocator;
 
 volatile void *dynamic_mem_loc = NULL;
 
-// FOR DEBUG
-bitmap_t get_allocation_bitmap (){
-    return allocation_bitmap;
-}
-
-
-void set_alloc_bitmap (bitmap_t loc, int length){
-    allocation_bitmap = create_bitmap(loc, length);
-    allocation_bitmap_size = length;
+void assign_kmallocator(allocator_t* allocator){
+    kmallocator = allocator;
 }
 
 void set_dynamic_mem_loc (void *loc){
     dynamic_mem_loc = loc;
 }
 
-// allocates some space and returns the pointer
-void *kmalloc (int n){   // first fit :(
-    int contiguous = 0;
-    int current_champion = 0;
-    for (int i = 0; i < allocation_bitmap_size; i++){
-        
-        if (contiguous == 0) current_champion = i;
-        
-        if (get_bitmap(allocation_bitmap, i) == 0) contiguous++;
-        if (get_bitmap(allocation_bitmap, i) == 1) {
-            contiguous = 0;
-            continue;
-        }
-        
-        if (contiguous >= n){
-            
-            for (int j = current_champion; j < current_champion + n; j++){
-                set_bitmap(allocation_bitmap, j);
-            }
-            
-            return (void*) (current_champion + (int)dynamic_mem_loc);
-        }
-    }
-    return NULL;
+bitmap_t get_kmallocator_bitmap (){
+    return get_allocator_bitmap(kmallocator);
 }
 
-// deallocates space
-int kfree(void* loc, int size){     // also size as input, more practical to implement this way
+void set_kmalloc_bitmap (bitmap_t loc, int length){
+    set_alloc_bitmap(kmallocator, loc, length);
+}
+
+void * kmalloc (int size){
+    int pos = allocate(kmallocator, size);
     
-    int bitmap_index = (int) loc - (int) dynamic_mem_loc;
-    
-    if (bitmap_index > allocation_bitmap_size || bitmap_index < 0)
-        return -1;
-        
-    if (bitmap_index + size > allocation_bitmap_size)
-        return -2;
-    
-    for (int i = bitmap_index; i < bitmap_index + size; i++){
-        unset_bitmap(allocation_bitmap, i);
-    }
-    return 0;
+    return (void*)((int)dynamic_mem_loc + pos);
+}
+
+int kfree(void* loc, int size){
+    int bitmap_index = (uint32_t) loc - (uint32_t) dynamic_mem_loc;
+    return allocator_free(kmallocator, bitmap_index, size);
 }
 
 // like free, but zeroes out the memory
 int kdisintegrate(void* loc, int size){
     int free_res = kfree(loc, size);
-    if (free_res == -1)
-        return -1;
+    if (free_res < 0)
+        return free_res;
     
     for (int i = 0; i < size; i++){
         ((char*)loc)[i] = 0;
     }
     return 0;
 }
-
 
 void* krealloc (void* oldloc, int oldsize, int newsize){
                                                             // switch this to 1 to change realloc mode

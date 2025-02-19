@@ -1,15 +1,14 @@
 #pragma once
 
-#include "../utils/bitmap.h"
+#include "../data_structures/bitmap.h"
+#include "../data_structures/allocator.h"
 
-void set_alloc_bitmap (bitmap_t loc, int length);
-
+void assign_kmallocator(allocator_t* allocator);
 void set_dynamic_mem_loc (void *loc);
 
-void *kmalloc (int n);
-
-int kfree(void* loc, int size);
-
+void * kmalloc (int size);
 int kdisintegrate(void* loc, int size);
-
 void* krealloc (void* oldloc, int oldsize, int newsize);
+
+bitmap_t get_kmallocator_bitmap ();
+void set_kmalloc_bitmap (bitmap_t loc, int length);

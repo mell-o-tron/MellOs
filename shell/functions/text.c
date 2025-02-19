@@ -8,6 +8,7 @@ extern char ker_tty[4000];
 
 FDEF(echo){
     kprint(s+1); // +1 bc skip whitespace
+    kprint("\n");
 }
 
 FDEF(clear){
