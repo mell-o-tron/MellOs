@@ -20,7 +20,22 @@ FDEF(newfile) {
     return;
   }
 
-  new_file((char *)t);
+  new_file((char *)t, 1);
+}
+
+FDEF(rmfile) {
+  const char *t = s;
+
+  while ((*t == ' ' || *t == '\t') && (t - s < 128)) {
+    t++;
+  }
+
+  if (t - s >= 128) {
+    kprint("Arguments not recognized.\n");
+    return;
+  }
+
+  remove_file((char *)t);
 }
 
 FDEF(write_file) {

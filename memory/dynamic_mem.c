@@ -36,6 +36,7 @@ void * kmalloc (int size){
 
 int kfree(void* loc, int size){
     int bitmap_index = (uint32_t) loc - (uint32_t) dynamic_mem_loc;
+
     return allocator_free(kmallocator, bitmap_index, size);
 }
 

@@ -9,8 +9,6 @@
 #include "../drivers/keyboard.h"
 
 
-
-
 char command_buffer[128];
 
 void load_shell(){

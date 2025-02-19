@@ -21,6 +21,7 @@ FHDR(ls);
 FHDR(newfile);
 FHDR(write_file);
 FHDR(read_file);
+FHDR(rmfile);
 
 // text_editor.c
 

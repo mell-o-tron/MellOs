@@ -15,27 +15,49 @@ void prepare_disk_for_fs (uint32_t n_sectors){
     for(uint32_t i = 0; i < 256 * n_sectors; i++){
         tmp[i] = 0;
     }
-
-    tmp[256] = 3;
-
     LBA28_write_sector(0xA0, 1, n_sectors, tmp);
+    kfree(tmp, sizeof(uint16_t) * 256 * n_sectors);
+    
+    bitmap_t bitmap = kmalloc(512);
+    for(uint32_t i = 0; i < 512; i++){
+        bitmap[i] = 0;
+    }
+    
+    set_bitmap(bitmap, 0);
+    set_bitmap(bitmap, 1);
+    set_bitmap(bitmap, 2);
+    write_string_to_disk((char*)bitmap, 0xA0, 2, 1);
 }
 
-uint32_t allocate_file(uint32_t req_sectors){
-    // DUMMY
-    if (req_sectors != 1) {
-        kprint("I don't know how to do that yet!");
-        for(;;);
-    }
+int allocate_file(uint32_t req_sectors){
 
-    uint16_t *tmp = kmalloc(sizeof(uint16_t) * 256);
-    LBA28_read_sector(0xA0, 2, 1, tmp);
+    char *tmp = (char*)read_string_from_disk(0xA0, 2, 1);
+    
+    allocator_t allocator;
+    allocator.bitmap = (bitmap_t)tmp;
+    allocator.size = 512;
+    
+    int res = allocate(&allocator, req_sectors);
+    if (res >= 0)
+        write_string_to_disk(tmp, 0xA0, 2, 1);
+    else
+        return -1;
+    
+    return res;
+}
 
-    uint32_t res = (uint32_t)tmp[0];        // reads dummy counter from disk
-    tmp[0] += 1;                            // increments it
-    LBA28_write_sector(0xA0, 2, 1, tmp);    // rewrites it
-
-    kfree(tmp, sizeof(uint16_t) * 256);
+int deallocate_file(uint32_t LBA, uint32_t num_sectors){
+    char *tmp = (char*)read_string_from_disk(0xA0, 2, 1);
+    allocator_t allocator;
+    allocator.bitmap = (bitmap_t)tmp;
+    allocator.size = 512;
+    
+    int res = allocator_free(&allocator, LBA, num_sectors);
+    if (res >= 0)
+        write_string_to_disk(tmp, 0xA0, 2, 1);
+    else
+        return -1;
+    
     return res;
 }
 
@@ -115,9 +137,9 @@ void write_file_list (file_t * list, uint32_t disk, uint32_t LBA, uint32_t secto
     kfree(tmp, sizeof(uint16_t) * 256 * sectors);
 }
 
-void new_file (char* name){
+void new_file (char* name, uint32_t n_sectors){
     if(name[0] == 0 || name[0] == ' ' || name[0] == '\n'){
-        kprint("name is not valid, file not created.\n");
+        kprint("Filename is not valid, file not created.\n");
         return;
     }
 
@@ -125,7 +147,7 @@ void new_file (char* name){
 
     // check is name already taken & find position for file
 
-    uint32_t new_file_pos = -1;
+    int new_file_pos = -1;
     for (uint32_t i = 0; i < 32; i++){
         if(strcmp(name, files[i].name) == 0){
             // TODO deallocate that
@@ -139,11 +161,16 @@ void new_file (char* name){
     }
 
     if(new_file_pos == -1){
-        kprint("Not enough space for new file");
+        kprint("Not enough space for new file\n");
         return;
     }
 
-    uint32_t LBA = allocate_file(1);
+    uint32_t LBA = allocate_file(n_sectors);
+    
+    if(LBA < 0) {
+        kprint("Could not allocate file\n");
+        return;
+    }
 
     // WARNING name is truncated here, so we can still end up with files with same name
     // can't be bothered to fix now, too late at night.
@@ -154,10 +181,37 @@ void new_file (char* name){
     }
 
     files[new_file_pos].LBA = LBA;
-    files[new_file_pos].n_sectors = 1;
-
+    files[new_file_pos].n_sectors = n_sectors;
+    
     write_file_list(files, 0xA0, 1, 1);
 }
+
+void remove_file(char* name){
+    if(name[0] == 0 || name[0] == ' ' || name[0] == '\n'){
+        kprint("filename is not valid.\n");
+        return;
+    }
+
+    file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
+
+    for (uint32_t i = 0; i < 32; i++){
+        if(strcmp(name, files[i].name) == 0){
+            int res = deallocate_file(files[i].LBA, files[i].n_sectors);
+            
+            if(res < 0) {
+                kprint("Could not delete file");
+                return;
+            }
+            
+            for (uint32_t j = i+1; j < 32; j++){
+                files[j - 1] = files[j];
+            }
+            write_file_list(files, 0xA0, 1, 1);
+            return;
+        }
+    }
+}
+
 
 void print_files(file_t * files, uint32_t n){
     for (uint32_t i = 0; i < n; i++){

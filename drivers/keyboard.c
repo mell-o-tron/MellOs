@@ -74,11 +74,11 @@ void add_to_kb_buffer(char c, bool is_uppercase){
   add_to_cbuffer(keyboard_buffer, c, is_uppercase);
 }
 
-char get_from_kb_buffer(cbuffer_t buf){
+char get_from_kb_buffer(){
   return get_from_cbuffer(keyboard_buffer);
 }
 
-void rem_from_kb_buffer(cbuffer_t buf){
+void rem_from_kb_buffer(){
   
   if(!keyboard_buffer) return;
   
@@ -93,11 +93,11 @@ void add_to_act_buffer(char c){
   add_to_cbuffer(action_buffer, c, false);
 }
 
-char get_from_act_buffer(cbuffer_t buf){
+char get_from_act_buffer(){
   return get_from_cbuffer(action_buffer);
 }
 
-void rem_from_act_buffer(cbuffer_t buf){
+void rem_from_act_buffer(){
   rem_from_cbuffer(action_buffer);
 }
 
@@ -132,7 +132,7 @@ void keyboard_handler(struct regs *r)
     {
         // char buf [20];
         // kprint(tostring(scancode, 16, buf));
-    	
+      
     	switch(scancode){
     		case LEFT_ARROW_PRESSED:  add_to_act_buffer('L'); break;
     		case RIGHT_ARROW_PRESSED: add_to_act_buffer('R'); break;
@@ -149,8 +149,9 @@ void keyboard_handler(struct regs *r)
     		default:
               if (ctrl_pressed)
                 add_to_act_buffer(kbdus[scancode]);
-              else
+              else {
                 add_to_kb_buffer(kbdus[scancode], shift_pressed | caps_lock);
+              }
     	}
         
     }
@@ -161,7 +162,6 @@ void kb_install()
     keyboard_buffer = kmalloc(sizeof(cbuffer_t));
     action_buffer =   kmalloc(sizeof(cbuffer_t));
     
-    
     keyboard_buffer -> size = 1000;
     keyboard_buffer -> top = 0;
     keyboard_buffer -> bot = 0;
@@ -171,7 +171,6 @@ void kb_install()
     action_buffer -> top = 0;
     action_buffer -> bot = 0;
     action_buffer -> array = kmalloc(action_buffer -> size);
-    
 
 	irq_install_handler(1, keyboard_handler);
 }

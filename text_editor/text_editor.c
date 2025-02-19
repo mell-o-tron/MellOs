@@ -5,6 +5,7 @@
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
 #include "../file_system/file_system.h"
+#include "../utils/string.h"
 
 #define VGA_WIDTH			80
 #define VGA_HEIGHT  		25
@@ -12,10 +13,19 @@
 
 
 char document_buffer [1840];
+char document_string [1840];
+
 int document_index = 0;
 char* cur_file;
 
 void init_text_editor(char* filename){
+    for (uint32_t i = 0; i < 1840; i++){
+        document_buffer[i] = 0;
+        document_string[i] = 0;
+    }
+    
+    document_index = 0;
+    
     cur_file = filename;
     clear_screen_col(DEFAULT_COLOUR);
     clear_line_col(0, DARK_INVERSE);
@@ -31,7 +41,22 @@ void init_text_editor(char* filename){
 }
 
 void save_file(){
-    write_string_to_file(document_buffer, cur_file);
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < 1840; i++){
+        if (document_buffer[i] != 0) document_string[j++] = document_buffer[i];
+    }
+    
+    uint32_t file_size = strlen(document_string);
+    
+    kprint("file size: ");
+    kprint(tostring_inplace(file_size, 10));
+    kprint("B\n");
+    
+    remove_file(cur_file);
+    new_file(cur_file, file_size / 512 + 2);
+    
+    
+    write_string_to_file(document_string, cur_file);
 }
 
 

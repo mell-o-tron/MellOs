@@ -141,10 +141,8 @@ extern void main(){
     allocator_t allocator;
     assign_kmallocator(&allocator);
     
-    set_kmalloc_bitmap((bitmap_t) 0x400000, 10000);   // dynamic memory allocation setup test
-    set_dynamic_mem_loc ((void*)0x400000 + 10000/2);
-    
-    set_bitmap(get_kmallocator_bitmap(), 8);         // first fit algo check
+    set_kmalloc_bitmap((bitmap_t) 0x400000, 100000);   // dynamic memory allocation setup test
+    set_dynamic_mem_loc ((void*)0x400000 + 100000/2);
 
     kb_install();
 
@@ -160,11 +158,12 @@ extern void main(){
     
 
     // this clears the disk, remove it to have persistence
-    // kprint("Erasing virtual disk (debug)...");
-    // prepare_disk_for_fs(32);
-    // clear_screen_col(DEFAULT_COLOUR);
+    kprint("Erasing virtual disk (debug)...");
+    prepare_disk_for_fs(32);
+    clear_screen_col(DEFAULT_COLOUR);
 
     set_cursor_pos_raw(0);
+    
     kprint(Fool);
     
     load_shell();

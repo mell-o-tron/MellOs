@@ -8,11 +8,11 @@ bitmap_t get_allocator_bitmap (allocator_t * allocator){
     return allocator -> bitmap;
 }
 
-
 void set_alloc_bitmap (allocator_t * allocator, bitmap_t loc, int length){
     allocator -> bitmap = create_bitmap(loc, length);
     allocator -> size = length;
 }
+
 // allocates some space and returns the pointer
 int allocate (allocator_t * allocator, int n){   // first fit :(
     int contiguous = 0;

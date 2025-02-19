@@ -12,3 +12,4 @@ void* krealloc (void* oldloc, int oldsize, int newsize);
 
 bitmap_t get_kmallocator_bitmap ();
 void set_kmalloc_bitmap (bitmap_t loc, int length);
+int kfree(void* loc, int size);
