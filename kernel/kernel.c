@@ -158,9 +158,9 @@ extern void main(){
     
 
     // this clears the disk, remove it to have persistence
-    kprint("Erasing virtual disk (debug)...");
-    prepare_disk_for_fs(32);
-    clear_screen_col(DEFAULT_COLOUR);
+    // kprint("Erasing virtual disk (debug)...");
+    // prepare_disk_for_fs(32);
+    // clear_screen_col(DEFAULT_COLOUR);
 
     set_cursor_pos_raw(0);
     
