@@ -32,7 +32,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&rmfile, "rmfile", "Removes file", "rmfile [name]"),
     CMDENTRY(&write_file, "writefile", "Writes string to file", "writefile [filename] [string]"),
     CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]"),
-    CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]")
+    CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]"),
+    CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]")
 };
 
 

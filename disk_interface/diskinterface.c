@@ -23,7 +23,7 @@ void write_string_to_disk(char* str, uint8_t disk, uint32_t LBA, uint32_t num_se
     uint16_t * buf = (uint16_t*)kmalloc(sizeof(uint16_t) * 256 * num_sectors);
 
     for (int i = 0; i < 256 * num_sectors; i++){
-        buf[i] = (uint16_t)str[2*i]<<8 | str[2*i+1];
+        buf[i] = ((uint16_t)(uint8_t)str[2*i] << 8) | (uint8_t)str[2*i+1];
     }
     LBA28_write_sector(0xA0, LBA, num_sectors, buf);
 

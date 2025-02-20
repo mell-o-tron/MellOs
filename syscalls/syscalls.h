@@ -1,7 +1,7 @@
 #pragma once
 #include "./../cpu/interrupts/idt.h"
 
-int syscall_stub (regs *r, int number);
+int syscall_stub (regs *r);
 
 int sys_exit (regs *r);
 int sys_fork (regs *r);

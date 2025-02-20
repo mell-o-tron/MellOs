@@ -8,6 +8,8 @@
 #include "../../drivers/vga_text.h"
 #include "../../kernel/kernel.h"
 #include "../../syscalls/syscalls.h"
+#include "../../utils/conversions.h"
+
 
 extern  void _isr0();
 extern  void _isr1();
@@ -84,11 +86,8 @@ void isrs_install()
 
 extern  void _fault_handler(struct regs *r)
 {
-                                    
-    if (r -> int_no == -0x80){      // heh, unsigned, lazy
-        kprint("syscall!\n");		// TESTING
-        //kprint(toString(r -> err_code, 10));
-		syscall_stub(r, r -> err_code);
+    if (r -> int_no == 0x80){
+		syscall_stub(r);
 		return;
     }
     

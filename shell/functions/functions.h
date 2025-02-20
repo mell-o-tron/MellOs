@@ -26,3 +26,7 @@ FHDR(rmfile);
 // text_editor.c
 
 FHDR(texted);
+
+//exec.c
+
+FHDR(exec);

@@ -1,5 +1,4 @@
-#ifndef __IDT_H
-#define __IDT_H
+#pragma once
 
 
 extern void _idt_load();
@@ -14,4 +13,4 @@ typedef struct regs
     unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
 } __attribute__ ((packed)) regs;
 
-#endif
+
