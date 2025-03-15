@@ -31,7 +31,7 @@
 
 // DISK
 // #include "../drivers/disk.h"
-// #include "../disk_interface/diskinterface.h"
+#include "../disk_interface/diskinterface.h"
 
 // SHELL
 #include "../shell/shell.h"
@@ -41,6 +41,7 @@
 
 // TEXT_EDITOR
 #include "../text_editor/text_editor.h"
+
 
 extern const char KPArt[];
 extern const char Fool[];
@@ -266,6 +267,9 @@ extern void main(){
     new_file("banana", 1);
     
     set_cursor_pos_raw(0);
+    
+    uint8_t* a = read_string_from_disk(0xA0, 1, 1);
+    
     
     kprint(Fool);
     
