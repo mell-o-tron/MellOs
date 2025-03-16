@@ -14,6 +14,7 @@ mov dh, 0x00		; from head 0
 mov cl, 0x04		; from sector 4 (counting from 1)
 call disk_read
 
+call vbe_setup
 ; WHATEVER IS PUT INTO BX HERE WILL BE WRITTEN INTO THE MEMSIZE VARIABLE!
 ; Can be adapted to pass any information to the kernel without storing it in memory
  call detect_cont_memory
@@ -33,6 +34,7 @@ jmp $
 %include"print_dec.asm"
 %include"disk.asm"
 %include"memory.asm" ; old memory detection code
+%include"vbe_modeset.asm"
 %include"protected_mode.asm"
 %include"gdt.asm"
 
@@ -63,4 +65,4 @@ _main32:
 STAGING:
 	db "Separation Confirmed.", 0x0A, 0x0D, 0x00
 
-times 1024-($-$$) db 0x00
+times 2048-($-$$) db 0x00
