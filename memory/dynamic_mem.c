@@ -2,7 +2,11 @@
 #include "dynamic_mem.h"
 #include "mem.h"
 #include "../data_structures/allocator.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../utils/conversions.h"
 
 

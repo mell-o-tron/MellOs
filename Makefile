@@ -1,5 +1,7 @@
 .PHONY: all debug prebuild boot run clean
 
+VGA ?= VGA_VESA
+
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 
@@ -11,7 +13,9 @@ SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=./wee_bins
 ## Compiler Flags
-FLAGS=-ffreestanding -m32 -g 
+FLAGS=-ffreestanding -m32 -g -D$(VGA)
+## NASM Flags
+NASMFLAGS=-d$(VGA)
 
 ## C source files
 CSRC := $(shell find ./ -name "*.c")
@@ -60,7 +64,7 @@ boot:
 
 %.o : %.asm
 	mkdir -p $(BIN)/$(shell dirname $<)
-	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
+	nasm $< -f elf -dVGA_VESA $(NASMFLAGS) -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
 
 run: all
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M

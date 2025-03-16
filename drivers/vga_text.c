@@ -1,3 +1,4 @@
+#ifndef VGA_VESA
 #include "../utils/typedefs.h"
 #include "../drivers/port_io.h"
 #include "../utils/conversions.h"
@@ -158,3 +159,4 @@ void kprint_hex(uint32_t n){
 	kprint(buf);
 	kprint("\n");
 }
+#endif

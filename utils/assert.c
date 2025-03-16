@@ -1,4 +1,8 @@
+#ifdef VGA_VESA
+#include "../drivers/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../misc/colours.h"
 
 extern char ker_tty[4000];

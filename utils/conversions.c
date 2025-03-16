@@ -8,7 +8,11 @@
 ***********************************************************/
 
 #include "string.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../memory/dynamic_mem.h"
 #include "math.h"
 

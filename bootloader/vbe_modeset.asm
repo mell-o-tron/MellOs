@@ -58,12 +58,25 @@ struc VBE_Mode_Info_Struct
 	.reserved1					resb 206
 endstruc
 
-vbe_info:
-	db "VBE2"
-	times VBE_Info_Struct_size - 4 db 0x00
+struc VBE_Screen
+	.mode						resw 1
+	.width						resw 1
+	.height						resw 1
+	.bpp						resb 1
+	.pitch						resw 1
+	.framebuffer				resd 1
+endstruc
 
-vbe_mode_info:
-	times VBE_Mode_Info_Struct_size db 0x00
+; vbe_info:
+; 	db "VBE2"
+; 	times VBE_Info_Struct_size - 4 db 0x00
+
+; vbe_mode_info:
+; 	times VBE_Mode_Info_Struct_size db 0x00
+
+vbe_info			equ 0x5300
+vbe_mode_info		equ 0x5300 + VBE_Info_Struct_size
+vbe_screen			equ 0x5300 + VBE_Info_Struct_size + VBE_Mode_Info_Struct_size
 
 %macro vbe_get_info 0
 	push es
@@ -147,7 +160,7 @@ vbe_mode_info:
 		cmp al, [vbe_mode_info + VBE_Mode_Info_Struct.bpp]
 		je .mode_found
 		.find_mode_continue:
-			call nl
+			; call nl
 			mov ax, [vbe_segment]
 			mov fs, ax
 			mov si, [vbe_offset]
@@ -164,6 +177,28 @@ vbe_mode_info:
 			mov [vbe_framebuffer], eax
 			mov ax, [vbe_mode_info + VBE_Mode_Info_Struct.pitch]
 			mov [vbe_pitch], ax
+
+			mov ax, [vbe_mode]
+			mov [vbe_screen + VBE_Screen.mode], ax
+			mov ax, [vbe_width]
+			mov [vbe_screen + VBE_Screen.width], ax
+			mov ax, [vbe_height]
+			mov [vbe_screen + VBE_Screen.height], ax
+			mov al, [vbe_bpp]
+			mov [vbe_screen + VBE_Screen.bpp], al
+			mov ax, [vbe_pitch]
+			mov [vbe_screen + VBE_Screen.pitch], ax
+			mov eax, [vbe_framebuffer]
+			mov [vbe_screen + VBE_Screen.framebuffer], eax
+
+			mov eax, [vbe_framebuffer]
+			mov [vbe_info + VBE_Info_Struct.signature], eax
+
+			; pusha
+			; mov bx, [vbe_screen + VBE_Screen.framebuffer + 2]
+			; call print_dec
+			; popa
+			; jmp $
 %endmacro
 
 %macro vbe_test_mode 0
@@ -212,6 +247,8 @@ vbe_setup:
 
 	vbe_test_mode
 
+	call nl
+	popa
 	ret
 ; end vbe_setup
 
@@ -257,7 +294,7 @@ vbe_error:
 	; ret
 
 NEW_LINE:
-	db 0x0A, 0x0D, 0x00
+	db ": OK.", 0x0A, 0x0D, 0x00
 
 nl:
 	pusha

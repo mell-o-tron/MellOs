@@ -5,7 +5,11 @@
 
 #include "../../utils/typedefs.h"
 #include "idt.h"
+#ifdef VGA_VESA
+#include "../../drivers/vesa_text.h"
+#else
 #include "../../drivers/vga_text.h"
+#endif
 #include "../../kernel/kernel.h"
 #include "../../syscalls/syscalls.h"
 #include "../../utils/conversions.h"

@@ -7,7 +7,11 @@
 #include "../utils/typedefs.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
 #include "../cpu/interrupts/idt.h"
@@ -99,8 +103,10 @@ extern  void kpanic(struct regs *r){
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
 uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
-#define NUM_MANY_PAGES (uint32_t)512 // Something weird happens when more than 124 pages are mapped. TODO: Investigate
+#define NUM_MANY_PAGES (uint32_t)512
 uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
+unsigned int framebuffer_page[1024]     __attribute__((aligned(4096)));
+unsigned int framebuffer_page_2[1024]     __attribute__((aligned(4096)));
 
 PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;
 PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
@@ -143,6 +149,8 @@ extern void main(){
         add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
     }
 
+    add_page(page_directory, framebuffer_page, 2, 0xFD000000, first_page_table_flags, page_directory_flags);
+    add_page(page_directory, framebuffer_page_2, 3, 0xFD400000, first_page_table_flags, page_directory_flags);
 
     gdt_init();
     idt_install();
@@ -287,6 +295,9 @@ extern void main(){
     
     uint8_t* a = read_string_from_disk(0xA0, 1, 1);
     
+    // #ifdef VGA_VESA
+    _vesa_framebuffer_init();
+    // #endif
     
     kprint(Fool);
     

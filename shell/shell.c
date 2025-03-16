@@ -1,6 +1,10 @@
 #include "shell.h"
 #include "../utils/typedefs.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../misc/colours.h"
 #include "../utils/string.h"
 #include "shell_functions.h"
