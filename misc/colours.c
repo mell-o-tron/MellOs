@@ -27,7 +27,7 @@ void generate_vga_palette(VESA_Colour palette[256]) {
     };
 
     for (i = 0; i < 16; i++) {
-        palette[i] = (VESA_Colour){0xFF, base_palette[i][2], base_palette[i][1], base_palette[i][0]};
+        palette[i] = (VESA_Colour){base_palette[i][2], base_palette[i][1], base_palette[i][0], 0xFF};
     }
 
     // Generate 216-color cube (6×6×6 colors)
@@ -36,7 +36,7 @@ void generate_vga_palette(VESA_Colour palette[256]) {
         for (g = 0; g < 6; g++) {
             for (b = 0; b < 6; b++) {
                 palette[16 + (r * 36) + (g * 6) + b] = (VESA_Colour){
-                    0xFF, (b * 51), (g * 51), (r * 51)  // 51 = 255 / 5 (expand 0–5 scale to 0–255)
+                    (b * 51), (g * 51), (r * 51), 0xFF  // 51 = 255 / 5 (expand 0–5 scale to 0–255)
                 };
             }
         }
@@ -45,6 +45,6 @@ void generate_vga_palette(VESA_Colour palette[256]) {
     // Generate grayscale ramp (24 shades)
     for (i = 0; i < 24; i++) {
         uint8_t intensity = (i * 255) / 23;  // Scale 0–23 to 0–255
-        palette[232 + i] = (VESA_Colour){0xFF, intensity, intensity, intensity};
+        palette[232 + i] = (VESA_Colour){intensity, intensity, intensity, 0xFF};
     }
 }

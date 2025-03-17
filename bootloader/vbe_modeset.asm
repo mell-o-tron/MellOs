@@ -243,6 +243,11 @@ vbe_setup:
 
 	vbe_find_mode
 
+	; call nl
+	; mov bx, [vbe_screen + VBE_Screen.pitch]
+	; call print_dec
+	; jmp $
+
 	vbe_set_mode
 
 	vbe_test_mode

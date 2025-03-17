@@ -1,7 +1,7 @@
 #include "../../utils/typedefs.h"
 #include "../../drivers/port_io.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa_text.h"
+#include "../../drivers/vesa/vesa_text.h"
 #else
 #include "../../drivers/vga_text.h"
 #endif

@@ -2,7 +2,7 @@
 #include "../utils/typedefs.h"
 #include "../drivers/keyboard.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa_text.h"
+#include "../drivers/vesa/vesa_text.h"
 #else
 #include "../drivers/vga_text.h"
 #endif
