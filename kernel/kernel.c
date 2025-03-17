@@ -295,9 +295,9 @@ extern void main(){
     
     uint8_t* a = read_string_from_disk(0xA0, 1, 1);
     
-    // #ifdef VGA_VESA
+    #ifdef VGA_VESA
     _vesa_framebuffer_init();
-    // #endif
+    #endif
     
     kprint(Fool);
     

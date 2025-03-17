@@ -22,10 +22,9 @@ call disk_read
 call memory_detection
 call upper_mem_map
 ; 	; disk parameters
-; %ifdef VGA_VESA
+%ifdef VGA_VESA
 call vbe_setup
-
-; %endif
+%endif
 
 mov dl, 0xA0
 call drive_parameters
@@ -36,7 +35,9 @@ jmp $
 
 %include"print_string.asm"
 %include"print_dec.asm"
+%ifdef VGA_VESA
 %include"vbe_modeset.asm"
+%endif
 %include"disk.asm"
 %include"memory.asm" ; old memory detection code
 %include"protected_mode.asm"

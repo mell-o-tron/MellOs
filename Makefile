@@ -15,7 +15,7 @@ BIN=./wee_bins
 ## Compiler Flags
 FLAGS=-ffreestanding -m32 -g -D$(VGA)
 ## NASM Flags
-NASMFLAGS=-d$(VGA)
+NASMFLAGS=-D$(VGA)
 
 ## C source files
 CSRC := $(shell find ./ -name "*.c")
@@ -54,9 +54,9 @@ build: boot $(ASMTAR) $(CTAR) $(FONTTAR)
 	cat $(BIN)/short.bin $(BIN)/empty_end.bin > os_image.bin
 
 boot:
-	nasm bootloader/boot.asm -f bin -o $(BIN)/boot.bin -i bootloader
-	nasm bootloader/stage_2.asm -f bin -o $(BIN)/stage_2.bin -i bootloader
-	nasm kernel/empty_end.asm -f bin -o $(BIN)/empty_end.bin
+	nasm bootloader/boot.asm -f bin $(NASMFLAGS) -o $(BIN)/boot.bin -i bootloader
+	nasm bootloader/stage_2.asm -f bin $(NASMFLAGS) -o $(BIN)/stage_2.bin -i bootloader
+	nasm kernel/empty_end.asm -f bin $(NASMFLAGS) -o $(BIN)/empty_end.bin
 
 %.o: %.c
 	mkdir -p $(BIN)/$(shell dirname $<)
@@ -64,7 +64,7 @@ boot:
 
 %.o : %.asm
 	mkdir -p $(BIN)/$(shell dirname $<)
-	nasm $< -f elf -dVGA_VESA $(NASMFLAGS) -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
+	nasm $< -f elf $(NASMFLAGS) -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
 
 run: all
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M

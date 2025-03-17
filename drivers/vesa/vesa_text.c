@@ -1,4 +1,3 @@
-#define VGA_VESA
 #ifdef VGA_VESA
 #include "../utils/typedefs.h"
 #include "../drivers/port_io.h"
