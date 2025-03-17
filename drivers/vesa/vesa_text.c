@@ -91,15 +91,16 @@ struct VBEScreen {
 #define VRES 1080
 #define BPP 32
 #define PITCH HRES
-#define SCALE 2
+#define VSCALE 4
+#define HSCALE 2
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 8
 #define FONT_HOFFSET 0
 #define FONT_VOFFSET 0
-#define CONSOLE_WIDTH ((HRES / (FONT_WIDTH + FONT_HOFFSET)) / SCALE)
-#define CONSOLE_HEIGHT ((VRES / (FONT_HEIGHT + FONT_VOFFSET)) / SCALE)
-#define HSLOT ((cursor_pos % CONSOLE_WIDTH) * (FONT_WIDTH + FONT_HOFFSET) * SCALE)
-#define VSLOT ((cursor_pos / CONSOLE_WIDTH) * (FONT_HEIGHT + FONT_VOFFSET))
+#define CONSOLE_WIDTH ((HRES / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
+#define CONSOLE_HEIGHT ((VRES / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
+#define HSLOT ((cursor_pos % CONSOLE_WIDTH) * (FONT_WIDTH + FONT_HOFFSET) * HSCALE)
+#define VSLOT ((cursor_pos / CONSOLE_WIDTH) * (FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
 
 static struct VbeInfoBlock* vbe_info = (struct VbeInfoBlock*)VBE_INFO_LOC;
 static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MODE_INFO_LOC;
@@ -158,11 +159,11 @@ void kprint_col(const char* s, Colour col){
 
 void draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour) {
     uint8_t* font_char = font8x8_basic[(uint8_t)c];
-    for (int row = 0; row < FONT_HEIGHT; row++) {
-        uint8_t pixels = font_char[row];
-        for (int col = 0; col < FONT_WIDTH; col++) {
-            if (pixels & (1 << col)) { // Check if the bit is set
-                FRAMEBUFFER[((y + row) * PITCH * SCALE) + (x + col * SCALE)] = colour.val;
+    for (int row = 0; row < FONT_HEIGHT * VSCALE; row++) {
+        uint8_t pixels = font_char[row / VSCALE];
+        for (int col = 0; col < FONT_WIDTH * HSCALE; col++) {
+            if (pixels & (1 << (col / HSCALE))) { // Check if the bit is set
+                FRAMEBUFFER[((y + row) * PITCH) + (x + col)] = colour.val;
             }
         }
     }
