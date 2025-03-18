@@ -4,12 +4,12 @@
 #include "../utils/conversions.h"
 #include "../utils/assert.h"
 #include "../misc/colours.h"
-#include "../fonts/PSF.h"
-#define SSFN_CONSOLEBITMAP_TRUECOLOR        /* use the special renderer for 32 bit truecolor packed pixels */
-#define SSFN_NOIMPLEMENTATION
-#define SSFN_CONSOLEBITMAP_CLEARBG
-#include "../fonts/ssfn.h"
-#include "test_font.h"
+// #include "../fonts/PSF.h"
+// #define SSFN_CONSOLEBITMAP_TRUECOLOR        /* use the special renderer for 32 bit truecolor packed pixels */
+// #define SSFN_NOIMPLEMENTATION
+// #define SSFN_CONSOLEBITMAP_CLEARBG
+// #include "../fonts/ssfn.h"
+#include "vesa.h"
 
 struct VbeInfoBlock {
 	char signature[4];
@@ -84,38 +84,31 @@ struct VBEScreen {
 #define VBE_MODE_INFO_LOC	(char*)0x5300 + sizeof(struct VbeInfoBlock)
 #define VBE_SCREEN_LOC		(char*)0x5300 + sizeof(struct VbeInfoBlock) + sizeof(struct VBEModeInfoBlock)
 
-#define PIXEL 				uint32_t
-#define FRAMEBUFFER			((volatile PIXEL*)0x800000)
 
-#define HRES 1920
-#define VRES 1080
-#define BPP 32
-#define PITCH HRES
-#define VSCALE 4
-#define HSCALE 2
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 8
+#define VSCALE 4
+#define HSCALE 2
 #define FONT_HOFFSET 0
 #define FONT_VOFFSET 0
-#define CONSOLE_WIDTH ((HRES / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
-#define CONSOLE_HEIGHT ((VRES / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
-#define HSLOT ((cursor_pos % CONSOLE_WIDTH) * (FONT_WIDTH + FONT_HOFFSET) * HSCALE)
-#define VSLOT ((cursor_pos / CONSOLE_WIDTH) * (FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
+#define CONSOLE_WIDTH(x) ((x.width / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
+#define CONSOLE_HEIGHT(x) ((x.height / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
+#define HSLOT(x) ((cursor_pos % CONSOLE_WIDTH(x)) * (FONT_WIDTH + FONT_HOFFSET) * HSCALE)
+#define VSLOT(x) ((cursor_pos / CONSOLE_WIDTH(x)) * (FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
 
 static struct VbeInfoBlock* vbe_info = (struct VbeInfoBlock*)VBE_INFO_LOC;
 static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MODE_INFO_LOC;
 static struct VBEScreen* vbe_screen = (struct VBEScreen*)VBE_SCREEN_LOC;
-static volatile PIXEL *framebuffer;
-static uint8_t bytes_per_pixel;
 
 static uint16_t cursor_pos = 0;
+static Framebuffer fb;
 
-void _vesa_framebuffer_init(void){
-	// framebuffer = (uint8_t*)vbe_screen->framebuffer;
-	framebuffer = (volatile PIXEL*)0x800000;
-	// framebuffer = (uint32_t*)(vbe_info->signature);
-	bytes_per_pixel = vbe_screen->bpp / 8;
-	clear_screen_col(0x00);
+void _vesa_text_init(){
+	fb = allocate_full_screen_framebuffer();
+	char buf[256];
+	tostring(fb.fb, 16, buf);
+	kprint(buf);
+	while(true);
 }
 
 void set_cursor_pos_raw(uint16_t pos){
@@ -127,19 +120,7 @@ uint16_t get_cursor_pos_raw(){
 }
 
 void increment_cursor_pos(){
-	cursor_pos = (cursor_pos + 1) % ((CONSOLE_WIDTH - 1) * (CONSOLE_HEIGHT - 1));
-}
-
-void clear_screen_col (Colour col) {
-	// VESA_Colour vesa_col = vga2vesa(col);
-	VESA_Colour vesa_col = vga2vesa(0x00);
-	for (size_t y = 0; y < 1920 * 1080; y++) {
-		FRAMEBUFFER[y] = vesa_col.val;
-	}
-
-	// char buf[20];
-	// tostring(CONSOLE_HEIGHT, 10, buf);
-	// kprint_col(buf, 0x0F);
+	cursor_pos = (cursor_pos + 1) % ((CONSOLE_WIDTH(fb) - 1) * (CONSOLE_HEIGHT(fb) - 1));
 }
 
 void clear_line_col(uint32_t line, Colour col){}
@@ -148,25 +129,15 @@ void kprint_col(const char* s, Colour col){
 	VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
 	while (*s) {
 		if (*s == '\n') {
-			cursor_pos += CONSOLE_WIDTH - cursor_pos % CONSOLE_WIDTH;
+			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
 		} else {
-			draw_char(HSLOT, VSLOT, *s, fg);
+			// draw_char(HSLOT(fb), VSLOT(fb), *s, fg, HSCALE, VSCALE, fb);
+			draw_char(HSLOT(fb), VSLOT(fb), *s, fg, HSCALE, VSCALE);
 			increment_cursor_pos();
 		}
 		s++;
 	}
-}
-
-void draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour) {
-    uint8_t* font_char = font8x8_basic[(uint8_t)c];
-    for (int row = 0; row < FONT_HEIGHT * VSCALE; row++) {
-        uint8_t pixels = font_char[row / VSCALE];
-        for (int col = 0; col < FONT_WIDTH * HSCALE; col++) {
-            if (pixels & (1 << (col / HSCALE))) { // Check if the bit is set
-                FRAMEBUFFER[((y + row) * PITCH) + (x + col)] = colour.val;
-            }
-        }
-    }
+	// blit(fb, vga_fb, 0, 0, fb.width, fb.height);
 }
 
 void kprint(const char* s){
@@ -177,7 +148,9 @@ void kprint_char (char c, bool caps){
 	c = c - (caps && c <= 122 && c >= 97 ? 32 : 0);
 
 	VESA_Colour fg = {0xFF, 0, 0xFF, 0xFF};
-	draw_char(HSLOT, VSLOT, c, fg);
+	// draw_char(HSLOT(fb), VSLOT(fb), c, fg, HSCALE, VSCALE, fb);
+	draw_char(HSLOT(fb), VSLOT(fb), c, fg, HSCALE, VSCALE);
+	// blit(fb, vga_fb, 0, 0, fb.width, fb.height);
 	increment_cursor_pos();
 }
 
@@ -187,14 +160,14 @@ void move_cursor_LR(int i){			// MOVE CURSOR HORIZONTALLY
 		set_cursor_pos_raw(cursor_pos - 1);
 
 	} else {
-		if (cursor_pos == CONSOLE_WIDTH * CONSOLE_HEIGHT - 1) return;
+		if (cursor_pos == CONSOLE_WIDTH(fb) * CONSOLE_HEIGHT(fb) - 1) return;
 		set_cursor_pos_raw(cursor_pos + 1);
 	}
 }
 
 void move_cursor_UD(int i){			// MOVE CURSOR VERTICALLY
-	if((cursor_pos / CONSOLE_WIDTH < (CONSOLE_HEIGHT - 1) && i > 0) || (cursor_pos / CONSOLE_WIDTH > 0 && i < 0)){
-		cursor_pos += CONSOLE_WIDTH * i;
+	if((cursor_pos / CONSOLE_WIDTH(fb) < (CONSOLE_HEIGHT(fb) - 1) && i > 0) || (cursor_pos / CONSOLE_WIDTH(fb) > 0 && i < 0)){
+		cursor_pos += CONSOLE_WIDTH(fb) * i;
 		set_cursor_pos_raw(cursor_pos);
 	}
 	else if (i < 0) {
@@ -202,7 +175,7 @@ void move_cursor_UD(int i){			// MOVE CURSOR VERTICALLY
 		set_cursor_pos_raw(cursor_pos);
 	}
 	else {
-		cursor_pos = (CONSOLE_WIDTH * CONSOLE_HEIGHT - 1);
+		cursor_pos = (CONSOLE_WIDTH(fb) * CONSOLE_HEIGHT(fb) - 1);
 		set_cursor_pos_raw(cursor_pos);
 	}
 	return;

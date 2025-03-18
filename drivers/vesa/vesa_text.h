@@ -1,8 +1,8 @@
 #pragma once
 #ifdef VGA_VESA
-void _vesa_framebuffer_init(void);
-
 #include "../utils/typedefs.h"
+void _vesa_text_init();
+
 void set_cursor_pos_raw(uint16_t pos);
 uint16_t get_cursor_pos_raw();
 
