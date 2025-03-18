@@ -22,6 +22,7 @@ _main16:
 	mov al, 0x03
 	int 0x10
 
+	; XXX: Why is this here? es is set to 0x00 above
 	xor bx, bx
     mov es, bx
 

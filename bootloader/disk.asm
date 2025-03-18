@@ -1,5 +1,15 @@
+; INT 0x13: Disk I/O
+; AH = 0x02 - Read Sectors From Drive
+; AL = Sectors To Read Count
+; CH = Cylinder Number
+; CL = Sector Number
+; DH = Head Number
+; DL = Drive Number
+; ES:BX = Buffer Address
+
+; ERRORS: https://stanislavs.org/helppc/int_13-1.html
 disk_read:
-	; other stuff should be set by the
+	; other stuff should be set by the caller
 	mov ah, 0x02
 	mov dl, [BOOT_DISK]
 	int 0x13
@@ -64,6 +74,7 @@ disk_error:
 	push ax
 	call print_string
 	pop ax
+	xor ebx, ebx ; Only the lower byte is relevant
 	mov bh, ah
 	call print_dec
 	jmp $
