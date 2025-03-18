@@ -12,6 +12,7 @@
 #define VIDEO_MEMORY		(char*)0xB8000
 #define VGA_WIDTH			80
 #define VGA_HEIGHT  		25
+#define BYTES_PER_CHAR		2
 
 
 
@@ -64,7 +65,11 @@ void kprint_col(const char* s, Colour col){		//Print: with colours!
 
 		switch (*char_ptr) {
 		case '\n':
-			i += VGA_WIDTH;
+			if ((i / VGA_WIDTH) == VGA_HEIGHT - 1){
+				scroll_up(1);
+			} else {
+				i += VGA_WIDTH;
+			}
 			i -= i%VGA_WIDTH;
 
 			if (i > 2000)
@@ -133,5 +138,9 @@ void print_error(const char* s){
     kprint_col(s, ERROR_COLOUR);
 }
 
-
-
+void scroll_up(size_t lines){ // Copying memory from VGA to VGA is not the most efficient way to scroll (and relies on memcp being linear), but it's the easiest
+	memcp(VIDEO_MEMORY + BYTES_PER_CHAR * VGA_WIDTH * lines, VIDEO_MEMORY, VGA_WIDTH * BYTES_PER_CHAR * (VGA_HEIGHT - lines));
+	for (size_t i = VGA_HEIGHT - lines; i < VGA_HEIGHT; i++){
+		clear_line_col(i, DEFAULT_COLOUR);
+	}
+}

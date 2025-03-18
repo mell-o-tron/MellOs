@@ -1,3 +1,5 @@
+.PHONY: all debug prebuild boot run clean
+
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
 
@@ -21,16 +23,19 @@ ASMSRC := ./cpu/gdt/gdt_loader.asm ./bootloader/gdt.asm ./kernel/kernel_entry.as
 ## Assembly target files
 ASMTAR := $(patsubst %.asm,%.o,$(ASMSRC))
 
-all: prebuild build
+all:
+	$(MAKE) prebuild
+	$(MAKE) build
 
-debug: prebuild build
+debug:
+	$(MAKE) prebuild
+	$(MAKE) build
 	$(OBJCP) --only-keep-debug $(BIN)/kernel.elf $(BIN)/kernel.sym
 
 	qemu-system-x86_64 -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda disk.img -m 128M -s -S &
 
-prebuild:	## Prebuild instructions
+prebuild: clean	## Prebuild instructions
 	clear
-	rm -rf $(BIN)
 	mkdir $(BIN)
 
 build: boot $(ASMTAR) $(CTAR)
@@ -55,6 +60,11 @@ boot:
 	mkdir -p $(BIN)/$(shell dirname $<)
 	nasm $< -f elf -o $(BIN)/$(subst .asm,.o,$<) $(addprefix -i ,$(shell dirname $(shell echo $(CSRC) | tr ' ' '\n' | sort -u | xargs)))
 
-run: prebuild build
+run: all
 ## qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy,  -m 128M
 	qemu-system-x86_64 -d cpu_reset -drive format=raw,file=osimage_formated.bin,index=0,if=floppy -hda test_disk.img -m 128M
+
+clean:
+	rm -rf $(BIN)
+	rm -f os_image.bin
+	rm -f osimage_formated.bin
