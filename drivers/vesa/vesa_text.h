@@ -6,8 +6,7 @@ void _vesa_text_init();
 void set_cursor_pos_raw(uint16_t pos);
 uint16_t get_cursor_pos_raw();
 
-void clear_screen_col (Colour col);
-void clear_line_col(uint32_t line, Colour col);
+void kclear_screen();
 void kprint_col(const char* s, Colour col);
 void kprint(const char* s);
 void kprint_char (char c, bool caps);

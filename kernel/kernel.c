@@ -106,10 +106,8 @@ uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
 uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
 #define NUM_MANY_PAGES (uint32_t)512
 uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
-unsigned int framebuffer_page[1024]     __attribute__((aligned(4096)));
-unsigned int framebuffer_page_2[1024]     __attribute__((aligned(4096)));
-#define NUM_MANY_PAGES 512
-unsigned int lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
+#define NUM_FB_PAGES 2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
+unsigned int framebuffer_pages[NUM_FB_PAGES][1024]     __attribute__((aligned(4096)));
 
 PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;
 PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
@@ -156,13 +154,13 @@ extern void main(){
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
     const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
-    add_page(page_directory, framebuffer_page, 2 + NUM_MANY_PAGES, 0xFD000000, first_page_table_flags, page_directory_flags);
-    add_page(page_directory, framebuffer_page_2, 3 + NUM_MANY_PAGES, 0xFD400000, first_page_table_flags, page_directory_flags);
-    const uint32_t framebuffer_end = 0x400000 * (4 + NUM_MANY_PAGES);
+    for (int i = 0; i < NUM_FB_PAGES; i++){
+        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 + i * 0x400000, first_page_table_flags, page_directory_flags);
+    }
+    const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
 
 
     _vesa_framebuffer_init(framebuffer_addr);
-    _vesa_text_init();
     #endif
 
     gdt_init();
@@ -177,10 +175,11 @@ extern void main(){
     allocator.granularity = 512;
     assign_kmallocator(&allocator);
     
-    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
-    set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
+    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    _vesa_text_init();
 
     #else
     set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
@@ -202,7 +201,11 @@ extern void main(){
     // this clears the disk, remove it to have persistence
     kprint("Erasing virtual disk (debug)...");
     prepare_disk_for_fs(32);
+    #ifdef VGA_VESA
+    kclear_screen();
+    #else
     clear_screen_col(DEFAULT_COLOUR);
+    #endif
   
     char* tmp = kmalloc(512);
     

@@ -16,6 +16,10 @@ FDEF(echo){
 }
 
 FDEF(clear){
+    #ifdef VGA_VESA
+    kclear_screen();
+    #else
     clear_screen_col(DEFAULT_COLOUR);
+    #endif
     set_cursor_pos_raw(0);
 }

@@ -29,9 +29,11 @@ void clear_screen() {
 }
 
 void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer fb){
-    for (int i = 0; i < VRES; i++) {
-        for (int j = 0; j < HRES; j++) {
-            fb.fb[i * PITCH + j] = col.val;
+    uint32_t offset = 0;
+    for (int i = 0; i < fb.height - 1 /*TODO: Remove -1 as below*/; i++) {
+        offset += fb.pitch; // TODO: This goes at the end of the loop, once memory issues are figured out
+        for (int j = 0; j < fb.width; j++) {
+            fb.fb[offset + j] = col.val;
         }
     }
 }
@@ -49,31 +51,33 @@ void clear_screen_col(Colour col) {
     fb_clear_screen_col(col, vga_fb);
 }
 
-void fb_draw_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
-	for (int i = 0; i < size; i++) {
-		for (int j = 0; j < size; j++) {
-			fb.fb[(y + i) * PITCH + (x + j)] = col.val;
-		}
-	}
-}
+// TODO: readd these functions once memory problems are figured out
 
-void draw_square(int x, int y, int size, VESA_Colour col) {
-    fb_draw_square(x, y, size, col, vga_fb);
-}
+// void fb_draw_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
+// 	for (int i = 0; i < size; i++) {
+// 		for (int j = 0; j < size; j++) {
+// 			fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
+// 		}
+// 	}
+// }
 
-void fb_draw_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb) {
-	for (int i = -radius; i < radius; i++) {
-		for (int j = -radius; j < radius; j++) {
-			if (i * i + j * j < radius * radius) {
-				fb.fb[(y + i) * PITCH + (x + j)] = col.val;
-			}
-		}
-	}
-}
+// void draw_square(int x, int y, int size, VESA_Colour col) {
+//     fb_draw_square(x, y, size, col, vga_fb);
+// }
 
-void draw_circle(int x, int y, int radius, VESA_Colour col) {
-    fb_draw_circle(x, y, radius, col, vga_fb);
-}
+// void fb_draw_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb) {
+// 	for (int i = -radius; i < radius; i++) {
+// 		for (int j = -radius; j < radius; j++) {
+// 			if (i * i + j * j < radius * radius) {
+// 				fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
+// 			}
+// 		}
+// 	}
+// }
+
+// void draw_circle(int x, int y, int radius, VESA_Colour col) {
+//     fb_draw_circle(x, y, radius, col, vga_fb);
+// }
 
 void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, size_t scaleX, size_t scaleY, Framebuffer fb) {
     uint8_t* font_char = font8x8_basic[(uint8_t)c];
@@ -99,8 +103,7 @@ Framebuffer allocate_framebuffer(uint32_t width, uint32_t height) {
 }
 
 Framebuffer allocate_full_screen_framebuffer() {
-    // return allocate_framebuffer(HRES, VRES);
-    return vga_fb;
+    return allocate_framebuffer(HRES, VRES);
 }
 
 void deallocate_framebuffer(Framebuffer fb) {
@@ -108,15 +111,30 @@ void deallocate_framebuffer(Framebuffer fb) {
 }
 
 void blit(Framebuffer src, Framebuffer dest, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-    // x = x < 0 ? 0 : x;
-    // y = y < 0 ? 0 : y;
-    // width = width + x > dest.width ? dest.width - x : width;
-    // height = height + y > dest.height ? dest.height - y : height;
+    if (width < 0 || height < 0 || x > dest.width || y > dest.height) return;
+    
+    x = x < 0 ? 0 : x;
+    y = y < 0 ? 0 : y;
+
+    width = width > dest.width ? dest.width : width;
+    height = height > dest.height ? dest.height : height;
     
     // for (uint32_t i = 0; i < height; i++) {
-    //     src.fb[i * src.pitch + 10] = 0xFF00FFFF;
+    //     dest.fb[i * src.pitch + 10] = 0xFF00FFFF;
     //     memcp((void*)&src.fb[i * src.pitch], (void*)&dest.fb[(y + i) * dest.pitch + x], width * bytes_per_pixel);
     // }
+    uint32_t count = 0;
+    uint32_t dest_offset = y * dest.pitch + x;
+    uint32_t src_offset = 0;
+    for (uint32_t i = 0; i < height; i++) {
+        for (uint32_t j = 0; j < width; j++) {
+            // count++;
+            // if (count > 0x120000) return; 
+            dest.fb[dest_offset + j] = src.fb[src_offset + j];
+        }
+        dest_offset += dest.pitch;
+        src_offset += src.pitch;
+    }
 }
 
 #endif
