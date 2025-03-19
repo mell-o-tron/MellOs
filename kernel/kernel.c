@@ -139,6 +139,7 @@ extern void main(){
     set_cursor_pos_raw(0);
     
     allocator_t allocator;
+    allocator.granularity = 512;
     assign_kmallocator(&allocator);
     
     set_kmalloc_bitmap((bitmap_t) 0x400000, 100000);   // dynamic memory allocation setup test

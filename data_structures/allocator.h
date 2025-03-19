@@ -5,6 +5,7 @@
 typedef struct {
     bitmap_t bitmap;
     uint32_t size;
+    size_t granularity;
 } allocator_t;
 
 bitmap_t get_allocator_bitmap (allocator_t * allocator);
