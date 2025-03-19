@@ -1,18 +1,22 @@
 [org 0x7e00]
 [bits 16]
 
-KERNEL_LOCATION equ 0x8200
+KERNEL_LOCATION equ 0x10000
 
 mov bx, STAGING
 call print_string
 
 ;read the kernel (60 sectors)
+push es
+mov ax, 0x1000
+mov es, ax
 mov bx, KERNEL_LOCATION
-mov al, 63		; read 61 sectors
+mov al, 128			; read 128 sectors
 mov ch, 0x00		; from cylinder 0
 mov cl, 0x04		; from sector 4 (counting from 1)
 mov dh, 0x00		; from head 0
 call disk_read
+pop es
 
 ; WHATEVER IS PUT INTO BX HERE WILL BE WRITTEN INTO THE MEMSIZE VARIABLE!
 ; Can be adapted to pass any information to the kernel without storing it in memory
