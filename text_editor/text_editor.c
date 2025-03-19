@@ -31,7 +31,11 @@ void init_text_editor(char* filename){
     document_index = 0;
     
     cur_file = filename;
+    #ifdef VGA_VESA
+    kclear_screen();
+    #else
     clear_screen_col(DEFAULT_COLOUR);
+    #endif
     clear_line_col(0, DARK_INVERSE);
     clear_line_col(24, DARK_INVERSE);
     set_cursor_pos_raw(0);
@@ -106,7 +110,11 @@ void text_editor_loop(){
                         }
                         break;
             case 's':
+                        #ifdef VGA_VESA
+                        kclear_screen();
+                        #else
                         clear_screen_col(DEFAULT_COLOUR);
+                        #endif
                         set_cursor_pos_raw(0);
                         save_file();
                         return;
