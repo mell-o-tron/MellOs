@@ -91,19 +91,23 @@ struct VBEScreen {
 #define HSCALE 1
 #define FONT_HOFFSET 0
 #define FONT_VOFFSET 0
-#define CONSOLE_HRES 640
-#define CONSOLE_VRES 480
-#define CONSOLE_HOFF 640
-#define CONSOLE_VOFF 300
-// #define CONSOLE_HRES 1920
-// #define CONSOLE_VRES 1080
-// #define CONSOLE_HOFF 0
-// #define CONSOLE_VOFF 0
+// #define CONSOLE_HRES 640
+// #define CONSOLE_VRES 480
+// #define CONSOLE_HOFF 640
+// #define CONSOLE_VOFF 300
+#define CONSOLE_HRES 1920
+#define CONSOLE_VRES 1080
+#define CONSOLE_HOFF 0
+#define CONSOLE_VOFF 0
 // TODO: Change CONSOLE_HRES/VRES to x.width/height once the framebuffer works correctly
 #define CONSOLE_WIDTH(x) ((CONSOLE_HRES / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
 #define CONSOLE_HEIGHT(x) ((CONSOLE_VRES / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
-#define HSLOT(x) ((cursor_pos % CONSOLE_WIDTH(x)) * (FONT_WIDTH + FONT_HOFFSET) * HSCALE)
-#define VSLOT(x) ((cursor_pos / CONSOLE_WIDTH(x)) * (FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
+#define HSLOT(x) (cursor_pos % CONSOLE_WIDTH(x))
+#define VSLOT(x) (cursor_pos / CONSOLE_WIDTH(x))
+#define CHAR_HEIGHT ((FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
+#define CHAR_WIDTH ((FONT_WIDTH + FONT_HOFFSET) * HSCALE)
+#define HPOS(x) (HSLOT(x) * CHAR_WIDTH)
+#define VPOS(x) (VSLOT(x) * CHAR_HEIGHT)
 
 static struct VbeInfoBlock* vbe_info = (struct VbeInfoBlock*)VBE_INFO_LOC;
 static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MODE_INFO_LOC;
@@ -115,9 +119,10 @@ static Framebuffer fb;
 void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
 	// fb = vga_fb;
-	char buf[256];
-	tostring(fb.fb, 16, buf);
-	kprint(buf);
+	fb.fb = kmalloc(CONSOLE_HRES * CONSOLE_VRES * 4);
+	// char buf[256];
+	// tostring(fb.fb, 16, buf);
+	// kprint(buf);
 	// while(true);
 }
 
@@ -130,12 +135,28 @@ uint16_t get_cursor_pos_raw(){
 }
 
 void increment_cursor_pos(){
-	cursor_pos = (cursor_pos + 1) % ((CONSOLE_WIDTH(fb) - 1) * (CONSOLE_HEIGHT(fb) - 1));
+	cursor_pos = (cursor_pos + 1) % ((CONSOLE_WIDTH(fb)) * (CONSOLE_HEIGHT(fb)));
 }
 
-void clear_line_col(uint32_t line, Colour col){}
+void clear_line_col(uint32_t line, Colour col){
+	fb_draw_rect(0, line * CHAR_HEIGHT, CONSOLE_HRES, CHAR_HEIGHT, vga2vesa(col), fb);
+}
+
+void scroll_up(){
+	// Framebuffer tmpfb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
+	// blit(fb, tmpfb, 0, -CHAR_HEIGHT, CONSOLE_HRES, CONSOLE_VRES);
+	// fb_clear_screen(fb);
+	// blit(tmpfb, fb, 0, 0, CONSOLE_HRES, CONSOLE_VRES);
+	// deallocate_framebuffer(tmpfb);
+
+	// Scroll by inplace blit to itself
+	blit(fb, fb, 0, -CHAR_HEIGHT, CONSOLE_HRES, CONSOLE_VRES - CHAR_HEIGHT);
+	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
+	set_cursor_pos_raw(cursor_pos - CONSOLE_WIDTH(fb));
+}
 
 void kclear_screen(){
+	// return;
 	fb_clear_screen(fb);
 	set_cursor_pos_raw(0);
 }
@@ -145,10 +166,20 @@ void kprint_col(const char* s, Colour col){
 	while (*s) {
 		if (*s == '\n') {
 			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
+			if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+				scroll_up();
+			}
 		} else {
-			fb_draw_char(HSLOT(fb), VSLOT(fb), *s, fg, HSCALE, VSCALE, fb);
-			// draw_char(HSLOT(fb), VSLOT(fb), *s, fg, HSCALE, VSCALE);
+			size_t hpos = HSLOT(fb);
+			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
+			// draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE);
 			increment_cursor_pos();
+			if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
+				cursor_pos += CONSOLE_WIDTH(fb) - hpos;
+				if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+					scroll_up();
+				}
+			}
 		}
 		s++;
 	}
@@ -163,8 +194,8 @@ void kprint_char (char c, bool caps){
 	c = c - (caps && c <= 122 && c >= 97 ? 32 : 0);
 
 	VESA_Colour fg = {0xFF, 0, 0xFF, 0xFF};
-	fb_draw_char(HSLOT(fb), VSLOT(fb), c, fg, HSCALE, VSCALE, fb);
-	// draw_char(HSLOT(fb), VSLOT(fb), c, fg, HSCALE, VSCALE);
+	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
+	// draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE);
 	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, CONSOLE_HRES, CONSOLE_HRES);
 	increment_cursor_pos();
 }

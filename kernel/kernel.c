@@ -7,12 +7,6 @@
 #include "../utils/typedefs.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#else
-#include "../drivers/vga_text.h"
-#endif
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
 #include "../cpu/interrupts/idt.h"
@@ -26,6 +20,12 @@
 #include "../memory/paging/pat.h"
 #include "../memory/dynamic_mem.h"
 #include "../data_structures/allocator.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa.h"
+#include "../drivers/vesa/vesa_text.h"
+#else
+#include "../drivers/vga_text.h"
+#endif
 // #include "../utils/assert.h"
 
 // PROCESSES
@@ -107,7 +107,7 @@ uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
 #define NUM_MANY_PAGES (uint32_t)512
 uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
 #ifdef VGA_VESA
-#define NUM_FB_PAGES 2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
+#define NUM_FB_PAGES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
 unsigned int framebuffer_pages[NUM_FB_PAGES][1024]     __attribute__((aligned(4096)));
 PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE | PD_CACHEDISABLE;
 PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_CACHEDISABLE;
@@ -185,7 +185,6 @@ extern void main(){
     set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
     _vesa_text_init();
-    
     #else
     set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
     #endif

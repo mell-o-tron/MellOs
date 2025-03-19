@@ -34,6 +34,16 @@ void set_kmalloc_bitmap (bitmap_t loc, uint32_t length){
 
 void * kmalloc (size_t size){
     uint32_t pos = allocate(kmallocator, size);
+
+    // kprint("Allocated ");
+    // char buf[10];
+    // tostring(size, 10, buf);
+    // kprint(buf);
+    // kprint(" at ");
+    // tostring(pos + dynamic_mem_loc, 16, buf);
+    // kprint(buf);
+    // kprint("\n");
+
     
     return (void*)((uint32_t)dynamic_mem_loc + pos);
 }
