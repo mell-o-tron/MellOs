@@ -40,7 +40,10 @@ shellfunction CMDs[] = {
     CMDENTRY(&write_file, "writefile", "Writes string to file", "writefile [filename] [string]"),
     CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]"),
     CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]"),
-    CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]")
+    CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]"),
+    #ifdef VGA_VESA
+    CMDENTRY(&vell, "vell", "VESA graphic shell", "vell")
+    #endif
 };
 
 

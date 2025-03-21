@@ -1,4 +1,5 @@
 #ifdef VGA_VESA
+#include "vesa_text.h"
 #include "../utils/typedefs.h"
 #include "../drivers/port_io.h"
 #include "../utils/conversions.h"
@@ -10,6 +11,7 @@
 // #define SSFN_CONSOLEBITMAP_CLEARBG
 // #include "../fonts/ssfn.h"
 #include "vesa.h"
+#include "dynamic_mem.h"
 
 struct VbeInfoBlock {
 	char signature[4];
@@ -91,17 +93,17 @@ struct VBEScreen {
 #define HSCALE 1
 #define FONT_HOFFSET 0
 #define FONT_VOFFSET 0
-// #define CONSOLE_HRES 640
-// #define CONSOLE_VRES 480
-// #define CONSOLE_HOFF 640
-// #define CONSOLE_VOFF 300
-#define CONSOLE_HRES 1920
-#define CONSOLE_VRES 1080
-#define CONSOLE_HOFF 0
-#define CONSOLE_VOFF 0
+#define CONSOLE_HRES 640
+#define CONSOLE_VRES 480
+#define CONSOLE_HOFF (HRES - CONSOLE_HRES) / 2
+#define CONSOLE_VOFF (VRES - CONSOLE_VRES) / 2
+// #define CONSOLE_HRES 1920
+// #define CONSOLE_VRES 1080
+// #define CONSOLE_HOFF 0
+// #define CONSOLE_VOFF 0
 // TODO: Change CONSOLE_HRES/VRES to x.width/height once the framebuffer works correctly
-#define CONSOLE_WIDTH(x) ((CONSOLE_HRES / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
-#define CONSOLE_HEIGHT(x) ((CONSOLE_VRES / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
+#define CONSOLE_WIDTH(x) ((x->width / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
+#define CONSOLE_HEIGHT(x) ((x->height / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
 #define HSLOT(x) (cursor_pos % CONSOLE_WIDTH(x))
 #define VSLOT(x) (cursor_pos / CONSOLE_WIDTH(x))
 #define CHAR_HEIGHT ((FONT_HEIGHT + FONT_VOFFSET) * VSCALE)
@@ -114,16 +116,42 @@ static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MO
 static struct VBEScreen* vbe_screen = (struct VBEScreen*)VBE_SCREEN_LOC;
 
 static uint16_t cursor_pos = 0;
-static Framebuffer fb;
+static Framebuffer* fb;
+static bool autoblit = true;
+
+static function_type dirty_callback = NULL;
+
+void _vesa_text_set_dirty_callback(function_type f){
+	dirty_callback = f;
+}
 
 void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
-	// fb = vga_fb;
-	fb.fb = kmalloc(CONSOLE_HRES * CONSOLE_VRES * 4);
-	// char buf[256];
-	// tostring(fb.fb, 16, buf);
-	// kprint(buf);
+	// fb = kmalloc(sizeof(Framebuffer));
+	// fb->width = CONSOLE_HRES;
+	// fb->height = CONSOLE_VRES;
+	// fb->pitch = CONSOLE_HRES;
+	// fb = *vga_fb;
+	fb->fb = kmalloc(fb->width * fb->height * 4);
+	char buf[256];
+	tostring(fb->fb, 16, buf);
+	kprint(buf);
 	// while(true);
+}
+
+void _vesa_text_set_framebuffer(Framebuffer* f){
+	fb = f;
+}
+
+Framebuffer* _vesa_text_get_framebuffer() {
+	// char buf[256];
+	// tostring(fb->fb, 16, buf);
+	// kprint(buf);
+	return fb;
+}
+
+void _vesa_text_set_autoblit(bool enabled){
+	autoblit = enabled;
 }
 
 void set_cursor_pos_raw(uint16_t pos){
@@ -139,10 +167,11 @@ void increment_cursor_pos(){
 }
 
 void clear_line_col(uint32_t line, Colour col){
-	fb_draw_rect(0, line * CHAR_HEIGHT, CONSOLE_HRES, CHAR_HEIGHT, vga2vesa(col), fb);
+	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), *fb);
 }
 
 void scroll_up(){
+	// dirty_callback();
 	// Framebuffer tmpfb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
 	// blit(fb, tmpfb, 0, -CHAR_HEIGHT, CONSOLE_HRES, CONSOLE_VRES);
 	// fb_clear_screen(fb);
@@ -150,14 +179,14 @@ void scroll_up(){
 	// deallocate_framebuffer(tmpfb);
 
 	// Scroll by inplace blit to itself
-	blit(fb, fb, 0, -CHAR_HEIGHT, CONSOLE_HRES, CONSOLE_VRES - CHAR_HEIGHT);
+	blit(*fb, *fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
 	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
 	set_cursor_pos_raw(cursor_pos - CONSOLE_WIDTH(fb));
 }
 
 void kclear_screen(){
 	// return;
-	fb_clear_screen(fb);
+	fb_clear_screen(*fb);
 	set_cursor_pos_raw(0);
 }
 
@@ -171,7 +200,7 @@ void kprint_col(const char* s, Colour col){
 			}
 		} else {
 			size_t hpos = HSLOT(fb);
-			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
+			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, *fb);
 			// draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE);
 			increment_cursor_pos();
 			if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
@@ -183,7 +212,14 @@ void kprint_col(const char* s, Colour col){
 		}
 		s++;
 	}
-	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, CONSOLE_HRES, CONSOLE_HRES);
+
+	if (autoblit) {
+		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	}
+	
+	if (dirty_callback) {
+		dirty_callback();
+	}
 }
 
 void kprint(const char* s){
@@ -194,10 +230,30 @@ void kprint_char (char c, bool caps){
 	c = c - (caps && c <= 122 && c >= 97 ? 32 : 0);
 
 	VESA_Colour fg = {0xFF, 0, 0xFF, 0xFF};
-	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
+	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, *fb);
 	// draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE);
-	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, CONSOLE_HRES, CONSOLE_HRES);
+	if (autoblit){
+		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	}
+	
+	if (dirty_callback) {
+		dirty_callback();
+	}
+	
 	increment_cursor_pos();
+}
+
+void kprint_dec(uint32_t n){
+	char buf[11];
+	tostring(n, 10, buf);
+	kprint(buf);
+}
+
+void kprint_hex(uint32_t n){
+	char buf[11];
+	tostring_unsigned(n, 16, buf);
+	kprint(buf);
+	kprint("\n");
 }
 
 void move_cursor_LR(int i){			// MOVE CURSOR HORIZONTALLY

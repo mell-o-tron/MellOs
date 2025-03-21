@@ -237,8 +237,8 @@ vbe_setup:
 	mov bx, vbe_info + VBE_Info_Struct.signature
 	call print_string
 
-	mov word [vbe_width], 1920
-	mov word [vbe_height], 1080
+	mov word [vbe_width], 1280
+	mov word [vbe_height], 720
 	mov word [vbe_bpp], 32
 
 	vbe_find_mode

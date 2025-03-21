@@ -161,9 +161,6 @@ extern void main(){
         add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
     }
     const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
-
-
-    _vesa_framebuffer_init(framebuffer_addr);
     #endif
     
     gdt_init();
@@ -184,6 +181,7 @@ extern void main(){
     // set_dynamic_mem_loc ((void*)framebuffer_end);
     set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    _vesa_framebuffer_init(framebuffer_addr);
     _vesa_text_init();
     #else
     set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
@@ -202,14 +200,16 @@ extern void main(){
         for (;;){;}
     }
 
-    // this clears the disk, remove it to have persistence
-    kprint("Erasing virtual disk (debug)...");
-    prepare_disk_for_fs(32);
     #ifdef VGA_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);
     #endif
+
+    /*
+    // this clears the disk, remove it to have persistence
+    kprint("Erasing virtual disk (debug)...");
+    prepare_disk_for_fs(32);
   
     char* tmp = kmalloc(512);
     
@@ -316,6 +316,7 @@ extern void main(){
     write_string_to_file(tmp, "write.bin");
     
     new_file("banana", 1);
+    */
     
     set_cursor_pos_raw(0);
     

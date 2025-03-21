@@ -30,3 +30,8 @@ FHDR(texted);
 //exec.c
 
 FHDR(exec);
+
+#ifdef VGA_VESA
+// vell.c
+FHDR(vell);
+#endif
