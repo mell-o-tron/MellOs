@@ -29,4 +29,6 @@ typedef struct {
 
 typedef maybe_int maybe_void;
 
+typedef void (*function_type)(void);
+
 #endif

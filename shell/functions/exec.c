@@ -17,7 +17,7 @@ FDEF(exec){
         return;
     }
     
-    char* exec_place = (char*)0x700000;
+    char* exec_place = (char*)0x700000; // TODO: Noooo please allocate memory I want to exec more files 😭
     
     char* tmp = read_string_from_file((char*)t);
     

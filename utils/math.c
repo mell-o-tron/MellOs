@@ -49,3 +49,7 @@ uint32_t ceil_log (uint32_t x, uint32_t base) {
 
     for(;;);
 }
+
+int abs(int x) {
+    return x < 0 ? -x : x;
+}
