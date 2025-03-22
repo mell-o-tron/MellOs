@@ -14,6 +14,7 @@ typedef enum {
 } PD_FLAGS;
 
 typedef enum {
+    PT_WRITEBACK       = 0b0,
     PT_PRESENT         = 0b1,
     PT_READWRITE       = 0b10,
     PT_USER            = 0b100,
@@ -23,6 +24,8 @@ typedef enum {
     PT_DIRTY           = 0b1000000, 
     PT_PAT             = 0b10000000,
     PT_GLOBAL          = 0b100000000,
+    PT_WRITEPROTECT    = 0b10000000,
+    PT_WRITECOMBINING  = 0b10000000 | 0b1000,
 } PT_FLAGS;
 
 

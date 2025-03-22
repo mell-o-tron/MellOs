@@ -18,6 +18,7 @@
 #include "../drivers/keyboard.h"
 #include "../drivers/port_io.h"
 #include "../memory/paging/paging.h"
+#include "../memory/paging/pat.h"
 #include "../memory/dynamic_mem.h"
 #include "../data_structures/allocator.h"
 // #include "../utils/assert.h"
@@ -125,6 +126,9 @@ extern void main(){
     
     // identity-maps 0x0 to 4MB (i.e. 0x400000 - 1)
     init_paging(page_directory, first_page_table);
+
+    // Sets up the PAT
+    setup_pat();
 
     // maps 4MB to 8MB (0x400000 to 0x800000 - 1) -> 16 MB to 20 MB (0x1000000 to 0x1400000 - 1)
     add_page(page_directory, second_page_table, 1, 0x1000000, first_page_table_flags, page_directory_flags);
