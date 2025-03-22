@@ -11,99 +11,127 @@
 #else
 #include "vga_text.h"
 #endif
+#include "../data_structures/circular_buffer.h"
+#include "../memory/dynamic_mem.h"
 
-typedef union MousePacket {
-    struct {
-        uint8_t y_overflow: 1;
-        uint8_t x_overflow: 1;
-        uint8_t y_sign:     1;
-        uint8_t x_sign:     1;
-        uint8_t constant:   1;
-        uint8_t mouse_3:    1;
-        uint8_t mouse_2:    1;
-        uint8_t mouse_1:    1;
+#define MOUSE_CMD_PORT 0x64
+#define MOUSE_DATA_PORT 0x60
+#define MOUSE_SUCCESS 0xFA
 
-        uint8_t x_delta:    8;
-        uint8_t y_delta:    8;
-    };
-    uint8_t bytes[3];
-} MousePacket;
+#define MOUSE_CMD_BYTE 0xD4
+#define MOUSE_CMD_ENABLE_AUX 0xA8
+#define MOUSE_CMD_GET_COMPAQ_STATUS 0x20
+#define MOUSE_CMD_SET_COMPAQ_STATUS 0X60
+#define MOUSE_CMD_USE_DEFAULT_SETTINGS 0xF6
+#define MOUSE_CMD_START_STREAMING 0xF4
+
+#define MOUSE_WAIT_DATA 0
+#define MOUSE_WAIT_SIGNAL 1
+
+static cbuffer_t * mouse_buffer;
+static MousePacket current_packet;
+static uint8_t current_packet_byte = 0;
+
+void mouse_handler(struct regs *r);
+void send_mouse_command(uint8_t cmd);
+void send_mouse_data(uint8_t data);
+void mouse_wait(uint8_t type);
+uint8_t receive_mouse_data();
+void mouse_install();
 
 void mouse_handler(struct regs *r)
 {
-    // while(1);
-    MousePacket packet;
-    // packet.bytes[0] = inb(0x60);
-    // packet.bytes[1] = inb(0x60);
-    // packet.bytes[2] = inb(0x60);
-
-    // kprint("Hi");
-    // char buf[10];
-    // tostring(packet.y_delta, 16, buf);
-    // kprint(buf);
+    switch(current_packet_byte){
+        case 0:
+        case 1: {
+            current_packet.bytes[current_packet_byte] = inb(MOUSE_DATA_PORT);
+            break;
+        }
+        case 2: {
+            current_packet.bytes[2] = inb(MOUSE_DATA_PORT);
+            add_to_cbuffer(mouse_buffer, current_packet.bytes[0], 0);
+            add_to_cbuffer(mouse_buffer, current_packet.bytes[1], 0);
+            add_to_cbuffer(mouse_buffer, current_packet.bytes[2], 0);
+            kprint_hex(current_packet.bytes[0]);
+            kprint_hex(current_packet.bytes[1]);
+            kprint_hex(current_packet.bytes[2]);
+        }
+    }
+    current_packet_byte = (current_packet_byte + 1) % 3;
 };
 
-void mouse_install()
-{   
-    // keyboard_buffer = kmalloc(sizeof(cbuffer_t));
-    // action_buffer =   kmalloc(sizeof(cbuffer_t));
-    
-    // keyboard_buffer -> size = 1000;
-    // keyboard_buffer -> top = 0;
-    // keyboard_buffer -> bot = 0;
-    // keyboard_buffer -> array = kmalloc(keyboard_buffer -> size);
-    
-    // action_buffer -> size = 1000;
-    // action_buffer -> top = 0;
-    // action_buffer -> bot = 0;
-    // action_buffer -> array = kmalloc(action_buffer -> size);
+void send_mouse_command(uint8_t cmd){
+    // First, signal that we are sending a command
+    // mouse_wait(1);
+    // outb(MOUSE_CMD_PORT, MOUSE_CMD_BYTE);
+    // Then, send the command
+    mouse_wait(1);
+    outb(MOUSE_CMD_PORT, cmd);
+}
 
-    // 0xD4: Send Command
-	// 0xA8: Enable auxiliary device
-    outb(0x64, 0xD4);
-    outb(0x64, 0xA8);
+void send_mouse_data(uint8_t data){
+    // First, signal that we are sending data
+    mouse_wait(1);
+    outb(MOUSE_CMD_PORT, MOUSE_CMD_BYTE);
+    // Then, send the data
+    mouse_wait(1);
+    outb(MOUSE_DATA_PORT, data);
+}
 
-    sleep(3);
-    uint8_t response = inb(0x60);
+void mouse_wait(uint8_t type) {
+    // Check if the mouse is available for writing to it
+    uint32_t timeout = 100000;
+    while(timeout--){
+        if((inb(MOUSE_CMD_PORT) & (type == MOUSE_WAIT_DATA ? 0x1 : 0x2)) == 0) return;
+    }
+    return;
+}
+
+uint8_t receive_mouse_data(){
+    mouse_wait(MOUSE_WAIT_DATA);
+    return inb(MOUSE_DATA_PORT);
+}
+
+void mouse_install() {
+    send_mouse_command(MOUSE_CMD_ENABLE_AUX);
+
+    uint8_t response = receive_mouse_data();
 
     kprint_hex(response);
-    kprint_hex(response);
-    kprint_hex(response);
 
-    // 0x20: Get compaq status
-    outb(0x64, 0xD4);
-    outb(0x64, 0x20);
+    send_mouse_command(MOUSE_CMD_GET_COMPAQ_STATUS);
 
-    sleep(3);
-    uint8_t compaq_status = inb(0x60);
+    uint8_t compaq_status = receive_mouse_data();
     kprint_hex(compaq_status);
-    kprint_hex(compaq_status);
     
+    // Set bit 2 (enable IRQ 12)
     compaq_status |= 2;
-    compaq_status &= ~0x20;
+    // Unset bit 5, disable mouse clock
+    // compaq_status &= ~0x20;
 
     kprint_hex(compaq_status);
-    kprint_hex(compaq_status);
     
-    // 0x60: Get compaq status
-    outb(0x64, 0xD4);
-    outb(0x64, 0x60);
-    outb(0x60, compaq_status);
+    send_mouse_command(MOUSE_CMD_SET_COMPAQ_STATUS);
+    outb(MOUSE_DATA_PORT, compaq_status);
     
-    sleep(30);
-    kprint_hex(inb(0x60));
-    kprint_hex(inb(0x60));
-    sleep(10);
+    kprint_hex(receive_mouse_data());
     
     // 0xF6: Use default settings
-    outb(0x64, 0xD4);
-    outb(0x64, 0xF6);
-    sleep(3);
+    send_mouse_data(MOUSE_CMD_USE_DEFAULT_SETTINGS);
+    // Acknowledge
+    kprint_hex(receive_mouse_data());
 
     // 0xF4: Start streaming packets
-    outb(0x64, 0xD4);
-    outb(0x64, 0xF4);
-    while(1);
+    send_mouse_data(MOUSE_CMD_START_STREAMING);
+    // Acknowledge
+    kprint_hex(receive_mouse_data());
+
+
+    mouse_buffer = kmalloc(sizeof(cbuffer_t));    
+    mouse_buffer -> size = 1000;
+    mouse_buffer -> top = 0;
+    mouse_buffer -> bot = 0;
+    mouse_buffer -> array = kmalloc(mouse_buffer -> size);
 
 	irq_install_handler(12, mouse_handler);
 }
