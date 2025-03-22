@@ -57,3 +57,11 @@ uint32_t ceil_log (uint32_t x, uint32_t base) {
 int abs(int x) {
     return x < 0 ? -x : x;
 }
+
+int min(int a, int b) {
+    return a < b ? a : b;
+}
+
+int max(int a, int b) {
+    return a > b ? a : b;
+}

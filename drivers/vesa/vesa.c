@@ -154,7 +154,14 @@ void deallocate_framebuffer(Framebuffer* fb) {
 }
 
 void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height) {
+    _blit(src, dest, x, y, width, height, 0, 0, dest.width, dest.height);
+}
+
+void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {
     if (width < 0 || height < 0 || x > ((int)dest.width) || y > ((int)dest.height)) return;
+    if (from_x > src.width || from_x > dest.width || from_y > src.height || from_y > dest.height) return;
+    if (from_x < 0) from_x = 0;
+    if (from_y < 0) from_y = 0;
     
     uint32_t src_offset = 0;
 
@@ -174,18 +181,47 @@ void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint3
 
     uint32_t dest_offset = y * dest.pitch + x;
 
-    width = width > dest.width ? dest.width : width;
-    height = height > dest.height ? dest.height : height;
-    
-    // for (uint32_t i = 0; i < height; i++) {
-    //     dest.fb[i * src.pitch + 10] = 0xFF00FFFF;
-    //     memcp((void*)&src.fb[i * src.pitch], (void*)&dest.fb[(y + i) * dest.pitch + x], width * bytes_per_pixel);
+    src_offset += from_y * src.pitch;
+    dest_offset += from_y * dest.pitch;
+    height -= from_y;
+
+    width = min(width, to_x - x);
+    height = min(height, to_y - from_y);
+
+    width = min(width, dest.width - x);
+    height = min(height, dest.height - y);
+
+    width = min(width, src.width);
+    height = min(height, src.height);
+
+    // if (from_x != 0) {
+    //     fb_draw_rect(from_x, from_y, width, height + to_y, 4, VESA_RED, &dest);
+    //     return;
     // }
+
+    // if (from_x != 0) {
+    //     kprint_dec(from_x);
+    //     kprint(" ");
+    //     kprint_dec(from_y);
+    //     kprint(" ");
+    //     kprint_dec(width);
+    //     kprint(" ");
+    //     kprint_dec(height);
+    //     kprint("\n");
+    //     return;
+    // }
+    
+    // src_offset -= from_x;
     uint32_t count = 0;
     for (uint32_t i = 0; i < height; i++) {
-        for (uint32_t j = 0; j < width; j++) {
-            if (((VESA_Colour)(src.fb[src_offset + j])).a) // Handle transparency
+        for (uint32_t j = from_x; j < width; j++) {
+            if (((VESA_Colour)(src.fb[src_offset + j])).a) {// Handle transparency
+                // if (from_x != 0){
+                //     dest.fb[dest_offset + j] = (src_offset / src.pitch) << 16 | (j) << 8 | 0xFF;
+                //     continue;
+                // }
                 dest.fb[dest_offset + j] = src.fb[src_offset + j];
+            }
         }
         dest_offset += dest.pitch;
         src_offset += src.pitch;
@@ -194,6 +230,29 @@ void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint3
 
 void blit_all_at(Framebuffer* src, Framebuffer* dest, int x, int y) {
     blit(*src, *dest, x, y, src->width, src->height);
+}
+
+void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int from_x, int from_y, int to_x, int to_y) {
+    _blit(*src, *dest, x, y, src->width, src->height, from_x, from_y, to_x, to_y);
+}
+
+
+void fb_draw_gradient(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb) {
+    for (int i = 0; i < height; i++) {
+        VESA_Colour col = vesa_interpolate(col1, col2, (float)i / height);
+        for (int j = 0; j < width; j++) {
+            fb->fb[(y + i) * fb->pitch + (x + j)] = col.val;
+        }
+    }
+}
+
+VESA_Colour vesa_interpolate(VESA_Colour col1, VESA_Colour col2, float t) {
+    VESA_Colour out;
+    out.r = col1.r + (col2.r - col1.r) * t;
+    out.g = col1.g + (col2.g - col1.g) * t;
+    out.b = col1.b + (col2.b - col1.b) * t;
+    out.a = col1.a + (col2.a - col1.a) * t;
+    return out;
 }
 
 #endif

@@ -46,11 +46,12 @@ void load_shell(){
     shell_tasks.top = 0;
     shell_tasks.bot = 0;
 
-    add_to_kb_buffer('v', 0);
-    add_to_kb_buffer('e', 0);
-    add_to_kb_buffer('l', 0);
-    add_to_kb_buffer('l', 0);
-    add_to_kb_buffer('\n', 0);
+    // char buf = "vell\n";
+    // shellfunction* cmd = TryGetCMD(buf);
+    // if(cmd != 0){
+    //     // execute command
+    //     cmd->fptr("");
+    // }
     
     uint32_t i = 0;
     while (true){
