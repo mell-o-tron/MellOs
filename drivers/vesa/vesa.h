@@ -6,9 +6,6 @@
 #define PIXEL 				uint32_t
 // #define FRAMEBUFFER			((volatile PIXEL*)0x800000)
 
-#define HRES 1280
-#define VRES 720
-#define BPP 32
 #define BYTES_PER_PIXEL BPP / 8
 #define PITCH HRES
 

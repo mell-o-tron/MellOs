@@ -109,8 +109,8 @@ uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
 #ifdef VGA_VESA
 #define NUM_FB_PAGES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
 unsigned int framebuffer_pages[NUM_FB_PAGES][1024]     __attribute__((aligned(4096)));
-PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE | PD_CACHEDISABLE;
-PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_CACHEDISABLE;
+PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE;
+PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING;
 #endif
 
 PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;

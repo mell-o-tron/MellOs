@@ -1,6 +1,9 @@
 .PHONY: all debug prebuild boot run clean
 
 VGA ?= VGA_VESA
+HRES ?= 1920
+VRES ?= 1080
+BPP ?= 32
 
 ## Compiler
 CC=/usr/local/i386elfgcc/bin/i386-elf-gcc
@@ -13,9 +16,9 @@ SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=./wee_bins
 ## Compiler Flags
-FLAGS=-ffreestanding -m32 -g -D$(VGA)
+FLAGS=-ffreestanding -m32 -g -D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP)
 ## NASM Flags
-NASMFLAGS=-D$(VGA)
+NASMFLAGS=-D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP)
 
 ## C source files
 CSRC := $(shell find ./ -name "*.c")

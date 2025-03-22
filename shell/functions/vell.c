@@ -16,6 +16,13 @@ static Window* mouse_window = NULL;
 #define FDEF(name) void name(const char* s)
 
 static Framebuffer* fb;
+static Framebuffer* fb2;
+
+static void swap_framebuffers(){
+    Framebuffer* tmp = fb;
+    fb = fb2;
+    fb2 = tmp;
+}
 
 void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     // fb_clear_screen_col_VESA(VESA_CYAN, *fb);
@@ -39,6 +46,7 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     if (mouse_window != NULL){
         blit_all_at_only(mouse_window->fb, vga_fb, mouse_window->x, mouse_window->y, from_x, from_y, to_x, to_y);
     }
+    swap_framebuffers();
 }
 
 void _vell_draw(){
@@ -49,6 +57,8 @@ FDEF(vell){
     if (fb == NULL) {
         fb = allocate_full_screen_framebuffer();
         fb->fb = kmalloc(fb->width * fb->height * 4);
+        fb2 = allocate_full_screen_framebuffer();
+        fb2->fb = kmalloc(fb2->width * fb2->height * 4);
         _init_vterm();
         _init_mouse_handler();
         _vell_draw();
@@ -56,8 +66,10 @@ FDEF(vell){
         _deinit_mouse_handler();
         _deinit_vterm();
         deallocate_framebuffer(fb);
+        deallocate_framebuffer(fb2);
         fb_clear_screen_col_VESA(VESA_BLACK, *vga_fb);
         fb = NULL;
+        fb2 = NULL;
     }
 }
 
@@ -81,7 +93,7 @@ void _vell_deregister_mouse(Window* w){
 void _vell_mouse_move(int old_x, int old_y, int new_x, int new_y){
     // blit_all_at_only(mouse_window->fb, vga_fb, new_x, new_y, new_x-16, new_y-16, new_x + 16, new_y + 16);
     // __vell_draw(old_x, old_y, old_x + 16, old_y + 16);
-    blit_all_at_only(fb, vga_fb, 0, 0, old_x, old_y, old_x + 16, old_y + 16);
+    blit_all_at_only(fb2, vga_fb, 0, 0, old_x, old_y, old_x + 16, old_y + 16);
     // blit_all_at(fb, vga_fb, 0, 0);
     blit_all_at(mouse_window->fb, vga_fb, new_x, new_y);
     // _vell_draw();
