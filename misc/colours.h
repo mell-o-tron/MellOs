@@ -21,3 +21,4 @@ VESA_Colour vga2vesa(Colour col);
 #define VESA_GREY (VESA_Colour){0x80, 0x80, 0x80, 0xFF}
 #define VESA_DARK_GREY (VESA_Colour){0x40, 0x40, 0x40, 0xFF}
 #define VESA_LIGHT_GREY (VESA_Colour){0xC0, 0xC0, 0xC0, 0xFF}
+#define VESA_TRANSPARENT (VESA_Colour){0, 0, 0, 0}

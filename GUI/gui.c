@@ -9,6 +9,11 @@ Window* create_window(const char* title){
     create_window_with_fb(fb, title);
 }
 
+Window* create_window_with_size(const char* title, uint32_t width, uint32_t height){
+    Framebuffer* fb = allocate_framebuffer(width, height);
+    create_window_with_fb(fb, title);
+}
+
 Window* create_window_with_fb(Framebuffer* fb, const char* title){
     Window* w = kmalloc(sizeof(Window));
     w->fb = fb;
@@ -17,6 +22,7 @@ Window* create_window_with_fb(Framebuffer* fb, const char* title){
     w->height = fb->height;
     w->x = 0;
     w->y = 0;
+    w->draw_frame = true;
     _vell_register_window(w);
     return w;
 }

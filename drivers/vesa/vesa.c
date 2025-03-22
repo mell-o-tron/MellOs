@@ -184,7 +184,8 @@ void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint3
     uint32_t count = 0;
     for (uint32_t i = 0; i < height; i++) {
         for (uint32_t j = 0; j < width; j++) {
-            dest.fb[dest_offset + j] = src.fb[src_offset + j];
+            if (((VESA_Colour)(src.fb[src_offset + j])).a) // Handle transparency
+                dest.fb[dest_offset + j] = src.fb[src_offset + j];
         }
         dest_offset += dest.pitch;
         src_offset += src.pitch;

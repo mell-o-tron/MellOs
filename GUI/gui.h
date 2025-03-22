@@ -14,9 +14,11 @@ typedef struct Window {
     uint32_t height;
     int x;
     int y;
+    bool draw_frame;
 } Window;
 
 Window* create_window(const char* title);
+Window* create_window_with_size(const char* title, uint32_t width, uint32_t height);
 Window* create_window_with_fb(Framebuffer* fb, const char* title);
 void destroy_window(Window* w);
 void destroy_window_preserve_fb(Window* w);

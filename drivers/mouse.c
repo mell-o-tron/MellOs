@@ -13,6 +13,7 @@
 #endif
 #include "../data_structures/circular_buffer.h"
 #include "../memory/dynamic_mem.h"
+#include "../GUI/mouse_handler.h"
 
 #define MOUSE_CMD_PORT 0x64
 #define MOUSE_DATA_PORT 0x60
@@ -49,12 +50,41 @@ void mouse_handler(struct regs *r)
         }
         case 2: {
             current_packet.bytes[2] = inb(MOUSE_DATA_PORT);
-            add_to_cbuffer(mouse_buffer, current_packet.bytes[0], 0);
-            add_to_cbuffer(mouse_buffer, current_packet.bytes[1], 0);
-            add_to_cbuffer(mouse_buffer, current_packet.bytes[2], 0);
-            kprint_hex(current_packet.bytes[0]);
-            kprint_hex(current_packet.bytes[1]);
-            kprint_hex(current_packet.bytes[2]);
+            if (current_packet.x_overflow || current_packet.y_overflow){
+                return;
+            }
+            // add_to_cbuffer(mouse_buffer, current_packet.bytes[0], 0);
+            // add_to_cbuffer(mouse_buffer, current_packet.bytes[1], 0);
+            // add_to_cbuffer(mouse_buffer, current_packet.bytes[2], 0);
+            // kprint_hex(current_packet.bytes[0]);
+            // kprint_hex(current_packet.bytes[1]);
+            // kprint_hex(current_packet.bytes[2]);
+            move_mouse(
+                current_packet.x_sign == 0 ? ((int)current_packet.x_delta) : ((int)current_packet.x_delta | 0xFFFFFF00),
+                current_packet.y_sign == 0 ? -((int)current_packet.y_delta) : -((int)current_packet.y_delta | 0xFFFFFF00));
+                // 0);
+
+            // kprint_dec(current_packet.x_sign);
+            // kprint(" ");
+            // kprint_dec(current_packet.x_sign == 0 ? ((int)current_packet.x_delta) : (((uint32_t)current_packet.x_delta) | 0xFFFFFF00));
+            // kprint_dec(current_packet.bytes[0]);
+            // kprint(" ");
+            // kprint_dec(current_packet.y_overflow);
+            // kprint(" ");
+            // kprint_dec(current_packet.x_overflow);
+            // kprint(" ");
+            // kprint_dec(current_packet.y_sign);
+            // kprint(" ");
+            // kprint_dec(current_packet.x_sign);
+            // kprint(" ");
+            // kprint_dec(current_packet.constant);
+            // kprint(" ");
+            // kprint_dec(current_packet.mouse_3);
+            // kprint(" ");
+            // kprint_dec(current_packet.mouse_2);
+            // kprint(" ");
+            // kprint_dec(current_packet.mouse_1);
+            // kprint("\n");
         }
     }
     current_packet_byte = (current_packet_byte + 1) % 3;
