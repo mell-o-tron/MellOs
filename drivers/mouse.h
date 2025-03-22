@@ -1,4 +1,5 @@
 #pragma once
+#ifdef VGA_VESA
 #include "../cpu/interrupts/irq.h"
 #include "../utils/typedefs.h"
 
@@ -21,3 +22,4 @@ typedef union MousePacket {
 
 void mouse_handler(struct regs *r);
 void mouse_install();
+#endif

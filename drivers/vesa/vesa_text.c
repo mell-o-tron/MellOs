@@ -5,11 +5,6 @@
 #include "../utils/conversions.h"
 #include "../utils/assert.h"
 #include "../misc/colours.h"
-// #include "../fonts/PSF.h"
-// #define SSFN_CONSOLEBITMAP_TRUECOLOR        /* use the special renderer for 32 bit truecolor packed pixels */
-// #define SSFN_NOIMPLEMENTATION
-// #define SSFN_CONSOLEBITMAP_CLEARBG
-// #include "../fonts/ssfn.h"
 #include "vesa.h"
 #include "dynamic_mem.h"
 
@@ -73,15 +68,6 @@ struct VBEScreen {
 	uint32_t framebuffer;
 } __attribute__((packed));
 
-// extern uint16_t vbe_width;
-// extern uint16_t vbe_height;
-// extern uint16_t vbe_bpp;
-// extern uint16_t vbe_pitch;
-// extern uint32_t vbe_framebuffer;
-// extern uint16_t vbe_mode;
-// extern uint16_t vbe_offset;
-// extern uint16_t vbe_segment;
-
 #define VBE_INFO_LOC		(char*)0x5300
 #define VBE_MODE_INFO_LOC	(char*)0x5300 + sizeof(struct VbeInfoBlock)
 #define VBE_SCREEN_LOC		(char*)0x5300 + sizeof(struct VbeInfoBlock) + sizeof(struct VBEModeInfoBlock)
@@ -91,17 +77,16 @@ struct VBEScreen {
 #define FONT_HEIGHT 8
 #define VSCALE 2
 #define HSCALE 1
-#define FONT_HOFFSET 0
-#define FONT_VOFFSET 0
-#define CONSOLE_HRES 640
-#define CONSOLE_VRES 480
+#define FONT_HOFFSET 1
+#define FONT_VOFFSET 1
+#define CONSOLE_HRES (HRES > 1000 ? 640 : (HRES - 10))
+#define CONSOLE_VRES (VRES > 700  ? 480 : (VRES - 30))
 #define CONSOLE_HOFF (HRES - CONSOLE_HRES) / 2
 #define CONSOLE_VOFF (VRES - CONSOLE_VRES) / 2
 // #define CONSOLE_HRES 1920
 // #define CONSOLE_VRES 1080
 // #define CONSOLE_HOFF 0
 // #define CONSOLE_VOFF 0
-// TODO: Change CONSOLE_HRES/VRES to x.width/height once the framebuffer works correctly
 #define CONSOLE_WIDTH(x) ((x->width / (FONT_WIDTH + FONT_HOFFSET)) / HSCALE)
 #define CONSOLE_HEIGHT(x) ((x->height / (FONT_HEIGHT + FONT_VOFFSET)) / VSCALE)
 #define HSLOT(x) (cursor_pos % CONSOLE_WIDTH(x))
@@ -127,16 +112,10 @@ void _vesa_text_set_dirty_callback(function_type f){
 
 void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
-	// fb = kmalloc(sizeof(Framebuffer));
-	// fb->width = CONSOLE_HRES;
-	// fb->height = CONSOLE_VRES;
-	// fb->pitch = CONSOLE_HRES;
-	// fb = *vga_fb;
 	fb->fb = kmalloc(fb->width * fb->height * 4);
 	char buf[256];
 	tostring(fb->fb, 16, buf);
 	kprint(buf);
-	// while(true);
 }
 
 void _vesa_text_set_framebuffer(Framebuffer* f){
@@ -144,9 +123,6 @@ void _vesa_text_set_framebuffer(Framebuffer* f){
 }
 
 Framebuffer* _vesa_text_get_framebuffer() {
-	// char buf[256];
-	// tostring(fb->fb, 16, buf);
-	// kprint(buf);
 	return fb;
 }
 
@@ -171,13 +147,6 @@ void clear_line_col(uint32_t line, Colour col){
 }
 
 void scroll_up(){
-	// dirty_callback();
-	// Framebuffer tmpfb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
-	// blit(fb, tmpfb, 0, -CHAR_HEIGHT, CONSOLE_HRES, CONSOLE_VRES);
-	// fb_clear_screen(fb);
-	// blit(tmpfb, fb, 0, 0, CONSOLE_HRES, CONSOLE_VRES);
-	// deallocate_framebuffer(tmpfb);
-
 	// Scroll by inplace blit to itself
 	blit(*fb, *fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
 	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
@@ -229,7 +198,9 @@ void kprint(const char* s){
 void kprint_char (char c, bool caps){
 	c = c - (caps && c <= 122 && c >= 97 ? 32 : 0);
 
-	VESA_Colour fg = {0xFF, 0, 0xFF, 0xFF};
+	VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
+	// Blank out the slot for the next character. Needed to implement backspace as going back and printing a space
+	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), *fb);
 	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, *fb);
 	// draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE);
 	if (autoblit){
@@ -247,6 +218,7 @@ void kprint_dec(uint32_t n){
 	char buf[11];
 	tostring(n, 10, buf);
 	kprint(buf);
+	kprint("\n");
 }
 
 void kprint_hex(uint32_t n){

@@ -1,3 +1,4 @@
+#ifdef VGA_VESA
 #include "mouse.h"
 #include "../utils/typedefs.h"
 
@@ -165,3 +166,4 @@ void mouse_install() {
 
 	irq_install_handler(12, mouse_handler);
 }
+#endif

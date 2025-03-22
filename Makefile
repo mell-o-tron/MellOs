@@ -1,8 +1,8 @@
 .PHONY: all debug prebuild boot run clean
 
 VGA ?= VGA_VESA
-HRES ?= 1920
-VRES ?= 1080
+HRES ?= 1280
+VRES ?= 720
 BPP ?= 32
 
 ## Compiler

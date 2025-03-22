@@ -183,11 +183,11 @@ extern void main(){
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
     _vesa_framebuffer_init(framebuffer_addr);
     _vesa_text_init();
+    mouse_install();
     #else
     set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
     #endif
 
-    mouse_install();
     kb_install();
 
 
