@@ -1,6 +1,9 @@
 #include "list.h"
 #include "../utils/typedefs.h"
 #include "../drivers/vga_text.h"
+#include "../memory/dynamic_mem.h"
+#include "../utils/conversions.h"
+#include "../drivers/vga_text.h"
 
 void list_append(List** list, void* data){
     List* new_node = kmalloc(sizeof(List));
