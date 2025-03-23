@@ -156,34 +156,29 @@ void mouse_install() {
 
     uint8_t response = receive_mouse_data();
 
-    kprint_hex(response);
-
     send_mouse_command(MOUSE_CMD_GET_COMPAQ_STATUS);
 
     uint8_t compaq_status = receive_mouse_data();
-    kprint_hex(compaq_status);
     
     // Set bit 2 (enable IRQ 12)
     compaq_status |= 2;
     // Unset bit 5, disable mouse clock
     // compaq_status &= ~0x20;
 
-    kprint_hex(compaq_status);
-    
     send_mouse_command(MOUSE_CMD_SET_COMPAQ_STATUS);
     outb(MOUSE_DATA_PORT, compaq_status);
     
-    kprint_hex(receive_mouse_data());
+    receive_mouse_data();
     
     // 0xF6: Use default settings
     send_mouse_data(MOUSE_CMD_USE_DEFAULT_SETTINGS);
     // Acknowledge
-    kprint_hex(receive_mouse_data());
+    receive_mouse_data();
 
     // 0xF4: Start streaming packets
     send_mouse_data(MOUSE_CMD_START_STREAMING);
     // Acknowledge
-    kprint_hex(receive_mouse_data());
+    receive_mouse_data();
 
 
     mouse_buffer = kmalloc(sizeof(cbuffer_t));    

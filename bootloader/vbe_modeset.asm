@@ -250,7 +250,7 @@ vbe_setup:
 
 	vbe_set_mode
 
-	vbe_test_mode
+	; vbe_test_mode
 
 	call nl
 	popa
