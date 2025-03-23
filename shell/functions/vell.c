@@ -42,7 +42,7 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
                 blit_all_at_only(w->fb, fb, w->x, w->y, from_x, from_y, to_x, to_y);
             }
             current = current->next;
-        } while(current->next != windows);
+        } while(current != windows);
     }
     
     blit_all_at_only(fb, vga_fb, 0, 0, from_x, from_y, to_x, to_y);
@@ -73,6 +73,11 @@ FDEF(vell){
         fb_clear_screen_col_VESA(VESA_BLACK, *vga_fb);
         fb = NULL;
         fb2 = NULL;
+        while (windows != NULL){
+            Window* w = (Window*)windows->data;
+            _vell_deregister_window(w);
+            // destroy_window(w); // TODO: Find out why vterm is also destroyed
+        }
     }
 }
 
@@ -142,7 +147,7 @@ Window* find_window_at(Vector2i pos, WindowElement* element){
                 return w;
             }
             current = current->prev;
-        } while(current->prev != windows);
+        } while(current->next != windows);
     }
     return NULL;
 }
@@ -192,6 +197,10 @@ void _vell_generate_click_event(MouseButton button, Vector2i click_pos){
     //     kprint(w->title);
     //     kprint_dec(element);
     // }
+}
+
+bool _vell_is_active(){
+    return fb != NULL;
 }
 
 #endif

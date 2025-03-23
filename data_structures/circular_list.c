@@ -46,3 +46,15 @@ void clist_remove(CircularList** list, void* data){
         prev->next->prev = prev;
     }
 }
+
+void clist_print_all(CircularList* list){
+    CircularList* current = list;
+    if (current != NULL){
+        do{
+            kprint("Element: ");
+            kprint_hex((uint32_t)current->data);
+            kprint("\n");
+            current = current->next;
+        } while(current != list);
+    }
+}

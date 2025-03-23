@@ -5,6 +5,7 @@
 #include "../../GUI/gui.h"
 #include "../../GUI/mouse_handler.h"
 
+bool _vell_is_active();
 void _vell_draw();
 void _vell_register_window(Window* w);
 void _vell_deregister_window(Window* w);
