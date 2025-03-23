@@ -84,6 +84,17 @@ void fill_square(int x, int y, int size, VESA_Colour col) {
 }
 
 void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb) {
+    if (x < 0) {
+        width += x;
+        x = 0;
+    }
+    if (y < 0) {
+        height += y;
+        y = 0;
+    }
+    width = min(width, fb.width - x);
+    height = min(height, fb.height - y);
+
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
@@ -151,10 +162,6 @@ Framebuffer* allocate_full_screen_framebuffer() {
 void deallocate_framebuffer(Framebuffer* fb) {
     kfree((void*)fb->fb, fb->width * fb->height * bytes_per_pixel);
     kfree((void*)fb, sizeof(Framebuffer));
-}
-
-void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height) {
-    _blit(src, dest, x, y, width, height, 0, 0, dest.width, dest.height);
 }
 
 void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {
@@ -226,6 +233,10 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
         dest_offset += dest.pitch;
         src_offset += src.pitch;
     }
+}
+
+void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height) {
+    _blit(src, dest, x, y, width, height, 0, 0, dest.width, dest.height);
 }
 
 void blit_all_at(Framebuffer* src, Framebuffer* dest, int x, int y) {

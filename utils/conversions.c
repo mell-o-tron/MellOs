@@ -48,8 +48,8 @@ const char* tostring(int n, int base, char* dest) {
 
 	return buffer;
 }
+
 const char* tostring_unsigned(uint32_t n, int base, char* dest) {
-    
     char* buffer = dest;
     
     uint32_t m = n;

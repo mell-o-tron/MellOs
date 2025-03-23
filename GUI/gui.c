@@ -41,4 +41,13 @@ void destroy_window_preserve_fb(Window* w){
     kfree(w, sizeof(Window));
 }
 
+Recti recti_of_window(Window* w){
+    Recti r;
+    r.x = w->x;
+    r.y = w->y;
+    r.width = w->width + BORDER_WIDTH * 2;
+    r.height = w->height + BORDER_WIDTH + TITLEBAR_HEIGHT;
+    return r;
+}
+
 #endif

@@ -65,3 +65,31 @@ int min(int a, int b) {
 int max(int a, int b) {
     return a > b ? a : b;
 }
+
+int sqrt(int x) {
+    int res = 0;
+    int bit = 1 << 30; // The second-to-top bit is set: 1 << 30 for 32 bits
+ 
+    // "bit" starts at the highest power of four <= the argument.
+    while (bit > x)
+        bit >>= 2;
+ 
+    while (bit != 0) {
+        if (x >= res + bit) {
+            x -= res + bit;
+            res = (res >> 1) + bit;
+        } else
+            res >>= 1;
+ 
+        bit >>= 2;
+    }
+    return res;
+}
+
+int vector2i_distance(Vector2i a, Vector2i b) {
+    return sqrt(pow_f(a.x - b.x, 2) + pow_f(a.y - b.y, 2));
+}
+
+bool vector2i_in_recti(Vector2i a, Recti b) {
+    return a.x >= b.pos.x && a.x <= b.pos.x + b.size.x && a.y >= b.pos.y && a.y <= b.pos.y + b.size.y;
+}

@@ -23,6 +23,7 @@
 #ifdef VGA_VESA
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
+#include "../drivers/mouse.h"
 #else
 #include "../drivers/vga_text.h"
 #endif

@@ -3,6 +3,7 @@
 
 #include "../utils/typedefs.h"
 #include "../drivers/vesa/vesa.h"
+#include "../../utils/math.h"
 
 #define BORDER_WIDTH 5
 #define TITLEBAR_HEIGHT 20
@@ -25,5 +26,6 @@ void destroy_window_preserve_fb(Window* w);
 
 void set_window_dirty(Window* w);
 
+Recti recti_of_window(Window* w);
 
 #endif

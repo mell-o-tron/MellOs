@@ -34,6 +34,10 @@ static cbuffer_t * mouse_buffer;
 static MousePacket current_packet;
 static uint8_t current_packet_byte = 0;
 
+static bool is_clicking_1 = false;
+static bool is_clicking_2 = false;
+static bool is_clicking_3 = false;
+
 void mouse_handler(struct regs *r);
 void send_mouse_command(uint8_t cmd);
 void send_mouse_data(uint8_t data);
@@ -64,6 +68,30 @@ void mouse_handler(struct regs *r)
                 current_packet.x_sign == 0 ? ((int)current_packet.x_delta) : ((int)current_packet.x_delta | 0xFFFFFF00),
                 current_packet.y_sign == 0 ? -((int)current_packet.y_delta) : -((int)current_packet.y_delta | 0xFFFFFF00));
                 // 0);
+
+            if (is_clicking_1 && !current_packet.mouse_1){
+                is_clicking_1 = false;
+                mouse_up(MOUSE_LEFT);
+            } else if (!is_clicking_1 && current_packet.mouse_1){
+                is_clicking_1 = true;
+                mouse_down(MOUSE_LEFT);
+            }
+
+            if (is_clicking_2 && !current_packet.mouse_2){
+                is_clicking_2 = false;
+                mouse_up(MOUSE_RIGHT);
+            } else if (!is_clicking_2 && current_packet.mouse_2){
+                is_clicking_2 = true;
+                mouse_down(MOUSE_RIGHT);
+            }
+
+            if (is_clicking_3 && !current_packet.mouse_3){
+                is_clicking_3 = false;
+                mouse_up(MOUSE_MIDDLE);
+            } else if (!is_clicking_3 && current_packet.mouse_3){
+                is_clicking_3 = true;
+                mouse_down(MOUSE_MIDDLE);
+            }
 
             // kprint_dec(current_packet.x_sign);
             // kprint(" ");

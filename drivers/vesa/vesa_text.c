@@ -114,7 +114,7 @@ void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
 	fb->fb = kmalloc(fb->width * fb->height * 4);
 	char buf[256];
-	tostring(fb->fb, 16, buf);
+	tostring((int)fb->fb, 16, buf);
 	kprint(buf);
 }
 
