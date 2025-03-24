@@ -25,6 +25,9 @@ static void swap_framebuffers(){
     fb2 = tmp;
 }
 
+#define FOCUSED_COLOUR VESA_CYAN
+#define UNFOCUSED_COLOUR VESA_WHITE
+
 void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     // fb_clear_screen_col_VESA(VESA_CYAN, *fb);
     fb_draw_gradient(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb);
@@ -34,8 +37,8 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
         do{
             Window* w = (Window*)current->data;
             if (w->draw_frame){
-                fb_fill_rect(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, VESA_WHITE, *fb);
-                fb_draw_rect(w->x, w->y + TITLEBAR_HEIGHT, w->width + BORDER_WIDTH, w->height + BORDER_WIDTH, BORDER_WIDTH, VESA_WHITE, fb);
+                fb_fill_rect(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, *fb);
+                fb_draw_rect(w->x, w->y + TITLEBAR_HEIGHT, w->width + BORDER_WIDTH, w->height + BORDER_WIDTH, BORDER_WIDTH, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, fb);
                 fb_draw_string(w->x + BORDER_WIDTH * 2, w->y + BORDER_WIDTH, w->title, VESA_BLACK, 1.8, 1.8, *fb);
                 blit_all_at_only(w->fb, fb, w->x+BORDER_WIDTH, w->y + BORDER_WIDTH + TITLEBAR_HEIGHT, from_x, from_y, to_x, to_y);
             }else{
@@ -63,6 +66,7 @@ FDEF(vell){
         fb2 = allocate_full_screen_framebuffer();
         fb2->fb = kmalloc(fb2->width * fb2->height * 4);
         _init_vterm();
+        ((Window*)windows->data)->focused = true;
         _init_mouse_handler();
         _vell_draw();
     } else {
@@ -154,6 +158,18 @@ Window* find_window_at(Vector2i pos, WindowElement* element){
 
 Window* dragging_window = NULL;
 Vector2i dragging_prev_pos;
+uint8_t drag_counter = 0;
+
+void __unfocus_all(){
+    CircularList* current = windows;
+    if (current != NULL) {
+        do {
+            Window* win = (Window*)current->data;
+            win->focused = false;
+            current = current->next;
+        } while (current != windows);
+    }
+}
 
 void _vell_generate_drag_start_event(MouseButton button, Vector2i start_pos){
     if(button == MOUSE_LEFT){
@@ -162,6 +178,10 @@ void _vell_generate_drag_start_event(MouseButton button, Vector2i start_pos){
         if (w == NULL || element != TITLEBAR) {
             return;
         }
+
+        __unfocus_all();
+        w->focused = true;
+
         dragging_window = w;
         dragging_prev_pos = start_pos;
     }
@@ -177,26 +197,31 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
         dragging_window->x += dx;
         dragging_window->y += dy;
         dragging_prev_pos = current_pos;
-        _vell_draw();
+        if(drag_counter == 0){
+            _vell_draw();
+        }
+        drag_counter = (drag_counter + 1) % 8;
     }
 }
 
 void _vell_generate_drag_end_event(MouseButton button, Vector2i end_pos){
     if (button == MOUSE_LEFT){
         dragging_window = NULL;
+        drag_counter = 0;
+        _vell_draw();
     }
 }
 
 void _vell_generate_click_event(MouseButton button, Vector2i click_pos){
-    // WindowElement element;
-    // Window* w = find_window_at(click_pos, &element);
-    // if (w == NULL) {
-    //     kprint("Clicked background");
-    // }else{
-    //     kprint("Clicked window: ");
-    //     kprint(w->title);
-    //     kprint_dec(element);
-    // }
+    WindowElement element;
+    Window* w = find_window_at(click_pos, &element);
+
+    __unfocus_all();
+
+    if (w != NULL) {
+        w->focused = true;
+    }
+    _vell_draw();
 }
 
 bool _vell_is_active(){

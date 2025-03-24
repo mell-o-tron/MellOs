@@ -23,6 +23,7 @@ Window* create_window_with_fb(Framebuffer* fb, const char* title){
     w->x = 0;
     w->y = 0;
     w->draw_frame = true;
+    w->focused = false;
     _vell_register_window(w);
     return w;
 }

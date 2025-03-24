@@ -16,6 +16,7 @@ typedef struct Window {
     int x;
     int y;
     bool draw_frame;
+    bool focused;
 } Window;
 
 Window* create_window(const char* title);
