@@ -58,6 +58,15 @@ drive_parameters:
 	mov  [drv_params_entry+2], cl   ; Max. Sector
 	mov  [drv_params_entry+3], dh   ; Max. Head
 	mov  [drv_params_entry+4], dl   ; N. Drives
+	mov  dl, [BOOT_DISK]
+	mov  [drv_params_entry+5], dl   ; Drive Number
+
+	; pusha
+	; xor ebx, ebx
+	; mov bl, ch
+	; call print_dec
+	; popa
+	; jmp $
 
 	ret
     

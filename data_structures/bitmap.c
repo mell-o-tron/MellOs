@@ -13,7 +13,7 @@ char get_bitmap(bitmap_t b, size_t i) {
 }
 
 bitmap_t create_bitmap(void* loc, size_t n) {
-    for (int i = 0; i < (n + 7) / 8; i++)
+    for (size_t i = 0; i < (n + 7) / 8; i++)
         ((bitmap_t)loc)[i] = 0;
         
     return (bitmap_t)loc;

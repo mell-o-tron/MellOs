@@ -27,6 +27,9 @@ shellfunction CMDs[] = {
     CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
     CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
     CMDENTRY(&diskread,  "diskread",  "Reads from disk", "diskread [LBA] [num_sectors]"),
+    CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
+    CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
+    CMDENTRY(&diskread,  "diskread",  "Reads from disk", "diskread [LBA] [num_sectors]"),
     CMDENTRY(&ls, "ls", "Lists files", "ls"),
     CMDENTRY(&newfile, "newfile", "Creates new file", "newfile [name]"),
     CMDENTRY(&rmfile, "rmfile", "Removes file", "rmfile [name]"),
@@ -72,6 +75,11 @@ shellfunction shellf(void (*Fptr)(const char *), char* Alias, char* Help){
 }
 
 shellfunction* TryGetCMD(char* cmdbuf){
+    // kprint_hex(&CMDs);
+    // for(int x = 0; x < sizeof(CMDs)/sizeof(shellfunction); x++){
+    //     kprint(CMDs[x].alias);
+    // }
+    // return 0;
     for(int x = 0; x < sizeof(CMDs)/sizeof(shellfunction); x++){
         if(string_starts_with(cmdbuf, CMDs[x].alias)){
             return &CMDs[x];

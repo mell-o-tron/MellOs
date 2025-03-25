@@ -15,10 +15,10 @@ void initialize_page_directory (unsigned int* page_directory){
 
 void add_page (unsigned int * page_directory, unsigned int * page_table, int index, int offset, PT_FLAGS ptf, PD_FLAGS pdf){
     for(unsigned int i = 0; i < 1024; i++) {
-        page_table[i] = (offset + (i * 0x1000)) | pdf; // U/S, R/W same. P = 1 present.
+        page_table[i] = (offset + (i * 0x1000)) | ptf; // U/S, R/W same. P = 1 present.
     }
 
-    page_directory[index] = ((unsigned int)page_table) | ptf;
+    page_directory[index] = ((unsigned int)page_table) | pdf;
 }
 
 void init_paging(unsigned int * page_directory, unsigned int * first_page_table) {

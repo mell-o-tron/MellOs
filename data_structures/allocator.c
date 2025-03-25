@@ -9,6 +9,8 @@ bitmap_t get_allocator_bitmap (allocator_t * allocator){
 }
 
 void set_alloc_bitmap (allocator_t * allocator, bitmap_t loc, uint32_t length){
+    kprint_hex(allocator);
+    khang();
     allocator -> bitmap = create_bitmap(loc, length);
     allocator -> size = length;
 }
