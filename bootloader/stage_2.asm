@@ -15,24 +15,24 @@ mov dh, 0x00		; from head 0
 mov cl, 0x04		; from sector 4 (counting from 1)
 call disk_read
 
-push es
-mov ax, 0x1000
-mov es, ax
-mov bx, 0x0000
-mov al, 128			; read 128 sectors
-mov ch, 0x00		; from cylinder 0
-mov dh, 0x01		; from head 0
-mov cl, 031		; from sector 4 (counting from 1)
-call disk_read
+; push es
+; mov ax, 0x1000
+; mov es, ax
+; mov bx, 0x0000
+; mov al, 128			; read 128 sectors
+; mov ch, 0x00		; from cylinder 0
+; mov dh, 0x01		; from head 0
+; mov cl, 031		; from sector 4 (counting from 1)
+; call disk_read
 
-mov ax, 0x2000
-mov es, ax
-mov bx, 0x0000
-mov al, 128			; read 128 sectors
-mov ch, 0x02		; from cylinder 0
-mov dh, 0x01		; from head 0
-mov cl, 015		; from sector 4 (counting from 1)
-call disk_read
+; mov ax, 0x2000
+; mov es, ax
+; mov bx, 0x0000
+; mov al, 128			; read 128 sectors
+; mov ch, 0x02		; from cylinder 0
+; mov dh, 0x01		; from head 0
+; mov cl, 015		; from sector 4 (counting from 1)
+; call disk_read
 ; mov bx, KERNEL_LOCATION + (0x4800 * 3)
 ; mov al, 20			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
@@ -74,7 +74,7 @@ call disk_read
 ; mov cl, 24		; from sector 4 (counting from 1)
 ; call disk_read
 
-pop es
+; pop es
 ; jmp $
 
 ; push es

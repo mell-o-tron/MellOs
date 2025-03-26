@@ -141,7 +141,7 @@ extern void main(){
     setup_pat();
     
     // maps 4MB to 8MB (0x400000 to 0x800000 - 1) -> 16 MB to 20 MB (0x1000000 to 0x1400000 - 1)
-    add_page(page_directory, second_page_table, 1, 0x1000000, first_page_table_flags, page_directory_flags);
+    add_page(page_directory, second_page_table, 1, 0x400000, first_page_table_flags, page_directory_flags);
 
     gdt_init();
     idt_install();

@@ -233,11 +233,11 @@ void recalibrate(uint8_t disknum){
    wait_disk_active(disknum);
    uint8_t res = sense_interrupt() >> 0x0F;
    
-   char buf[256];
-   tostring(res, 16, buf);
-   kprint("Recalibrate result: ");
-   kprint(buf);
-   kprint("\n");
+   // char buf[256];
+   // tostring(res, 16, buf);
+   // kprint("Recalibrate result: ");
+   // kprint(buf);
+   // kprint("\n");
 }
 
 void seek(uint8_t disknum, uint8_t cylinder, uint8_t head){
@@ -255,9 +255,13 @@ void seek(uint8_t disknum, uint8_t cylinder, uint8_t head){
    kprint("Seek result: ");
    kprint(buf);
    kprint("\n");
+
+   uint32_t timeout = 100000000;
+   while(timeout--);
 }
 
-void read(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector){
+void read_floppy(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector, uint8_t* buffer){
+   // seek(drive, cylinder, head);
    wait_ready();
    outb(DATA_FIFO, READ_DATA | MT | MFM);
    wait_ready();
@@ -277,13 +281,12 @@ void read(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector){
    wait_ready();
    outb(DATA_FIFO, 0xFF); // Sector size
 
-   uint8_t buff[1024];
    for (int i = 0; i < 1024; i++){
       uint8_t msr = inb(MAIN_STATUS_REGISTER);
-      while(!(msr & (RQM | NDMA))){
+      while(!((msr & RQM) && (msr & NDMA))){
          msr = inb(MAIN_STATUS_REGISTER);
       }
-      buff[i] = inb(DATA_FIFO);
+      buffer[i] = inb(DATA_FIFO);
    }
 
    wait_ready();
@@ -331,16 +334,14 @@ void read(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector){
    kprint("two: ");
    kprint(buf);
    kprint("\n");
-
-   for (int i = 0; i < 1024; i++){
-      tostring(buff[i], 16, buf);
-      kprint(buf);
-      kprint(" ");
-   }
 }
 
 
-void init_floppy(){
+uint8_t init_floppy(){
+   diskinfo->max_sectors = 1;
+   diskinfo->max_heads = 2;
+   diskinfo->max_cylinders = 80;
+   
    char buf[256];
    tostring(version(), 16, buf);
    // kprint("Floppy version: ");
@@ -352,22 +353,46 @@ void init_floppy(){
    // kprint("Floppy initialized\n");
    drive_select(diskinfo->boot_drive_number, RATE_1000KBPS);
 
-   uint32_t timeout = 100000000;
-   while(timeout--);
+   // uint32_t timeout = 100000000;
+   // while(timeout--);
 
-   tostring(diskinfo->boot_drive_number, 16, buf);
-   kprint("Disk num: ");
-   kprint(buf);
-   kprint("\n");
+   // tostring(diskinfo->boot_drive_number, 16, buf);
+   // kprint("Disk num: ");
+   // kprint(buf);
+   // kprint("\n");
 
    recalibrate(diskinfo->boot_drive_number);
    recalibrate(diskinfo->boot_drive_number);
 
    // seek(diskinfo->boot_drive_number, 0, 0);
-   read(diskinfo->boot_drive_number, 0, 0, 1);
+   // read(diskinfo->boot_drive_number, 0, 0, 1);
    // timeout = 100000000;
    // while(timeout--);
    // seek(diskinfo->boot_drive_number, 0, 0);
    // read(diskinfo->boot_drive_number, 0, 0, 1);
-   while(1);
+   // while(1);
+
+   return diskinfo->boot_drive_number;
+}
+
+void read_floppy_lba(uint8_t disk, uint32_t lba, uint8_t* buffer){
+   uint8_t cylinder = lba / (diskinfo->max_heads * diskinfo->max_sectors);
+   uint8_t head = (lba % (diskinfo->max_heads * diskinfo->max_sectors)) / diskinfo->max_sectors;
+   // uint8_t sector = lba % diskinfo->max_sectors + 1;
+   uint8_t sector = (lba % (diskinfo->max_heads * diskinfo->max_sectors)) % diskinfo->max_sectors + 1;
+
+   char buf[256];
+   tostring(cylinder, 16, buf);
+   kprint("Cylinder: ");
+   kprint(buf);
+   kprint("\n");
+   tostring(head, 16, buf);
+   kprint("Head: ");
+   kprint(buf);
+   kprint("\n");
+   tostring(sector, 16, buf);
+   kprint("Sector: ");
+   kprint(buf);
+   kprint("\n");
+   read_floppy(disk, cylinder, head, sector, buffer);
 }

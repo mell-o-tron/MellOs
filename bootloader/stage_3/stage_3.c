@@ -68,10 +68,50 @@ void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *a
 }
 
 
+#define KERNEL_ADDRESS 0x400000
+#define KERNEL_SECTORS 1
+#define KERNEL_START_SECTOR 4
 
 void main(){
-	init_floppy();
-    kprint("banana");
+	uint8_t disk = init_floppy();
+    uint8_t current_sector[1024];
+    // read_floppy_lba(disk, 0, current_sector);
+
+    // char buf[256];
+    // for (int i = 0; i < 1024; i++){
+    //     tostring(current_sector[i], 16, buf);
+    //     kprint(buf);
+    //     kprint(" ");
+    // }
+
+    char buf[256];
+    for(size_t i = 0; i < KERNEL_SECTORS; i++){
+        // read_floppy_lba(disk, KERNEL_START_SECTOR + i, current_sector);
+        // for(size_t j = 0; j < 1024; j++){
+        //     tostring(current_sector[j], 16, buf);
+        //     kprint(buf);
+        //     kprint(" ");
+        // }
+        // continue;
+
+
+        read_floppy_lba(disk, KERNEL_START_SECTOR + i, (uint8_t*)(KERNEL_ADDRESS + i * 512));
+
+        // read_floppy(disk, 0xf, 1, 1, (uint16_t*)(KERNEL_ADDRESS));
+        
+
+        // tostring(i, 16, buf);
+        // // kprint("Read sector ");
+        // kprint(buf);
+        // kprint(" ");
+        // // kprint("\n");
+        for (int j = 0; j < 1024; j++){
+            tostring(((uint8_t*)KERNEL_ADDRESS)[j + i * 512], 16, buf);
+            kprint(buf);
+            kprint(" ");
+        }
+    }
+
+    asm volatile("jmp 0x400000");
     while(1);
-    LBA28_read_sector(0xA0, 1, 16, 0x9000);
 }
