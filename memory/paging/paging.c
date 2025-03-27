@@ -29,8 +29,9 @@ void init_paging(unsigned int * page_directory, unsigned int * first_page_table,
     PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
 
     add_page(page_directory, first_page_table,  0, 0, first_page_table_flags, page_directory_flags);
+    
+    // For now, since the kernel is mapped at 0x400000, we identity-map from 0x0 to 0x800000. Eventually, it would be nice to have a proper "kernel on the high memory"
     add_page(page_directory, second_page_table,  1, 0x400000, first_page_table_flags, page_directory_flags);
-
 
     loadPageDirectory(page_directory);
     enablePaging();

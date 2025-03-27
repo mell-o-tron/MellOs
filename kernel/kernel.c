@@ -132,15 +132,13 @@ allocator_t allocator;
 
 extern void main(){
     
-    // identity-maps 0x0 to 4MB (i.e. 0x400000 - 1)
+    // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table);
     
     // Sets up the Page Attribute Table
     setup_pat();
-    
-    // maps 4MB to 8MB (0x400000 to 0x800000 - 1) -> 16 MB to 20 MB (0x1000000 to 0x1400000 - 1)
-    // add_page(page_directory, second_page_table, 1, 0x400000, first_page_table_flags, page_directory_flags);
 
+    // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
         add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
     }
@@ -155,12 +153,10 @@ extern void main(){
     clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
     
-    // char test[0x8000000] = {1};
-    
     allocator.granularity = 512;
     assign_kmallocator(&allocator);
     
-    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000);   // dynamic memory allocation setup test
+    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
 
     kb_install();
