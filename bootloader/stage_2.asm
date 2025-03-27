@@ -1,14 +1,13 @@
 [org 0x7e00]
 [bits 16]
 
-KERNEL_LOCATION equ 0x8200
 STAGE_3_LOCATION equ 0x8200
 
 mov bx, STAGING
 call print_string
 
 ;read the kernel (60 sectors)
-mov bx, KERNEL_LOCATION
+mov bx, STAGE_3_LOCATION
 mov al, 63			; read 128 sectors
 mov ch, 0x00		; from cylinder 0
 mov dh, 0x00		; from head 0
@@ -33,13 +32,13 @@ call disk_read
 ; mov dh, 0x01		; from head 0
 ; mov cl, 015		; from sector 4 (counting from 1)
 ; call disk_read
-; mov bx, KERNEL_LOCATION + (0x4800 * 3)
+; mov bx, STAGE_3_LOCATION + (0x4800 * 3)
 ; mov al, 20			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x01		; from head 0
 ; mov cl, 0x03		; from sector 4 (counting from 1)
 ; call disk_read
-; ; mov bx, KERNEL_LOCATION + (0x4800 * 3) + 0x1400
+; ; mov bx, STAGE_3_LOCATION + (0x4800 * 3) + 0x1400
 ; ; mov al, 10			; read 128 sectors
 ; ; mov ch, 0x01		; from cylinder 0
 ; ; mov dh, 0x01		; from head 0
@@ -47,19 +46,19 @@ call disk_read
 ; ; call disk_read
 ; mov ax, 0x2000
 ; mov es, ax
-; mov bx, KERNEL_LOCATION + (0x4800 * 3) + 0x2800
+; mov bx, STAGE_3_LOCATION + (0x4800 * 3) + 0x2800
 ; mov al, 128			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x01		; from head 0
 ; mov cl, 0x15		; from sector 4 (counting from 1)
 ; call disk_read
-; mov bx, KERNEL_LOCATION + 0x4000 + 0x4800
+; mov bx, STAGE_3_LOCATION + 0x4000 + 0x4800
 ; mov al, 36			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x00		; from head 0
 ; mov cl, 0x01		; from sector 4 (counting from 1)
 ; call disk_read
-; mov bx, KERNEL_LOCATION + 0x4000 + 0x4800 + 0x4800
+; mov bx, STAGE_3_LOCATION + 0x4000 + 0x4800 + 0x4800
 ; mov al, 24			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x01		; from head 0
@@ -67,7 +66,7 @@ call disk_read
 ; call disk_read
 ; mov ax, 0x2000
 ; mov es, ax
-; mov bx, KERNEL_LOCATION
+; mov bx, STAGE_3_LOCATION
 ; mov al, 12			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x01		; from head 0
@@ -80,7 +79,7 @@ call disk_read
 ; push es
 ; mov ax, 0x2000
 ; mov es, ax
-; mov bx, KERNEL_LOCATION
+; mov bx, STAGE_3_LOCATION
 ; mov al, 1			; read 128 sectors
 ; mov ch, 0x01		; from cylinder 0
 ; mov dh, 0x01		; from head 0
@@ -131,7 +130,7 @@ _main32:
 	out 0x92, al
 
 	;jump to kernel location
-	jmp KERNEL_LOCATION
+	jmp STAGE_3_LOCATION
     jmp $
 
 STAGING:

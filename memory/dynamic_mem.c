@@ -13,10 +13,7 @@ allocator_t* kmallocator = NULL;
 volatile void *dynamic_mem_loc = NULL;
 
 void assign_kmallocator(allocator_t* allocator){
-    kprint("assigning kmallocator\n");
-    kprint_hex(allocator);
     kmallocator = allocator;
-    kprint_hex(kmallocator);
 }
 
 void set_dynamic_mem_loc (void *loc){

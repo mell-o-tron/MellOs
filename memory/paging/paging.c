@@ -21,7 +21,7 @@ void add_page (unsigned int * page_directory, unsigned int * page_table, int ind
     page_directory[index] = ((unsigned int)page_table) | pdf;
 }
 
-void init_paging(unsigned int * page_directory, unsigned int * first_page_table) {
+void init_paging(unsigned int * page_directory, unsigned int * first_page_table, unsigned int * second_page_table) {
 
     initialize_page_directory(page_directory);
 
@@ -29,6 +29,7 @@ void init_paging(unsigned int * page_directory, unsigned int * first_page_table)
     PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
 
     add_page(page_directory, first_page_table,  0, 0, first_page_table_flags, page_directory_flags);
+    add_page(page_directory, second_page_table,  1, 0x400000, first_page_table_flags, page_directory_flags);
 
 
     loadPageDirectory(page_directory);

@@ -91,7 +91,10 @@ typedef struct Diskinfo {
 Diskinfo* diskinfo = (uint8_t*)0x5200; // This was set in stage_2 by drive_parameters in disk.asm
 
 void wait_ready(){
-   while(!(inb(MAIN_STATUS_REGISTER) & RQM &~ DIO));
+   uint8_t msr = inb(MAIN_STATUS_REGISTER);
+   while(!((msr & RQM) && (msr &~ DIO))){
+      msr = inb(MAIN_STATUS_REGISTER);
+   }
 }
 
 void wait_command_done(){
@@ -250,18 +253,18 @@ void seek(uint8_t disknum, uint8_t cylinder, uint8_t head){
    wait_disk_active(disknum);
    uint8_t res = sense_interrupt() >> 0x0F;
 
-   char buf[256];
-   tostring(res, 16, buf);
-   kprint("Seek result: ");
-   kprint(buf);
-   kprint("\n");
+   // char buf[256];
+   // tostring(res, 16, buf);
+   // kprint("Seek result: ");
+   // kprint(buf);
+   // kprint("\n");
 
-   uint32_t timeout = 100000000;
+   uint32_t timeout = 1250000;
    while(timeout--);
 }
 
 void read_floppy(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector, uint8_t* buffer){
-   // seek(drive, cylinder, head);
+   seek(drive, cylinder, head);
    wait_ready();
    outb(DATA_FIFO, READ_DATA | MT | MFM);
    wait_ready();
@@ -275,17 +278,19 @@ void read_floppy(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector, 
    wait_ready();
    outb(DATA_FIFO, 2); // Sector size
    wait_ready();
-   outb(DATA_FIFO, 1);
+   outb(DATA_FIFO, diskinfo->max_sectors);
    wait_ready();
    outb(DATA_FIFO, 0x1B); // "GAP1 default size"
    wait_ready();
    outb(DATA_FIFO, 0xFF); // Sector size
-
+   
+   
    for (int i = 0; i < 1024; i++){
       uint8_t msr = inb(MAIN_STATUS_REGISTER);
-      while(!((msr & RQM) && (msr & NDMA))){
+      while((msr & (RQM | NDMA)) != (RQM | NDMA)){
          msr = inb(MAIN_STATUS_REGISTER);
       }
+      
       buffer[i] = inb(DATA_FIFO);
    }
 
@@ -305,50 +310,38 @@ void read_floppy(uint8_t drive, uint8_t cylinder, uint8_t head, uint8_t sector, 
    uint8_t two = inb(DATA_FIFO);
    
    wait_ready();
-   char buf[256];
-   tostring(st0, 16, buf);
-   kprint("st0: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(st1, 16, buf);
-   kprint("st1: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(st2, 16, buf);
-   kprint("st2: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(end_cyl, 16, buf);
-   kprint("end_cyl: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(end_hd, 16, buf);
-   kprint("end_hd: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(end_sec, 16, buf);
-   kprint("end_sec: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(two, 16, buf);
-   kprint("two: ");
-   kprint(buf);
-   kprint("\n");
-}
-
-
-uint8_t init_floppy(){
-   diskinfo->max_sectors = 1;
-   diskinfo->max_heads = 2;
-   diskinfo->max_cylinders = 80;
-   
-   char buf[256];
-   tostring(version(), 16, buf);
-   // kprint("Floppy version: ");
+   // char buf[256];
+   // tostring(st0, 16, buf);
+   // kprint("st0: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(st1, 16, buf);
+   // kprint("st1: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(st2, 16, buf);
+   // kprint("st2: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(end_cyl, 16, buf);
+   // kprint("end_cyl: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(end_hd, 16, buf);
+   // kprint("end_hd: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(end_sec, 16, buf);
+   // kprint("end_sec: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(two, 16, buf);
+   // kprint("two: ");
    // kprint(buf);
    // kprint("\n");
-   configure(true);
-   lock();
+}
+
+void drive_setup(){
    drive_reset();
    // kprint("Floppy initialized\n");
    drive_select(diskinfo->boot_drive_number, RATE_1000KBPS);
@@ -364,6 +357,25 @@ uint8_t init_floppy(){
    recalibrate(diskinfo->boot_drive_number);
    recalibrate(diskinfo->boot_drive_number);
 
+   uint32_t timeout = 1250000;
+   while(timeout--);
+}
+
+uint8_t init_floppy(){  
+   // diskinfo->max_sectors = 1;
+   diskinfo->max_heads = 2;
+   // diskinfo->max_cylinders = 80;
+   
+   char buf[256];
+   tostring(version(), 16, buf);
+   // kprint("Floppy version: ");
+   // kprint(buf);
+   // kprint("\n");
+   configure(true);
+   lock();
+
+   drive_setup();
+
    // seek(diskinfo->boot_drive_number, 0, 0);
    // read(diskinfo->boot_drive_number, 0, 0, 1);
    // timeout = 100000000;
@@ -378,21 +390,41 @@ uint8_t init_floppy(){
 void read_floppy_lba(uint8_t disk, uint32_t lba, uint8_t* buffer){
    uint8_t cylinder = lba / (diskinfo->max_heads * diskinfo->max_sectors);
    uint8_t head = (lba % (diskinfo->max_heads * diskinfo->max_sectors)) / diskinfo->max_sectors;
-   // uint8_t sector = lba % diskinfo->max_sectors + 1;
-   uint8_t sector = (lba % (diskinfo->max_heads * diskinfo->max_sectors)) % diskinfo->max_sectors + 1;
+   uint8_t sector = lba % diskinfo->max_sectors + 1;
+   // uint8_t sector = (lba % (diskinfo->max_heads * diskinfo->max_sectors)) % diskinfo->max_sectors + 1;
 
    char buf[256];
-   tostring(cylinder, 16, buf);
-   kprint("Cylinder: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(head, 16, buf);
-   kprint("Head: ");
-   kprint(buf);
-   kprint("\n");
-   tostring(sector, 16, buf);
-   kprint("Sector: ");
-   kprint(buf);
-   kprint("\n");
+
+   // tostring(diskinfo->max_cylinders, 10, buf);
+   // kprint("Max cylinders: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(diskinfo->max_heads, 10, buf);
+   // kprint("Max heads: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(diskinfo->max_sectors, 10, buf);
+   // kprint("Max sectors: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // while(1);
+
+   // tostring(lba, 10, buf);
+   // kprint("LBA: ");
+   // kprint(buf);
+
+   // tostring(cylinder, 10, buf);
+   // kprint("Cylinder: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(head, 10, buf);
+   // kprint("Head: ");
+   // kprint(buf);
+   // // kprint("\n");
+   // tostring(sector, 10, buf);
+   // kprint("Sector: ");
+   // kprint(buf);
+   // kprint("  ");
+
    read_floppy(disk, cylinder, head, sector, buffer);
 }

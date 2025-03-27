@@ -3,7 +3,7 @@ OUTPUT_FORMAT(elf32-i386)
 
 MEMORY
 {
-    ram (rwx) : ORIGIN = 0x8200, LENGTH = 0x8000000      /* Usable RAM */
+    ram (rwx) : ORIGIN = 0x8200, LENGTH = 0x97E00      /* Usable RAM */
     reserved_VGA_FB (r) : ORIGIN = 0xA0000, LENGTH = 0x20000  /* Reserved range */
 }
 

@@ -43,7 +43,7 @@ build: boot $(ASMTAR) $(CTAR) $(FONTTAR)
 	$(LD) -o $(BIN)/stage_3.elf -Tbootloader/stage_3/stage_3.ld $(filter $(BIN)/bootloader/stage_3/%, $(shell find ./ -name "*.o" | xargs))
 	$(OBJCP) -O binary $(BIN)/kernel.elf $(BIN)/kernel.bin
 	$(OBJCP) -O binary $(BIN)/stage_3.elf $(BIN)/stage_3.bin
-	dd if=$(BIN)/stage_3.bin of=$(BIN)/stage_3_padded.bin bs=512 count=10 conv=sync
+	dd if=$(BIN)/stage_3.bin of=$(BIN)/stage_3_padded.bin bs=512 count=13 conv=sync
 	mv $(BIN)/stage_3_padded.bin $(BIN)/stage_3.bin
 	cat $(BIN)/boot.bin $(BIN)/stage_2.bin $(BIN)/stage_3.bin > $(BIN)/troth_boot.bin
 	cat $(BIN)/troth_boot.bin $(BIN)/kernel.bin > $(BIN)/short.bin

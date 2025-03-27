@@ -29,7 +29,7 @@ typedef enum {
 } PT_FLAGS;
 
 
-void init_paging(unsigned int * page_directory, unsigned int * first_page_table);
+void init_paging(unsigned int * page_directory, unsigned int * first_page_table, unsigned int * second_page_table);
 void stop_paging();
 void add_page (unsigned int * page_directory, unsigned int * page_table, int index, int offset, PT_FLAGS ptf, PD_FLAGS pdf);
 

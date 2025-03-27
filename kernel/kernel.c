@@ -53,8 +53,6 @@ void khang(){
     for(;;);
 }
 
-uint8_t VGA_FB_DUMMY[0x10000] __attribute__((section(".vga_fb"))) = {0};
-
 // This function has to be self contained - no dependencies to the rest of the kernel!
 extern  void kpanic(struct regs *r){
     
@@ -101,7 +99,7 @@ extern  void kpanic(struct regs *r){
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
 uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
-#define NUM_MANY_PAGES (uint32_t)124 // Something weird happens when more than 124 pages are mapped. TODO: Investigate
+#define NUM_MANY_PAGES (uint32_t)512 // Something weird happens when more than 124 pages are mapped. TODO: Investigate
 uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
 
 PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;
@@ -135,13 +133,18 @@ allocator_t allocator;
 extern void main(){
     
     // identity-maps 0x0 to 4MB (i.e. 0x400000 - 1)
-    init_paging(page_directory, first_page_table);
+    init_paging(page_directory, first_page_table, second_page_table);
     
     // Sets up the Page Attribute Table
     setup_pat();
     
     // maps 4MB to 8MB (0x400000 to 0x800000 - 1) -> 16 MB to 20 MB (0x1000000 to 0x1400000 - 1)
-    add_page(page_directory, second_page_table, 1, 0x400000, first_page_table_flags, page_directory_flags);
+    // add_page(page_directory, second_page_table, 1, 0x400000, first_page_table_flags, page_directory_flags);
+
+    for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
+        add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
+    }
+
 
     gdt_init();
     idt_install();
@@ -157,10 +160,12 @@ extern void main(){
     allocator.granularity = 512;
     assign_kmallocator(&allocator);
     
-    set_kmalloc_bitmap((bitmap_t) 0x400000, 100000);   // dynamic memory allocation setup test
-    set_dynamic_mem_loc ((void*)0x400000 + 100000/2);
+    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000);   // dynamic memory allocation setup test
+    set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
 
     kb_install();
+
+
 
     
     void * code_loc = (void*) kmalloc(10);                  // kmalloc test

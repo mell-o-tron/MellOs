@@ -5,14 +5,9 @@ section .entry
 
 [global start_stage_3]
 start_stage_3:
-    ; jmp $
-    push es
-    mov ax, 0x0
-    mov es, ax
     call main		        ; calls stage 3 loader function main()
-    pop es
 
-    mov eax, 0x9000
+    mov eax, 0x400000       ; kernel entry point
     jmp eax
     jmp $
 
