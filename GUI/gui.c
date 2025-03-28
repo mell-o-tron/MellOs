@@ -23,6 +23,7 @@ Window* create_window_with_fb(Framebuffer* fb, const char* title){
     w->x = 0;
     w->y = 0;
     w->draw_frame = true;
+    w->transparent = false;
     w->focused = false;
     _vell_register_window(w);
     return w;
@@ -47,8 +48,13 @@ Recti recti_of_window(Window* w){
     r.x = w->x;
     r.y = w->y;
     r.width = w->width + BORDER_WIDTH * 2;
-    r.height = w->height + BORDER_WIDTH + TITLEBAR_HEIGHT;
+    r.height = w->height + BORDER_WIDTH * 2 + TITLEBAR_HEIGHT;
     return r;
+}
+
+void set_window_transparent(Window* w, bool transparent){
+    w->transparent = transparent;
+    w->fb->transparent = transparent;
 }
 
 #endif

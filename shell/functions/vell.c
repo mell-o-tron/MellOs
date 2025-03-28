@@ -30,15 +30,45 @@ static void swap_framebuffers(){
 
 void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     // fb_clear_screen_col_VESA(VESA_CYAN, *fb);
-    fb_draw_gradient(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb);
+    Recti bounds;
+    bounds.x = from_x;
+    bounds.y = from_y;
+    bounds.width = to_x - from_x;
+    bounds.height = to_y - from_y;
+
+
+    // TODO: Temporarily, partial blitting has been disabled. Make it work to improve performance
+    Recti all_bounds;
+    all_bounds.x = 0;
+    all_bounds.y = 0;
+    all_bounds.width = fb->width;
+    all_bounds.height = fb->height;
+    bounds = all_bounds;
+    from_x = 0;
+    from_y = 0;
+    to_x = fb->width;
+    to_y = fb->height;
     
+    // fb_clear_screen(*fb);
+    fb_draw_gradient_at_only(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb, bounds);
+    // if (from_x != 0){
+    //     fb_draw_gradient_at_only(0, 0, vga_fb->width, vga_fb->height, VESA_CYAN, VESA_MAGENTA, fb, bounds);
+    //     goto test;
+    // }else {
+    //     fb_draw_gradient(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb);
+    // }
+    
+    // if(from_x != 0){
+    //     fb_fill_rect_at_only(0, 0, vga_fb->width, vga_fb->height, VESA_RED, *fb, bounds);
+    //     goto test;
+    // }
     CircularList* current = windows;
     if (current != NULL){
         do{
             Window* w = (Window*)current->data;
             if (w->draw_frame){
-                fb_fill_rect(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, *fb);
-                fb_draw_rect(w->x, w->y + TITLEBAR_HEIGHT, w->width + BORDER_WIDTH, w->height + BORDER_WIDTH, BORDER_WIDTH, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, fb);
+                fb_fill_rect_at_only(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, *fb, bounds);
+                fb_draw_rect_at_only(w->x, w->y + TITLEBAR_HEIGHT, w->width + BORDER_WIDTH, w->height + BORDER_WIDTH, BORDER_WIDTH, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, fb, bounds);
                 fb_draw_string(w->x + BORDER_WIDTH * 2, w->y + BORDER_WIDTH, w->title, VESA_BLACK, 1.8, 1.8, *fb);
                 blit_all_at_only(w->fb, fb, w->x+BORDER_WIDTH, w->y + BORDER_WIDTH + TITLEBAR_HEIGHT, from_x, from_y, to_x, to_y);
             }else{
@@ -47,6 +77,7 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
             current = current->next;
         } while(current != windows);
     }
+    test:
     
     blit_all_at_only(fb, vga_fb, 0, 0, from_x, from_y, to_x, to_y);
     if (mouse_window != NULL){
@@ -192,13 +223,16 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
         if (dragging_window == NULL) {
             return;
         }
-        int dx = current_pos.x - dragging_prev_pos.x;
-        int dy = current_pos.y - dragging_prev_pos.y;
-        dragging_window->x += dx;
-        dragging_window->y += dy;
-        dragging_prev_pos = current_pos;
         if(drag_counter == 0){
-            _vell_draw();
+            int dx = current_pos.x - dragging_prev_pos.x;
+            int dy = current_pos.y - dragging_prev_pos.y;
+            Recti r = recti_of_window(dragging_window);
+            dragging_window->x += dx;
+            dragging_window->y += dy;
+            Recti r2 = recti_of_window(dragging_window);
+            dragging_prev_pos = current_pos;
+            Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
+            __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
         }
         drag_counter = (drag_counter + 1) % 8;
     }

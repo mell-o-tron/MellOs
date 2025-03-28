@@ -30,6 +30,7 @@ void _init_mouse_handler(){
     _vell_deregister_window(mouse_window);
     _vell_register_mouse(mouse_window);
     mouse_window->draw_frame = false;
+    set_window_transparent(mouse_window, true);
     mouse_window->x = vga_fb->width / 2;
     mouse_window->y = vga_fb->height / 2;
     fb_fill_circle(fb->width / 2, fb->height / 2, 6, VESA_BLACK, *mouse_window->fb);

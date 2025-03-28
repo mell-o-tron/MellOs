@@ -37,3 +37,5 @@ int sqrt(int x);
 
 int vector2i_distance(Vector2i a, Vector2i b);
 bool vector2i_in_recti(Vector2i a, Recti b);
+Recti recti_union(Recti a, Recti b);
+Recti recti_intersection(Recti a, Recti b);

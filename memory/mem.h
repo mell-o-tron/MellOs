@@ -6,3 +6,4 @@ void* memset(void* dest, unsigned char val, size_t count);
 
 
 void memcp(unsigned char* source, unsigned char* dest, size_t count);
+void *memcpy(void *to, const void *from, unsigned int n);

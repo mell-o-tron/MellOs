@@ -7,6 +7,7 @@
 #include "../utils/conversions.h"
 #include "../memory/dynamic_mem.h"
 #include "../utils/math.h"
+#include "../memory/mem.h"
 
 Framebuffer vga_fb_true;
 Framebuffer* vga_fb;
@@ -53,7 +54,7 @@ void clear_screen_col(Colour col) {
     fb_clear_screen_col(col, vga_fb_true);
 }
 
-void fb_draw_line(int x1, int y1, int x2, int y2, size_t thickness, VESA_Colour col, Framebuffer* fb){
+void fb_draw_line_at_only(int x1, int y1, int x2, int y2, size_t thickness, VESA_Colour col, Framebuffer* fb, Recti bounds){
     int dx = x2 - x1;
     int dy = y2 - y1;
     int steps = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
@@ -62,17 +63,21 @@ void fb_draw_line(int x1, int y1, int x2, int y2, size_t thickness, VESA_Colour 
     float X = x1;
     float Y = y1;
     for (int i = 0; i <= steps; i++) {
-        fb_fill_rect(X, Y, thickness, thickness, col, *fb);
+        fb_fill_rect_at_only(X, Y, thickness, thickness, col, *fb, bounds);
         X += Xinc;
         Y += Yinc;
     }
 }
 
-void fb_draw_rect(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb){
-    fb_draw_line(x, y, x + width, y, thickness, col, fb);
-    fb_draw_line(x, y, x, y + height, thickness, col, fb);
-    fb_draw_line(x + width, y, x + width, y + height, thickness, col, fb);
-    fb_draw_line(x, y + height, x + width, y + height, thickness, col, fb);
+void fb_draw_rect_at_only(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb, Recti bounds){
+    fb_draw_line_at_only(x, y, x + width, y, thickness, col, fb, bounds);
+    fb_draw_line_at_only(x, y, x, y + height, thickness, col, fb, bounds);
+    fb_draw_line_at_only(x + width, y, x + width, y + height, thickness, col, fb, bounds);
+    fb_draw_line_at_only(x, y + height, x + width, y + height, thickness, col, fb, bounds);
+}
+
+void fb_draw_rect(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb) {
+    fb_draw_rect_at_only(x, y, width, height, thickness, col, fb, recti_of_framebuffer(fb));
 }
 
 void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
@@ -83,7 +88,7 @@ void fill_square(int x, int y, int size, VESA_Colour col) {
     fb_fill_rect(x, y, size, size, col, vga_fb_true);
 }
 
-void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb) {
+void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb, Recti bounds) {
     if (x < 0) {
         width += x;
         x = 0;
@@ -95,11 +100,22 @@ void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuf
     width = min(width, fb.width - x);
     height = min(height, fb.height - y);
 
+    // width = min(width, bounds.width);
+    // height = min(height, bounds.height);
+    x = max(x, bounds.x);
+    y = max(y, bounds.y);
+    width = min(width, bounds.width);
+    height = min(height, bounds.height);
+
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
         }
     }
+}
+
+void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb) {
+    fb_fill_rect_at_only(x, y, width, height, col, fb, recti_of_framebuffer(&fb));
 }
 
 void fill_rect(int x, int y, int width, int height, VESA_Colour col) {
@@ -166,9 +182,11 @@ void deallocate_framebuffer(Framebuffer* fb) {
 
 void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {
     if (width < 0 || height < 0 || x > ((int)dest.width) || y > ((int)dest.height)) return;
-    if (from_x > src.width || from_x > dest.width || from_y > src.height || from_y > dest.height) return;
+    if (from_x > x + src.width || from_x > dest.width || from_y > y + src.height || from_y > dest.height) return;
     if (from_x < 0) from_x = 0;
     if (from_y < 0) from_y = 0;
+    if (to_x > dest.width) to_x = dest.width;
+    if (to_y > dest.height) to_y = dest.height;
     
     uint32_t src_offset = 0;
 
@@ -188,9 +206,18 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
 
     uint32_t dest_offset = y * dest.pitch + x;
 
-    src_offset += from_y * src.pitch;
-    dest_offset += from_y * dest.pitch;
-    height -= from_y;
+    uint32_t xdiff = max(0, from_x - x);
+    uint32_t ydiff = max(0, from_y - y);
+    src_offset += xdiff;
+    dest_offset += xdiff;
+    src_offset += ydiff * src.pitch;
+    dest_offset += ydiff * dest.pitch;
+    width -= xdiff;
+    height -= ydiff;
+
+    // src_offset += from_y * src.pitch;
+    // dest_offset += from_y * dest.pitch;
+    // height -= from_y;
 
     width = min(width, to_x - x);
     height = min(height, to_y - from_y);
@@ -217,21 +244,33 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
     //     kprint("\n");
     //     return;
     // }
-    
+
     // src_offset -= from_x;
-    uint32_t count = 0;
-    for (uint32_t i = 0; i < height; i++) {
-        for (uint32_t j = from_x; j < width; j++) {
-            if (((VESA_Colour)(src.fb[src_offset + j])).a) {// Handle transparency
-                // if (from_x != 0){
-                //     dest.fb[dest_offset + j] = (src_offset / src.pitch) << 16 | (j) << 8 | 0xFF;
-                //     continue;
-                // }
+
+    if (src.transparent){
+        for (uint32_t i = 0; i < height; i++) {
+            for (uint32_t j = 0; j < width; j++) {
+                if (((VESA_Colour)(src.fb[src_offset + j])).a) {// Handle transparency
+                    // if (from_x != 0){
+                    //     dest.fb[dest_offset + j] = (src_offset / src.pitch) << 16 | (j) << 8 | 0xFF;
+                    //     continue;
+                    // }
+                    dest.fb[dest_offset + j] = src.fb[src_offset + j];
+                }
+            }
+            dest_offset += dest.pitch;
+            src_offset += src.pitch;
+        }
+    } else {
+        for (uint32_t i = 0; i < height; i++) {
+            // memcpy(dest.fb + dest_offset, src.fb + src_offset, width);
+            // memcp(src.fb + src_offset, dest.fb + dest_offset, width );
+            for (uint32_t j = 0; j < width; j++) {
                 dest.fb[dest_offset + j] = src.fb[src_offset + j];
             }
+            dest_offset += dest.pitch;
+            src_offset += src.pitch;
         }
-        dest_offset += dest.pitch;
-        src_offset += src.pitch;
     }
 }
 
@@ -248,13 +287,36 @@ void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int fro
 }
 
 
-void fb_draw_gradient(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb) {
-    for (int i = 0; i < height; i++) {
-        VESA_Colour col = vesa_interpolate(col1, col2, (float)i / height);
-        for (int j = 0; j < width; j++) {
+void fb_draw_gradient_at_only(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb, Recti bounds) {
+    int original_height = height;
+    // height = min(height, bounds.height);
+    // width = min(width, bounds.width);
+    int start_y = max(y, bounds.pos.y);
+    int start_x = max(x, bounds.pos.x);
+
+    // kprint("Gradient: ");
+    // kprint_dec(start_x);
+    // kprint(" ");
+    // kprint_dec(start_y);
+    // kprint(" ");
+    // kprint_dec(start_x + min(width, bounds.width));
+    // kprint(" ");
+    // kprint_dec(start_y + min(height, bounds.height));
+    // kprint("\n");
+
+    int end_x = min(x + width, bounds.x + bounds.width);
+    int end_y = min(y + height, bounds.y + bounds.height);
+
+    for (int i = start_y; i < end_y; i++) {
+        VESA_Colour col = vesa_interpolate(col1, col2, (float)i / original_height);
+        for (int j = start_x; j < end_x; j++) {
             fb->fb[(y + i) * fb->pitch + (x + j)] = col.val;
         }
     }
+}
+
+void fb_draw_gradient(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb) {
+    fb_draw_gradient_at_only(x, y, width, height, col1, col2, fb, recti_of_framebuffer(fb));
 }
 
 VESA_Colour vesa_interpolate(VESA_Colour col1, VESA_Colour col2, float t) {
@@ -264,6 +326,15 @@ VESA_Colour vesa_interpolate(VESA_Colour col1, VESA_Colour col2, float t) {
     out.b = col1.b + (col2.b - col1.b) * t;
     out.a = col1.a + (col2.a - col1.a) * t;
     return out;
+}
+
+Recti recti_of_framebuffer(Framebuffer* fb) {
+    Recti r;
+    r.x = 0;
+    r.y = 0;
+    r.width = fb->width;
+    r.height = fb->height;
+    return r;
 }
 
 #endif

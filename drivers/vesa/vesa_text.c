@@ -101,7 +101,7 @@ static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MO
 static struct VBEScreen* vbe_screen = (struct VBEScreen*)VBE_SCREEN_LOC;
 
 static uint16_t cursor_pos = 0;
-static Framebuffer* fb;
+static Framebuffer* fb = NULL;
 static bool autoblit = true;
 
 static function_type dirty_callback = NULL;

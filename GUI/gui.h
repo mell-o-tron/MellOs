@@ -16,6 +16,7 @@ typedef struct Window {
     int x;
     int y;
     bool draw_frame;
+    bool transparent;
     bool focused;
 } Window;
 
@@ -25,6 +26,7 @@ Window* create_window_with_fb(Framebuffer* fb, const char* title);
 void destroy_window(Window* w);
 void destroy_window_preserve_fb(Window* w);
 
+void set_window_transparent(Window* w, bool transparent);
 void set_window_dirty(Window* w);
 
 Recti recti_of_window(Window* w);

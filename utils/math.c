@@ -93,3 +93,25 @@ int vector2i_distance(Vector2i a, Vector2i b) {
 bool vector2i_in_recti(Vector2i a, Recti b) {
     return a.x >= b.pos.x && a.x <= b.pos.x + b.size.x && a.y >= b.pos.y && a.y <= b.pos.y + b.size.y;
 }
+
+Recti recti_union(Recti a, Recti b) {
+    Recti r;
+    r.pos.x = min(a.pos.x, b.pos.x);
+    r.pos.y = min(a.pos.y, b.pos.y);
+    Vector2i a_end = {a.pos.x + a.size.x, a.pos.y + a.size.y};
+    Vector2i b_end = {b.pos.x + b.size.x, b.pos.y + b.size.y};
+    r.size.x = max(a_end.x, b_end.x) - r.pos.x;
+    r.size.y = max(a_end.y, b_end.y) - r.pos.y;
+    return r;
+}
+
+Recti recti_intersection(Recti a, Recti b) {
+    Recti r;
+    r.pos.x = max(a.pos.x, b.pos.x);
+    r.pos.y = max(a.pos.y, b.pos.y);
+    Vector2i a_end = {a.pos.x + a.size.x, a.pos.y + a.size.y};
+    Vector2i b_end = {b.pos.x + b.size.x, b.pos.y + b.size.y};
+    r.size.x = min(a_end.x, b_end.x) - r.pos.x;
+    r.size.y = min(a_end.y, b_end.y) - r.pos.y;
+    return r;
+}

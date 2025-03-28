@@ -2,6 +2,7 @@
 #ifdef VGA_VESA
 
 #include "../utils/typedefs.h"
+#include "../utils/math.h"
 
 #define PIXEL 				uint32_t
 // #define FRAMEBUFFER			((volatile PIXEL*)0x800000)
@@ -14,6 +15,7 @@ typedef struct Framebuffer {
     uint32_t width;
     uint32_t height;
     uint32_t pitch;
+    bool transparent;
 } Framebuffer;
 
 extern Framebuffer* vga_fb;
@@ -41,11 +43,15 @@ void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer fb);
 void fb_clear_screen_col(Colour col, Framebuffer fb);
 void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb);
 void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb);
+void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb, Recti bounds);
 void fb_fill_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb);
 void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb);
-void fb_draw_rect(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb);
+void fb_draw_rect_at_only(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb, Recti bounds);
 void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb);
 void fb_draw_gradient(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb);
+void fb_draw_gradient_at_only(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb, Recti bounds);
 VESA_Colour vesa_interpolate(VESA_Colour col1, VESA_Colour col2, float ratio);
+
+Recti recti_of_framebuffer(Framebuffer* fb);
 
 #endif
