@@ -159,7 +159,7 @@ extern void main(){
     // Map two pages for the framebuffer
     const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
     for (int i = 0; i < NUM_FB_PAGES; i++){
-        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
+        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/ + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
     }
     const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
     #endif
@@ -180,13 +180,12 @@ extern void main(){
     set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
-    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
     _vesa_framebuffer_init(framebuffer_addr);
     _vesa_text_init();
     mouse_install();
     #else
-    set_dynamic_mem_loc ((void*)0x800000 + 100000/2);
+    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
     #endif
 
     kb_install();
