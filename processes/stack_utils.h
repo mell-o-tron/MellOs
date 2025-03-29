@@ -1,6 +1,10 @@
 #pragma once
 #include "../utils/conversions.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 
 #define PUSH_BS(val) \
     __asm__ volatile (        \

@@ -1,7 +1,11 @@
 #include "processes.h"
 #include "../memory/dynamic_mem.h"
 #include "../utils/typedefs.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../utils/conversions.h"
 
 

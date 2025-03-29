@@ -1,17 +1,17 @@
 [org 0x7e00]
 [bits 16]
 
-KERNEL_LOCATION equ 0x8200
+STAGE_3_LOCATION equ 0x8200
 
 mov bx, STAGING
 call print_string
 
-;read the kernel (60 sectors)
-mov bx, KERNEL_LOCATION
-mov al, 63		; read 61 sectors
+;read the stage 3 bootloader (60 sectors)
+mov bx, STAGE_3_LOCATION
+mov al, 13			; read 13 sectors
 mov ch, 0x00		; from cylinder 0
-mov cl, 0x04		; from sector 4 (counting from 1)
 mov dh, 0x00		; from head 0
+mov cl, 0x04		; from sector 4 (counting from 1)
 call disk_read
 
 ; WHATEVER IS PUT INTO BX HERE WILL BE WRITTEN INTO THE MEMSIZE VARIABLE!
@@ -22,6 +22,10 @@ call disk_read
 call memory_detection
 call upper_mem_map
 ; 	; disk parameters
+%ifdef VGA_VESA
+call vbe_setup
+%endif
+
 mov dl, 0xA0
 call drive_parameters
 
@@ -31,6 +35,9 @@ jmp $
 
 %include"print_string.asm"
 %include"print_dec.asm"
+%ifdef VGA_VESA
+%include"vbe_modeset.asm"
+%endif
 %include"disk.asm"
 %include"memory.asm" ; old memory detection code
 %include"protected_mode.asm"
@@ -57,7 +64,7 @@ _main32:
 	out 0x92, al
 
 	;jump to kernel location
-	jmp KERNEL_LOCATION
+	jmp STAGE_3_LOCATION
     jmp $
 
 STAGING:
