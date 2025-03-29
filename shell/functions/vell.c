@@ -29,7 +29,6 @@ static void swap_framebuffers(){
 #define UNFOCUSED_COLOUR VESA_WHITE
 
 void __vell_draw(int from_x, int from_y, int to_x, int to_y){
-    // fb_clear_screen_col_VESA(VESA_CYAN, *fb);
     Recti bounds;
     bounds.x = from_x;
     bounds.y = from_y;
@@ -37,7 +36,7 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     bounds.height = to_y - from_y;
 
 
-    // TODO: Temporarily, partial blitting has been disabled. Make it work to improve performance
+    /* Uncomment the following lines to make every draw call a full draw */
     // Recti all_bounds;
     // all_bounds.x = 0;
     // all_bounds.y = 0;
@@ -49,19 +48,8 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
     // to_x = fb->width;
     // to_y = fb->height;
     
-    // fb_clear_screen(*fb);
     fb_draw_gradient_at_only(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb, bounds);
-    // if (from_x != 0){
-    //     fb_draw_gradient_at_only(0, 0, vga_fb->width, vga_fb->height, VESA_CYAN, VESA_MAGENTA, fb, bounds);
-    //     goto test;
-    // }else {
-    //     fb_draw_gradient(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb);
-    // }
-    
-    // if(from_x != 0){
-    //     fb_fill_rect_at_only(0, 0, vga_fb->width, vga_fb->height, VESA_RED, *fb, bounds);
-    //     goto test;
-    // }
+
     CircularList* current = windows;
     if (current != NULL){
         do{
@@ -77,7 +65,6 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
             current = current->next;
         } while(current != windows);
     }
-    test:
     
     blit_all_at_only(fb, vga_fb, 0, 0, from_x, from_y, to_x, to_y);
     if (mouse_window != NULL){
@@ -119,6 +106,8 @@ FDEF(vell){
 void _vell_register_window(Window* w){
     clist_append(&windows, w);
     // kprint("Window registered\n");
+    // kprint("Window: ");
+    // kprint(w->title);
 }
 
 void _vell_deregister_window(Window* w){
@@ -134,31 +123,9 @@ void _vell_deregister_mouse(Window* w){
 }
 
 void _vell_mouse_move(int old_x, int old_y, int new_x, int new_y){
-    // blit_all_at_only(mouse_window->fb, vga_fb, new_x, new_y, new_x-16, new_y-16, new_x + 16, new_y + 16);
-    // __vell_draw(old_x, old_y, old_x + 16, old_y + 16);
     blit_all_at_only(fb2, vga_fb, 0, 0, old_x, old_y, old_x + 16, old_y + 16);
-    // blit_all_at(fb, vga_fb, 0, 0);
-    blit_all_at(mouse_window->fb, vga_fb, new_x, new_y); // No need to do _only, as the mouse fb is just 16x16
-    // _vell_draw();
-    // kprint("Mouse moved\n");
-    // kprint_hex(old_x);
-    // kprint(" ");
-    // kprint_hex(old_y);
-    // kprint(" ");
-    // kprint_hex(new_x);
-    // kprint(" ");
-    // kprint_hex(new_y);
-    // kprint("\n");
+    blit_all_at(mouse_window->fb, vga_fb, new_x, new_y); // No need to do partial blit, as the mouse fb is just 16x16
 }
-
-typedef enum WindowElement {
-    TITLEBAR,
-    BORDER_TOP,
-    BORDER_BOTTOM,
-    BORDER_LEFT,
-    BORDER_RIGHT,
-    CLIENT_AREA
-} WindowElement;
 
 Window* find_window_at(Vector2i pos, WindowElement* element){
     CircularList* current = windows->prev;
@@ -223,7 +190,8 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
         if (dragging_window == NULL) {
             return;
         }
-        if(drag_counter == 0 || 1){ // Disable drag counter as we have decently fast and partial blitting now
+        /* Uncomment these lines to enable the drag counter, only handling dragging events once every n times */
+        // if(drag_counter == 0 || 1){
             int dx = current_pos.x - dragging_prev_pos.x;
             int dy = current_pos.y - dragging_prev_pos.y;
             Recti r = recti_of_window(dragging_window);
@@ -233,8 +201,8 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
             dragging_prev_pos = current_pos;
             Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
             __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
-        }
-        drag_counter = (drag_counter + 1) % 3;
+        // }
+        // drag_counter = (drag_counter + 1) % 3;
     }
 }
 

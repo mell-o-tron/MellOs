@@ -5,9 +5,7 @@
 #include "../utils/math.h"
 
 #define PIXEL 				uint32_t
-// #define FRAMEBUFFER			((volatile PIXEL*)0x800000)
-
-#define BYTES_PER_PIXEL BPP / 8
+#define BYTES_PER_PIXEL (BPP / 8)
 #define PITCH HRES
 
 typedef struct Framebuffer {

@@ -166,8 +166,7 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height) {
     out->fb = kmalloc(size);
     out->width = width;
     out->height = height;
-    out->pitch = width; /*pitch*/
-    // fb_clear_screen(out);
+    out->pitch = width;
     return out;
 }
 
@@ -215,10 +214,6 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
     width -= xdiff;
     height -= ydiff;
 
-    // src_offset += from_y * src.pitch;
-    // dest_offset += from_y * dest.pitch;
-    // height -= from_y;
-
     width = min(width, to_x - from_x);
     height = min(height, to_y - from_y);
 
@@ -228,29 +223,11 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
     width = min(width, src.width);
     height = min(height, src.height);
 
-    // if (from_x != 0) {
-    //     fb_draw_rect(from_x, from_y, width, height + to_y, 4, VESA_RED, &dest);
-    //     return;
-    // }
-
-    // if (from_x != 0) {
-    //     kprint_dec(from_x);
-    //     kprint(" ");
-    //     kprint_dec(from_y);
-    //     kprint(" ");
-    //     kprint_dec(width);
-    //     kprint(" ");
-    //     kprint_dec(height);
-    //     kprint("\n");
-    //     return;
-    // }
-
-    // src_offset -= from_x;
-
-    if (src.transparent){
+    if (src.transparent){ // If transparency is enabled, blitting will be faster, as we have to check alpha for each byte. TODO: Improve performance
         for (uint32_t i = 0; i < height; i++) {
             for (uint32_t j = 0; j < width; j++) {
-                if (((VESA_Colour)(src.fb[src_offset + j])).a) {// Handle transparency
+                if (((VESA_Colour)(src.fb[src_offset + j])).a) {// For now, only 0x00 and 0xFF transparency values are supported
+                    /* This is some test code to check if width and height are set properly. */
                     // if (from_x != 0){
                     //     dest.fb[dest_offset + j] = (src_offset / src.pitch) << 16 | (j) << 8 | 0xFF;
                     //     continue;
@@ -289,20 +266,8 @@ void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int fro
 
 void fb_draw_gradient_at_only(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb, Recti bounds) {
     int original_height = height;
-    // height = min(height, bounds.height);
-    // width = min(width, bounds.width);
     int start_y = max(y, bounds.pos.y);
     int start_x = max(x, bounds.pos.x);
-
-    // kprint("Gradient: ");
-    // kprint_dec(start_x);
-    // kprint(" ");
-    // kprint_dec(start_y);
-    // kprint(" ");
-    // kprint_dec(start_x + min(width, bounds.width));
-    // kprint(" ");
-    // kprint_dec(start_y + min(height, bounds.height));
-    // kprint("\n");
 
     int end_x = min(x + width, bounds.x + bounds.width);
     int end_y = min(y + height, bounds.y + bounds.height);

@@ -20,6 +20,15 @@ typedef struct Window {
     bool focused;
 } Window;
 
+typedef enum WindowElement {
+    TITLEBAR,
+    BORDER_TOP,
+    BORDER_BOTTOM,
+    BORDER_LEFT,
+    BORDER_RIGHT,
+    CLIENT_AREA
+} WindowElement;
+
 Window* create_window(const char* title);
 Window* create_window_with_size(const char* title, uint32_t width, uint32_t height);
 Window* create_window_with_fb(Framebuffer* fb, const char* title);
