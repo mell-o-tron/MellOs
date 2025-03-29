@@ -219,7 +219,7 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
     // dest_offset += from_y * dest.pitch;
     // height -= from_y;
 
-    width = min(width, to_x - x);
+    width = min(width, to_x - from_x);
     height = min(height, to_y - from_y);
 
     width = min(width, dest.width - x);
@@ -264,10 +264,10 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
     } else {
         for (uint32_t i = 0; i < height; i++) {
             // memcpy(dest.fb + dest_offset, src.fb + src_offset, width);
-            // memcp(src.fb + src_offset, dest.fb + dest_offset, width );
-            for (uint32_t j = 0; j < width; j++) {
-                dest.fb[dest_offset + j] = src.fb[src_offset + j];
-            }
+            memcp(src.fb + src_offset, dest.fb + dest_offset, width * 4);
+            // for (uint32_t j = 0; j < width; j++) {
+            //     dest.fb[dest_offset + j] = src.fb[src_offset + j];
+            // }
             dest_offset += dest.pitch;
             src_offset += src.pitch;
         }

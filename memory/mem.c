@@ -14,15 +14,43 @@ void* memset(void* dest, unsigned char val, size_t count){
 }
 
 /* Copy blocks of memory */
-void memcp(unsigned char* source, unsigned char* dest, size_t count){
+void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count){
     if (!source || !dest)
         return;
 
-    for (int i = 0; i < count; i++)
-        *(dest + i) = *(source + i);
+
+	// TODO: Need to make 4byte alignment considerations
+	// This implementation should be faster than the one below
+	// It first copies bytes until the number of bytes to copy is a multiple of 4
+	// Then it copies 4 bytes at a time
+	
+	while (count % 4 != 0)
+	{
+		*dest = *source;
+		dest++;
+		source++;
+		count--;
+	}
+
+	const char* restrict final = source + count;
+	while (source < final) {
+		*(uint32_t*)dest = *(uint32_t*)source;
+		dest += 4;
+		source += 4;
+	}
+
+	// /* Copy 4 bytes at a time */
+	// if (count / 4 > 0){
+	// 	for (size_t i = 0; i < count / 4; i++)
+	// 		*(uint32_t*)(dest + i * 4) = *(uint32_t*)(source + i * 4);
+	// 	count = count % 4;
+	// }
+
+    // for (size_t i = 0; i < count; i++)
+    //     *(dest + i) = *(source + i);
 }
 
-void *memcpy(void *to, const void *from, unsigned int n)
+void *memcpy(void * restrict to, const void * restrict from, unsigned int n)
 {
 	if(cpuid_has_sse())
 	{

@@ -11,7 +11,7 @@
 #define PITCH HRES
 
 typedef struct Framebuffer {
-    volatile PIXEL* fb;
+    volatile PIXEL* restrict fb;
     uint32_t width;
     uint32_t height;
     uint32_t pitch;

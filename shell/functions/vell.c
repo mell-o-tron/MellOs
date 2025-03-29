@@ -38,16 +38,16 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
 
 
     // TODO: Temporarily, partial blitting has been disabled. Make it work to improve performance
-    Recti all_bounds;
-    all_bounds.x = 0;
-    all_bounds.y = 0;
-    all_bounds.width = fb->width;
-    all_bounds.height = fb->height;
-    bounds = all_bounds;
-    from_x = 0;
-    from_y = 0;
-    to_x = fb->width;
-    to_y = fb->height;
+    // Recti all_bounds;
+    // all_bounds.x = 0;
+    // all_bounds.y = 0;
+    // all_bounds.width = fb->width;
+    // all_bounds.height = fb->height;
+    // bounds = all_bounds;
+    // from_x = 0;
+    // from_y = 0;
+    // to_x = fb->width;
+    // to_y = fb->height;
     
     // fb_clear_screen(*fb);
     fb_draw_gradient_at_only(0, 0, fb->width, fb->height, VESA_MAGENTA, VESA_CYAN, fb, bounds);
@@ -138,7 +138,7 @@ void _vell_mouse_move(int old_x, int old_y, int new_x, int new_y){
     // __vell_draw(old_x, old_y, old_x + 16, old_y + 16);
     blit_all_at_only(fb2, vga_fb, 0, 0, old_x, old_y, old_x + 16, old_y + 16);
     // blit_all_at(fb, vga_fb, 0, 0);
-    blit_all_at(mouse_window->fb, vga_fb, new_x, new_y);
+    blit_all_at(mouse_window->fb, vga_fb, new_x, new_y); // No need to do _only, as the mouse fb is just 16x16
     // _vell_draw();
     // kprint("Mouse moved\n");
     // kprint_hex(old_x);
@@ -223,7 +223,7 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
         if (dragging_window == NULL) {
             return;
         }
-        if(drag_counter == 0){
+        if(drag_counter == 0 || 1){ // Disable drag counter as we have decently fast and partial blitting now
             int dx = current_pos.x - dragging_prev_pos.x;
             int dy = current_pos.y - dragging_prev_pos.y;
             Recti r = recti_of_window(dragging_window);
@@ -234,7 +234,7 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
             Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
             __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
         }
-        drag_counter = (drag_counter + 1) % 8;
+        drag_counter = (drag_counter + 1) % 3;
     }
 }
 

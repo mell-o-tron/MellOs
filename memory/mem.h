@@ -5,5 +5,5 @@
 void* memset(void* dest, unsigned char val, size_t count);
 
 
-void memcp(unsigned char* source, unsigned char* dest, size_t count);
-void *memcpy(void *to, const void *from, unsigned int n);
+void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count);
+void *memcpy(void * restrict to, const void * restrict from, unsigned int n);
