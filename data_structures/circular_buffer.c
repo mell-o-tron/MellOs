@@ -1,5 +1,9 @@
 #include "circular_buffer.h"
+// #ifdef VGA_VESA
+// #include "../drivers/vesa/vesa_text.h"
+// #else
 // #include "../drivers/vga_text.h"
+// #endif
 // #include "../utils/conversions.h"
 
 void add_to_cbuffer(cbuffer_t * buf, char c, bool is_uppercase){

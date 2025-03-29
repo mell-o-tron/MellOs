@@ -1,4 +1,8 @@
+#ifdef VGA_VESA
+#include "../../drivers/vesa/vesa_text.h"
+#else
 #include "../../drivers/vga_text.h"
+#endif
 #include "../../file_system/file_system.h"
 #include "../../utils/conversions.h"
 #include "../../utils/typedefs.h"
@@ -17,7 +21,7 @@ FDEF(exec){
         return;
     }
     
-    char* exec_place = (char*)0x700000;
+    char* exec_place = (char*)0x700000; // TODO: Noooo please allocate memory I want to exec more files 😭
     
     char* tmp = read_string_from_file((char*)t);
     

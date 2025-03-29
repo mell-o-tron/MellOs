@@ -33,9 +33,13 @@ If you make a useful change or addition, you are allowed to use the `anything_he
 - Simple shell
 - Very, very minimal file system
 - Text editor
+- Minimal VESA graphics driver
+- Mouse driver
+- Simple floppy disk driver
 
 ### Work in progress
 - Process scheduling
+- Graphics toolkit
 
 ### Future
 - Spawning processes from the shell

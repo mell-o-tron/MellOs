@@ -1,6 +1,10 @@
 #include "shell.h"
 #include "../utils/typedefs.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../misc/colours.h"
 #include "../utils/string.h"
 #include "shell_functions.h"
@@ -41,6 +45,13 @@ void load_shell(){
     shell_tasks.array = kmalloc(shell_tasks.size);
     shell_tasks.top = 0;
     shell_tasks.bot = 0;
+
+    // char buf = "vell\n";
+    // shellfunction* cmd = TryGetCMD(buf);
+    // if(cmd != 0){
+    //     // execute command
+    //     cmd->fptr("");
+    // }
     
     uint32_t i = 0;
     while (true){

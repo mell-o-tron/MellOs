@@ -1,3 +1,4 @@
+#ifndef VGA_VESA
 #include "../utils/typedefs.h"
 #include "../drivers/port_io.h"
 #include "../utils/conversions.h"
@@ -144,3 +145,18 @@ void scroll_up(size_t lines){ // Copying memory from VGA to VGA is not the most 
 		clear_line_col(i, DEFAULT_COLOUR);
 	}
 }
+
+void kprint_dec(uint32_t n){
+	char buf[11];
+	tostring(n, 10, buf);
+	kprint(buf);
+	kprint("\n");
+}
+
+void kprint_hex(uint32_t n){
+	char buf[11];
+	tostring_unsigned(n, 16, buf);
+	kprint(buf);
+	kprint("\n");
+}
+#endif

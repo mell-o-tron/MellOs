@@ -6,10 +6,10 @@
 void assign_kmallocator(allocator_t* allocator);
 void set_dynamic_mem_loc (void *loc);
 
-void * kmalloc (int size);
-int kdisintegrate(void* loc, int size);
-void* krealloc (void* oldloc, int oldsize, int newsize);
+void * kmalloc (size_t size);
+int kdisintegrate(void* loc, size_t size);
+void* krealloc (void* oldloc, size_t oldsize, size_t newsize);
 
 bitmap_t get_kmallocator_bitmap ();
-void set_kmalloc_bitmap (bitmap_t loc, int length);
-int kfree(void* loc, int size);
+void set_kmalloc_bitmap (bitmap_t loc, uint32_t length);
+uint32_t kfree(void* loc, size_t size);

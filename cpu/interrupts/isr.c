@@ -5,7 +5,11 @@
 
 #include "../../utils/typedefs.h"
 #include "idt.h"
+#ifdef VGA_VESA
+#include "../../drivers/vesa/vesa_text.h"
+#else
 #include "../../drivers/vga_text.h"
+#endif
 #include "../../kernel/kernel.h"
 #include "../../syscalls/syscalls.h"
 #include "../../utils/conversions.h"
@@ -94,6 +98,21 @@ extern  void _fault_handler(struct regs *r)
 	
     if (r->int_no < 32)
     {
+		// kprint("Received interrupt: ");
+		// kprint_dec(r->int_no);
+		// unsigned int cr2;
+		// asm volatile("mov %%cr2, %0" : "=r" (cr2));
+		// kprint("\nCR2 Register: ");
+		// kprint_hex(cr2);
+		// unsigned int stack_value;
+		// asm volatile("movl 4(%%ebp), %0" : "=r" (stack_value));
+		// kprint("\nValue on stack: ");
+		// kprint_hex(stack_value);
+		// unsigned int return_pointer;
+		// asm volatile("movl 8(%%ebp), %0" : "=r" (return_pointer));
+		// kprint("\nReturn Pointer: ");
+		// kprint_hex(return_pointer);
+		// while(1);
 		kpanic(r);
     }
 }

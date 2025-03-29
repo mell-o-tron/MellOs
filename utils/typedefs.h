@@ -9,6 +9,15 @@ typedef unsigned int uint32_t;
 typedef unsigned long size_t;
 
 typedef uint8_t Colour;
+typedef union {
+    struct {
+        uint8_t b;
+        uint8_t g;
+        uint8_t r;
+        uint8_t a;
+    };
+    uint32_t val;
+} VESA_Colour;
 
 typedef uint8_t bool;
 #define true    1
@@ -28,5 +37,7 @@ typedef struct {
 } maybe_int;
 
 typedef maybe_int maybe_void;
+
+typedef void (*function_type)(void);
 
 #endif

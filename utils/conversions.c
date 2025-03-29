@@ -8,7 +8,11 @@
 ***********************************************************/
 
 #include "string.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa_text.h"
+#else
 #include "../drivers/vga_text.h"
+#endif
 #include "../memory/dynamic_mem.h"
 #include "math.h"
 
@@ -43,6 +47,30 @@ const char* tostring(int n, int base, char* dest) {
 	reverse(buffer);
 
 	return buffer;
+}
+
+const char* tostring_unsigned(uint32_t n, int base, char* dest) {
+    char* buffer = dest;
+    
+    uint32_t m = n;
+    int i = 0;
+    
+    while(m != 0){
+        buffer[i] = (char)((m % base)+ (m % base > 9 ? 55 : 48));
+        m = m / base;
+        i++;
+    }
+    
+    if(n == 0){
+        buffer[i] = '0';
+        i++;
+    }
+    
+    buffer[i] = '\0';
+
+    reverse(buffer);
+
+    return buffer;
 }
 
 

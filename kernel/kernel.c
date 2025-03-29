@@ -7,7 +7,6 @@
 #include "../utils/typedefs.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
-#include "../drivers/vga_text.h"
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
 #include "../cpu/interrupts/idt.h"
@@ -18,8 +17,16 @@
 #include "../drivers/keyboard.h"
 #include "../drivers/port_io.h"
 #include "../memory/paging/paging.h"
+#include "../memory/paging/pat.h"
 #include "../memory/dynamic_mem.h"
 #include "../data_structures/allocator.h"
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa.h"
+#include "../drivers/vesa/vesa_text.h"
+#include "../drivers/mouse.h"
+#else
+#include "../drivers/vga_text.h"
+#endif
 // #include "../utils/assert.h"
 
 // PROCESSES
@@ -48,6 +55,9 @@ extern const char Fool[];
 
 bool keyboard_enabled = false; // maybe put this in some "state" struct?
 
+void khang(){
+    for(;;);
+}
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
 extern  void kpanic(struct regs *r){
@@ -92,9 +102,17 @@ extern  void kpanic(struct regs *r){
     for(;;);
 }
 
-unsigned int page_directory[1024]       __attribute__((aligned(4096)));
-unsigned int first_page_table[1024]     __attribute__((aligned(4096)));
-unsigned int second_page_table[1024]    __attribute__((aligned(4096)));
+uint32_t page_directory[1024]       __attribute__((aligned(4096)));
+uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
+uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
+#define NUM_MANY_PAGES (uint32_t)512
+uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
+#ifdef VGA_VESA
+#define NUM_FB_PAGES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
+unsigned int framebuffer_pages[NUM_FB_PAGES][1024]     __attribute__((aligned(4096)));
+PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE;
+PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING;
+#endif
 
 PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;
 PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
@@ -121,30 +139,58 @@ void task_2(){
     }
 }
 
+// char test[0xe749] = {1};
+allocator_t allocator;
+
 extern void main(){
+    // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
+    init_paging(page_directory, first_page_table, second_page_table);
     
-    // identity-maps 0x0 to 4MB (i.e. 0x400000 - 1)
-    init_paging(page_directory, first_page_table);
+    // Sets up the Page Attribute Table
+    setup_pat();
 
-    // maps 4MB to 8MB (0x400000 to 0x800000 - 1) -> 16 MB to 20 MB (0x1000000 to 0x1400000 - 1)
-    add_page(page_directory, second_page_table, 1, 0x1000000, first_page_table_flags, page_directory_flags);
+    // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
+    for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
+        add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
+    }
 
+
+    #ifdef VGA_VESA
+    // Map two pages for the framebuffer
+    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+    for (int i = 0; i < NUM_FB_PAGES; i++){
+        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/ + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
+    }
+    const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
+    #endif
+    
     gdt_init();
     idt_install();
     isrs_install();
     irq_install();
+    // asm volatile("hlt");
     asm volatile ("sti");
     timer_install();
     clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
     
-    allocator_t allocator;
+    allocator.granularity = 512;
     assign_kmallocator(&allocator);
     
-    set_kmalloc_bitmap((bitmap_t) 0x400000, 100000);   // dynamic memory allocation setup test
-    set_dynamic_mem_loc ((void*)0x400000 + 100000/2);
+    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    #ifdef VGA_VESA
+    // set_dynamic_mem_loc ((void*)framebuffer_end);
+    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    _vesa_framebuffer_init(framebuffer_addr);
+    _vesa_text_init();
+    mouse_install();
+    #else
+    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    #endif
 
     kb_install();
+
+
 
     
     void * code_loc = (void*) kmalloc(10);                  // kmalloc test
@@ -155,10 +201,16 @@ extern void main(){
         for (;;){;}
     }
 
+    #ifdef VGA_VESA
+    kclear_screen();
+    #else
+    clear_screen_col(DEFAULT_COLOUR);
+    #endif
+
+    /*
     // this clears the disk, remove it to have persistence
     kprint("Erasing virtual disk (debug)...");
     prepare_disk_for_fs(32);
-    clear_screen_col(DEFAULT_COLOUR);
   
     char* tmp = kmalloc(512);
     
@@ -265,11 +317,11 @@ extern void main(){
     write_string_to_file(tmp, "write.bin");
     
     new_file("banana", 1);
+    */
     
     set_cursor_pos_raw(0);
     
     uint8_t* a = read_string_from_disk(0xA0, 1, 1);
-    
     
     kprint(Fool);
     
