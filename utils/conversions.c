@@ -14,6 +14,7 @@
 #include "../drivers/vga_text.h"
 #endif
 #include "../memory/dynamic_mem.h"
+#include "conversions.h"
 #include "math.h"
 
 
@@ -133,4 +134,68 @@ int string_to_int_dec(const char *s) {
     }
 
     return sign * result;
+}
+
+int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize) {
+	if (dsize == 0)
+		return -EOVERFLOW;
+	*dest = '\0';
+	if (dsize == 1)
+		return -EOVERFLOW;
+	const char* digits = "0123456789abcdef";
+	if (base < 2 || base > __builtin_strlen(digits))
+		return -EINVAL;
+
+    /* 64 bit integers require libgcc */
+#ifndef ALLOW_64BIT
+    /* gcc should be able to do this operation without libgcc */
+    if (x > 0xFFFFFFFF)
+        return -ERANGE;
+    uint32_t x32 = (uint32_t)x;
+#endif
+
+	/* Do the actual conversion */
+	char* d = dest;
+	do {
+		if (dsize == 1)
+			break;
+#ifdef ALLOW_64BIT
+        *d++ = digits[x % base];
+        x /= base;
+#else
+		*d++ = digits[x32 % base];
+		x32 /= base;
+#endif
+		dsize--;
+	} while (x);
+	*d = '\0';
+
+	/* Make sure the conversion wasn't cut off by dsize */
+	if (x)
+		return -EOVERFLOW;
+
+	/* Now reverse the string */
+	d--;
+	while (dest < d) {
+		char tmp = *dest;
+		*dest++ = *d;
+		*d-- = tmp;
+	}
+
+	return 0;
+}
+
+int klltostr(char* dest, long long x, unsigned int base, size_t dsize) {
+	if (x < 0) {
+		if (dsize == 0)
+			return -EOVERFLOW;
+		if (--dsize == 0) {
+			*dest = '\0';
+			return -EOVERFLOW;
+		}
+		*dest++ = '-';
+		x = -x;
+	}
+
+	return kulltostr(dest, (unsigned long long)x, base, dsize);
 }
