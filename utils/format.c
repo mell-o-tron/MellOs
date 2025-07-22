@@ -134,6 +134,7 @@ static int get_arg(struct fmt *spec, va_list va, char c, union arg *arg) {
         arg->p = va_arg(va, void *);
         spec->flags |= FMT_SPECIAL | FMT_INT_B16;
         spec->precision = sizeof(void *) * 2;
+        spec->qualifier = 'z'; /* Make sure do_int doesn't cast the pointer to a lower size */
         break;
     case 'd':
     case 'i':
@@ -296,6 +297,34 @@ static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, uni
     return len + spaces;
 }
 
+static int do_int(char *dest, char qualifier, unsigned long long x, unsigned int base, size_t dsize) {
+    /* This must be done, otherwise there will be errors when x >
+     * TYPE_WIDTH_SIGNED_MAX */
+    switch (qualifier) {
+    case -1:
+        x = (unsigned int)x;
+        break;
+    case 'h':
+        x = (unsigned short)x;
+        break;
+    case 'H':
+        x = (unsigned char)x;
+        break;
+    case 'l':
+        x = (unsigned long)x;
+        break;
+    case 'L':
+        break;
+    case 'z':
+        x = (size_t)x;
+        break;
+    default:
+        return -EINVAL;
+    }
+
+    return kulltostr(dest, x, base, dsize);
+}
+
 /* Handle converting an outputting an integer to a string buffer */
 static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, union arg *arg) {
     char conversion[sizeof(long long) * 8 + 1];
@@ -311,7 +340,6 @@ static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, uni
 
     /* Now check the sign */
     char sign = '\0';
-    int sign_len = 0;
     if (spec->flags & FMT_INT_SIGNED) {
         if (arg->ll < 0) {
             sign = '-';
@@ -321,9 +349,8 @@ static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, uni
         } else if (spec->flags & FMT_SPACE) {
             sign = ' ';
         }
-        if (sign)
-            sign_len = 1;
     }
+    int sign_len = sign ? 1 : 0;
 
     /* The special flag will control whether or not the radix is printed */
     const char *radix = NULL;
@@ -338,7 +365,8 @@ static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, uni
     int radix_len = radix ? __builtin_strlen(radix) : 0;
 
     /* Now convert the integer to a string */
-    int err = kulltostr(conversion, arg->ull, base, sizeof(conversion));
+    int err =
+        do_int(conversion, spec->qualifier, arg->ull, base, sizeof(conversion));
     if (err)
         return -1;
     int conversion_len = strlen(conversion);
@@ -363,11 +391,20 @@ static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, uni
         spec->field_width = 0;
     }
 
-    /* Now either zeropad, or pad with spaces. The radix must be written first
-     * if zeropadding */
+    /* Now either zeropad, or pad with spaces. The radix and sign must be
+     * written first if zeropadding */
     if (spec->flags & FMT_ZEROPAD) {
+        if (sign) {
+            write_one(dest, sign, dsize);
+            sign = 0; /* Set to zero so it's not written again */
+        }
+
+        /* No need to check the pointer here, since radix_len will be zero, so
+         * no null dereference */
         write_many(dest, radix, radix_len, dsize);
-        radix = NULL; /* Set radix to NULL so that it isn't written again */
+        radix = NULL; /* Set to NULL so that it isn't written again */
+
+        /* Now do the actual zeropad */
         while (spec->field_width) {
             write_one(dest, '0', dsize);
             spec->field_width--;
@@ -379,7 +416,7 @@ static long long do_int_output(struct fmt *spec, char **dest, size_t *dsize, uni
         }
     }
 
-    if (sign_len)
+    if (sign)
         write_one(dest, sign, dsize);
     if (radix)
         write_many(dest, radix, radix_len, dsize);
@@ -431,28 +468,19 @@ int vsnprintf(char *dest, size_t dsize, const char *fmt, va_list va) {
 
         fmt++;
 
-        long long add;
         struct fmt spec;
         union arg arg;
 
-        /* For getting the argument, use the add variable as an error variable
-         */
         parse_fmt(&fmt, va, &spec);
-        add = get_arg(&spec, va, *fmt++, &arg);
-        if (add)
+        if (get_arg(&spec, va, *fmt++, &arg))
             return -1;
 
         /* Now for writing to output, if the value is negative it's an error */
-        add = do_output(&spec, &dest, &dsize, &arg);
+        long long add = do_output(&spec, &dest, &dsize, &arg);
         if (add < 0)
             return -1;
-
-        /* Now check to make sure the value getting returned won't be an
-         * overflow */
-        unsigned long long overflow_check = char_count + add;
-        if (overflow_check > INT_MAX)
+        if (__builtin_add_overflow(char_count, add, &char_count))
             return -1;
-        char_count += add;
     }
 
     /* dsize being zero can only happen if zero is passed in */
@@ -462,7 +490,8 @@ int vsnprintf(char *dest, size_t dsize, const char *fmt, va_list va) {
     return char_count;
 }
 
-__attribute__((format(printf, 3, 4))) int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
+__attribute__((format(printf, 3, 4)))
+int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     int ret = vsnprintf(dest, dsize, fmt, va);

@@ -159,20 +159,27 @@ int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize)
     do {
         if (dsize == 1)
             break;
+
+        dsize--;
 #ifdef ALLOW_64BIT
         *d++ = digits[x % base];
         x /= base;
+    while (x);
 #else
         *d++ = digits[x32 % base];
         x32 /= base;
+    } while (x32);
 #endif
-        dsize--;
-    } while (x);
     *d = '\0';
 
     /* Make sure the conversion wasn't cut off by dsize */
+#ifdef ALLOW_64BIT
     if (x)
+	    return -EOVERFLOW
+#else
+    if (x32)
         return -EOVERFLOW;
+#endif
 
     /* Now reverse the string */
     d--;
