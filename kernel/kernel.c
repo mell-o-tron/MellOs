@@ -176,8 +176,9 @@ extern void main(){
     
     allocator.granularity = 512;
     assign_kmallocator(&allocator);
-    
-    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    buddy_init(0x800000, 100000000);
+
+    //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
@@ -189,23 +190,21 @@ extern void main(){
     #endif
 
     kb_install();
-
-
-
     
-    void * code_loc = (void*) kmalloc(10);                  // kmalloc test
+    void * code_loc = (void*) kmalloc(1000);                  // kmalloc test
 
     if (code_loc == NULL){                          // null check
         kprint_col("KMALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
         for (;;){;}
     }
-
+    
     #ifdef VGA_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);
     #endif
+
 
     /*
     // this clears the disk, remove it to have persistence
@@ -318,15 +317,13 @@ extern void main(){
     
     new_file("banana", 1);
     */
-    
     set_cursor_pos_raw(0);
-    
+
     uint8_t* a = read_string_from_disk(0xA0, 1, 1);
-    
+
     kprint(Fool);
     
     load_shell();
-    
     // init_text_editor("test_file");
 
     /*
