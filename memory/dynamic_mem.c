@@ -120,8 +120,9 @@ void* buddy_alloc(size_t size) {
 
 void buddy_free(void* loc) {
     if (!loc) return;
+    uint32_t off = (uint32_t)((uint32_t)loc - (uint32_t)dynamic_mem_loc);
 
-    Block* block = (Block*)((char*)loc - sizeof(Block));
+    Block* block = (Block*)((char*)off - sizeof(Block));
     int order = block->order;
     block->free = 1;
 
@@ -221,6 +222,7 @@ void* slab_alloc(size_t size) {
 }
 
 void slab_free(void* loc, size_t size) {
+    uint32_t off = (uint32_t)((uint32_t)loc - (uint32_t)dynamic_mem_loc);
     int idx = -1;
     for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
         if (size <= slab_sizes[i]) {
@@ -233,10 +235,10 @@ void slab_free(void* loc, size_t size) {
 
     LilSlab* slab = slab_heads[idx];
     while (slab) {
-        if ((char*)loc >= (char*)slab->memory &&
-            (char*)loc < (char*)slab->memory + slab->capacity * slab->obj_size) {
+        if ((char*)off >= (char*)slab->memory &&
+            (char*)off < (char*)slab->memory + slab->capacity * slab->obj_size) {
 
-            size_t offset = (char*)loc - (char*)slab->memory;
+            size_t offset = (char*)off - (char*)slab->memory;
             size_t index = offset / slab->obj_size;
             slab->bitmap[index / 8] &= ~(1 << (index % 8));
             return;
@@ -247,7 +249,8 @@ void slab_free(void* loc, size_t size) {
 
 void* kmalloc(size_t size) {
     if (size <= 256) {
-        return slab_alloc(size);
+        uint32_t offset = slab_alloc(size);
+        return (void*)((uint32_t)dynamic_mem_loc + offset);
     } else {
         uint32_t offset = buddy_alloc(size);
         return (void*)((uint32_t)dynamic_mem_loc + offset);

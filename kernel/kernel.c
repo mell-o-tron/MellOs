@@ -174,8 +174,8 @@ extern void main(){
     clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
     
-    allocator.granularity = 512;
-    assign_kmallocator(&allocator);
+    //allocator.granularity = 512;
+    //assign_kmallocator(&allocator);
     buddy_init(0x800000, 100000000);
 
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
@@ -191,10 +191,16 @@ extern void main(){
 
     kb_install();
     
-    void * code_loc = (void*) kmalloc(1000);                  // kmalloc test
+    void * code_loc1 = (void*) kmalloc(1000);                  // kmalloc test
+    if (code_loc1 == NULL){                          // null check
+        kprint_col("BUDDY ALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
-    if (code_loc == NULL){                          // null check
-        kprint_col("KMALLOC TEST FAILED!!", DEFAULT_COLOUR);
+        for (;;){;}
+    }
+
+    void * code_loc2 = (void*) kmalloc(10);
+    if (code_loc2 == NULL){
+        kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
         for (;;){;}
     }
