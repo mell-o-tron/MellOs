@@ -177,10 +177,11 @@ extern void main(){
     clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
     
-    allocator.granularity = 512;
-    assign_kmallocator(&allocator);
-    
-    set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    //allocator.granularity = 512;
+    //assign_kmallocator(&allocator);
+    buddy_init(0x800000, 100000000);
+
+    //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
@@ -205,22 +206,29 @@ extern void main(){
 
     kprint("\n\n ENTERING COMMAND MODE...\n");
 
+
     sleep(30);
 
+    void * code_loc2 = (void*) kmalloc(10);
+    if (code_loc2 == NULL){
+        kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
+
+        for (;;){;}
+    }
+    
     #ifdef VGA_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);
     #endif
-    
+
     set_cursor_pos_raw(0);
-    
+
     uint8_t* a = read_string_from_disk(0xA0, 1, 1);
-    
+
     kprint(Fool);
     
     load_shell();
-    
     // init_text_editor("test_file");
 
     /*
