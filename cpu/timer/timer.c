@@ -11,7 +11,7 @@
 #include "../../processes/processes.h"
 #include "../../drivers/keyboard.h"
 
-int timer_ticks = 0;
+volatile int timer_ticks = 0;
 int seconds = 0;
 
 extern bool keyboard_enabled;
@@ -69,7 +69,9 @@ void timer_handler(regs *r)
 
 void sleep (int ticks){
     int startTicks = timer_ticks;
-    while(timer_ticks < startTicks + ticks){}
+    while(timer_ticks < startTicks + ticks){
+		;
+	}
     return;
 }
 
