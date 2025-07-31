@@ -1,7 +1,9 @@
 .vscode/
+compile_flags.txt
 
 # binaries
 WeeBins/
 wee_bins/*
 os_image.bin
 osimage_formated.bin
+
