@@ -480,21 +480,23 @@ int vsnprintf(char *dest, size_t dsize, const char *fmt, va_list va) {
 
         parse_fmt(&fmt, &wrap, &spec);
         if (get_arg(&spec, &wrap, *fmt++, &arg))
-            return -1;
+            goto fail;
 
         /* Now for writing to output, if the value is negative it's an error */
         long long add = do_output(&spec, &dest, &dsize, &arg);
         if (add < 0)
-            return -1;
+            goto fail;
         if (__builtin_add_overflow(char_count, add, &char_count))
-            return -1;
+            goto fail;
     }
 
-    /* dsize being zero can only happen if zero is passed in */
+    va_end(wrap.va);
     if (dsize)
         *dest = '\0';
-
     return char_count;
+fail:
+    va_end(wrap.va);
+    return -1;
 }
 
 __attribute__((format(printf, 3, 4)))
