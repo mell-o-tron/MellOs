@@ -5,6 +5,7 @@
 
 
 #include "../utils/typedefs.h"
+#include "multiboot_tags.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
@@ -67,7 +68,7 @@ const uint32_t multiboot_header[] = {
     0, // Linear graphics please?
     HRES, // Preferred width
     VRES, // Preferred height
-    PITCH // Preferred pixel depth
+    BPP   // Preferred pixel depth
 };
 #else
 __attribute__((section(".multiboot")))
@@ -172,7 +173,7 @@ void task_2(){
 // char test[0xe749] = {1};
 allocator_t allocator;
 
-extern void main(){
+extern void main(uint32_t multiboot_tags_addr){
         
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table);
@@ -216,6 +217,10 @@ extern void main(){
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
+    Hres = multiboot_tags->framebuffer_width;
+    Vres = multiboot_tags->framebuffer_height;
+    Pitch = multiboot_tags->framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
     _vesa_framebuffer_init(framebuffer_addr);
     _vesa_text_init();
     mouse_install();

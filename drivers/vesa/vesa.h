@@ -6,7 +6,10 @@
 
 #define PIXEL 				uint32_t
 #define BYTES_PER_PIXEL (BPP / 8)
-#define PITCH HRES
+
+extern uint32_t Hres;
+extern uint32_t Vres;
+extern uint32_t Pitch;
 
 typedef struct Framebuffer {
     volatile PIXEL* restrict fb;

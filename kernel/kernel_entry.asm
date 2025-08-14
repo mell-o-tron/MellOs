@@ -5,6 +5,7 @@
 
 CODE_SEG equ GDT_code - GDT_start
 DATA_SEG equ GDT_data - GDT_start
+TMP_MEM  equ 0x60000            ; Tmp location to store the multiboot tags
 
 ; kernel_entry.asm
 bits 32
@@ -15,7 +16,9 @@ extern kpanic
 section .entry
 _kernel_start:
     cli
-    
+
+    mov [TMP_MEM], ebx
+
     lgdt [GDT_descriptor]
     
     mov ax, DATA_SEG
@@ -30,6 +33,8 @@ _kernel_start:
         
     xor ebp, ebp
     
+    push dword [TMP_MEM]
+
     call main
     jmp $
     

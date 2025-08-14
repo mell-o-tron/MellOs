@@ -79,10 +79,10 @@ struct VBEScreen {
 #define HSCALE 1
 #define FONT_HOFFSET 1
 #define FONT_VOFFSET 1
-#define CONSOLE_HRES (HRES > 1000 ? 640 : (HRES - 10))
-#define CONSOLE_VRES (VRES > 700  ? 480 : (VRES - 30))
-#define CONSOLE_HOFF (HRES - CONSOLE_HRES) / 2
-#define CONSOLE_VOFF (VRES - CONSOLE_VRES) / 2
+#define CONSOLE_HRES (Hres > 1000 ? 640 : (Hres - 10))
+#define CONSOLE_VRES (Vres > 700  ? 480 : (Vres - 30))
+#define CONSOLE_HOFF (Hres - CONSOLE_HRES) / 2
+#define CONSOLE_VOFF (Vres - CONSOLE_VRES) / 2
 // #define CONSOLE_HRES 1920
 // #define CONSOLE_VRES 1080
 // #define CONSOLE_HOFF 0

@@ -9,15 +9,19 @@
 #include "../utils/math.h"
 #include "../memory/mem.h"
 
+uint32_t Hres;
+uint32_t Vres;
+uint32_t Pitch;
+
 Framebuffer vga_fb_true;
 Framebuffer* vga_fb;
 static uint8_t bytes_per_pixel;
 
 void _vesa_framebuffer_init(PIXEL addr){
 	vga_fb_true.fb = (volatile PIXEL*)addr;
-    vga_fb_true.width = HRES;
-    vga_fb_true.height = VRES;
-    vga_fb_true.pitch = PITCH;
+    vga_fb_true.width = Hres;
+    vga_fb_true.height = Vres;
+    vga_fb_true.pitch = Pitch;
     vga_fb = &vga_fb_true;
 
 	clear_screen(vga_fb);
@@ -171,7 +175,7 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height) {
 }
 
 Framebuffer* allocate_full_screen_framebuffer() {
-    return allocate_framebuffer(HRES, VRES);
+    return allocate_framebuffer(Hres, Vres);
 }
 
 void deallocate_framebuffer(Framebuffer* fb) {

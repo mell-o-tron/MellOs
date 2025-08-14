@@ -28,9 +28,6 @@ shellfunction CMDs[] = {
     CMDENTRY(&helpCMD,  "help",     "Shows command list", "help"),
     CMDENTRY(&echo,     "echo",     "Prints text", "echo [text]"),
     CMDENTRY(&clear,    "clear",    "Clears the screen", "clear"),
-    // CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
-    CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
-    CMDENTRY(&diskread,  "diskread",  "Reads from disk", "diskread [LBA] [num_sectors]"),
     CMDENTRY(&hcf,      "hcf",      "Crashes your system", "hcf"),
     CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
     CMDENTRY(&diskread,  "diskread",  "Reads from disk", "diskread [LBA] [num_sectors]"),
@@ -44,7 +41,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&erase_files, "erasefiles", "Erases the file bitmap", "erasefiles"),
     #ifdef VGA_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
-    CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues")
+    CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues"),
+    CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo")
     #endif
 };
 
