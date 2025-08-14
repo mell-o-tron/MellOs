@@ -1,18 +1,38 @@
-ENTRY(start_kernel)
-OUTPUT_FORMAT(elf32-i386)
-SECTIONS {
-    /* Where the kernel starts */
-    . = 0x400000;
+ENTRY(_kernel_start)
 
-    /* Make sure the entry point is the very first thing that is placed in the binary */
-    .entry : { *(.entry) }
-    .text : { *(.text) }
+SECTIONS
+{
+  . = 0x00100000;
 
-    .rodata : { *(.rodata) }
-    .data : { *(.data) }
+  .multiboot :
+  {
+    *(.multiboot)
+  }
+  
+  .entry :
+  {
+    *(.entry*)
+  }
+  
+  .text :
+  {
+    *(.text*)
+  }
 
-    .bss : {
-        *(COMMON)
-        *(.bss)
-    }
+  .rodata :
+  {
+    *(.rodata*)
+  }
+
+  .data :
+  {
+    *(.data*)
+  }
+
+  .bss :
+  {
+    *(COMMON)
+    *(.bss*)
+  }
 }
+

@@ -507,3 +507,11 @@ int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
     va_end(va);
     return ret;
 }
+
+void stupid_printf (char* s, ...) {
+    va_list va;
+    va_start(va, s);
+	char buf [256];
+    snprintf(buf, sizeof buf, s, va);
+    kprint(buf);
+}

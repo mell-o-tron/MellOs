@@ -12,50 +12,51 @@
 #define FDEF(name) void name(const char* s)
 
 FDEF(diskinfo){
-    disk_info* res = kmalloc (sizeof(disk_info));
-    if (!res) {
-        kprint("info allocation failed");
-        return;
-    }
+    identify_ata(0xA0);
+    // disk_info* res = kmalloc (sizeof(disk_info));
+    // if (!res) {
+    //     kprint("info allocation failed");
+    //     return;
+    // }
 
-    raw_disk_info dinfo = retrieve_disk_info();
-    kprint("raw disk info:");
-    kprint("\n  bl: ");
-    kprint(tostring_inplace((unsigned char)dinfo.bl, 2));
-    kprint("\n  ch: ");
-    kprint(tostring_inplace((unsigned char)dinfo.ch, 2));
-    kprint("\n  cl: ");
-    kprint(tostring_inplace((unsigned char)dinfo.cl, 2));
-    kprint("\n  dh: ");
-    kprint(tostring_inplace((unsigned char)dinfo.dh, 2));
-    kprint("\n  dl: ");
-    kprint(tostring_inplace((unsigned char)dinfo.dl, 2));
-    kprint("\n");
-    decode_raw_disk_info(dinfo, res);
+    // raw_disk_info dinfo = retrieve_disk_info();
+    // kprint("raw disk info:");
+    // kprint("\n  bl: ");
+    // kprint(tostring_inplace((unsigned char)dinfo.bl, 2));
+    // kprint("\n  ch: ");
+    // kprint(tostring_inplace((unsigned char)dinfo.ch, 2));
+    // kprint("\n  cl: ");
+    // kprint(tostring_inplace((unsigned char)dinfo.cl, 2));
+    // kprint("\n  dh: ");
+    // kprint(tostring_inplace((unsigned char)dinfo.dh, 2));
+    // kprint("\n  dl: ");
+    // kprint(tostring_inplace((unsigned char)dinfo.dl, 2));
+    // kprint("\n");
+    // decode_raw_disk_info(dinfo, res);
 
-    kprint("\ndiskinfo:\n");
-    kprint("  Drive type: ");
-    switch (res->drivetype){
-        case 0x01: kprint("360K"); break;
-        case 0x02: kprint("1.2M"); break;
-        case 0x03: kprint("720K"); break;
-        case 0x04: kprint("1.44M"); break;
-        case 0x05: kprint("??? (obscure drive or 2.88M)"); break;
-        case 0x06: kprint("2.88M"); break;
-        case 0x10: kprint("ATAPI Removable Media Device"); break;
-        default: kprint ("unrecognized");
-    }
-    kprint(" - 0x");
-    kprint(tostring_inplace(res->drivetype, 16));
-    kprint("\n  Max Sectors: ");
-    kprint(tostring_inplace(res->sectors, 10));
-    kprint("\n  Max heads: ");
-    kprint(tostring_inplace(res->heads, 10));
-    kprint("\n  Max cylinders: ");
-    kprint(tostring_inplace(res->cylinders, 10));
-    kprint("\n  Connected drives: ");
-    kprint(tostring_inplace(res->drives, 10));
-    kprint("\n");
+    // kprint("\ndiskinfo:\n");
+    // kprint("  Drive type: ");
+    // switch (res->drivetype){
+    //     case 0x01: kprint("360K"); break;
+    //     case 0x02: kprint("1.2M"); break;
+    //     case 0x03: kprint("720K"); break;
+    //     case 0x04: kprint("1.44M"); break;
+    //     case 0x05: kprint("??? (obscure drive or 2.88M)"); break;
+    //     case 0x06: kprint("2.88M"); break;
+    //     case 0x10: kprint("ATAPI Removable Media Device"); break;
+    //     default: kprint ("unrecognized");
+    // }
+    // kprint(" - 0x");
+    // kprint(tostring_inplace(res->drivetype, 16));
+    // kprint("\n  Max Sectors: ");
+    // kprint(tostring_inplace(res->sectors, 10));
+    // kprint("\n  Max heads: ");
+    // kprint(tostring_inplace(res->heads, 10));
+    // kprint("\n  Max cylinders: ");
+    // kprint(tostring_inplace(res->cylinders, 10));
+    // kprint("\n  Connected drives: ");
+    // kprint(tostring_inplace(res->drives, 10));
+    // kprint("\n");
 } 
 
 

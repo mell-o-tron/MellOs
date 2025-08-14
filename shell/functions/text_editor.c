@@ -3,6 +3,7 @@
 #else
 #include "../../drivers/vga_text.h"
 #endif
+#include "../../utils/typedefs.h"
 #include "../../text_editor/text_editor.h"
 
 #define FDEF(name) void name(const char* s)

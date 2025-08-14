@@ -107,3 +107,7 @@ FDEF(read_file) {
 
   kprint("\n");
 }
+
+FDEF(erase_files) {
+  prepare_disk_for_fs(3);
+}

@@ -53,6 +53,33 @@
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
 
+#ifdef VGA_VESA
+__attribute__((section(".multiboot")))
+#define MULTIBOOT_HEADER_MAGIC 0x1BADB002
+#define MULTIBOOT_HEADER_FLAGS 0x00000007
+const uint32_t multiboot_header[] = {
+    MULTIBOOT_HEADER_MAGIC,
+    MULTIBOOT_HEADER_FLAGS,
+    -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS) & 0xFFFFFFFF,
+    // aout kludge (unused)
+    0,0,0,0,0,
+    // video mode
+    0, // Linear graphics please?
+    HRES, // Preferred width
+    VRES, // Preferred height
+    PITCH // Preferred pixel depth
+};
+#else
+__attribute__((section(".multiboot")))
+#define MULTIBOOT_HEADER_MAGIC 0x1BADB002
+#define MULTIBOOT_HEADER_FLAGS 0x0
+const uint32_t multiboot_header[] = {
+    MULTIBOOT_HEADER_MAGIC,
+    MULTIBOOT_HEADER_FLAGS,
+    -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS) & 0xFFFFFFFF
+};
+#endif
+
 extern const char KPArt[];
 extern const char Fool[];
 
@@ -146,17 +173,19 @@ void task_2(){
 allocator_t allocator;
 
 extern void main(){
+        
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table);
     
     // Sets up the Page Attribute Table
     setup_pat();
 
+    
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
         add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
     }
-
+    
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
@@ -172,6 +201,8 @@ extern void main(){
     isrs_install();
     irq_install();
     // asm volatile("hlt");
+    
+    
     asm volatile ("sti");
     timer_install();
     clear_screen_col(DEFAULT_COLOUR);
@@ -191,7 +222,8 @@ extern void main(){
     #else
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
     #endif
-
+    
+    
     kb_install();
 
     kprint("Running fs tests... ");
@@ -223,8 +255,6 @@ extern void main(){
     #endif
 
     set_cursor_pos_raw(0);
-
-    uint8_t* a = read_string_from_disk(0xA0, 1, 1);
 
     kprint(Fool);
     
