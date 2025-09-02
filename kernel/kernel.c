@@ -21,11 +21,11 @@
 #include "../memory/paging/pat.h"
 #include "../memory/dynamic_mem.h"
 #include "../data_structures/allocator.h"
-#include "vell.h"
 #ifdef VGA_VESA
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
 #include "../drivers/mouse.h"
+#include "vell.h"
 #include "format.h"
 #else
 #include "../drivers/vga_text.h"
