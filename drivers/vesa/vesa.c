@@ -267,6 +267,34 @@ void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int fro
     _blit(*src, *dest, x, y, src->width, src->height, from_x, from_y, to_x, to_y);
 }
 
+void blit_all_at_only_square(Framebuffer *src, Framebuffer *dest, int x, int y, Recti square, int width) {
+    int drawn = 0;
+    while (width >= drawn) {
+        blit_all_at_only(src, dest, 0, 0,
+                            square.pos.x - drawn, // top
+                            square.pos.y - drawn,
+                            square.x + square.size.x + drawn,
+                            square.y + drawn);
+
+        blit_all_at_only(src, dest, 0, 0,
+                            square.pos.x - drawn, // left
+                            square.pos.y + drawn, square.x + drawn,
+                            square.y + square.size.y + drawn);
+
+        blit_all_at_only(src, dest, 0, 0,
+                            square.pos.x + drawn, // bottom
+                            square.pos.y + square.size.y - drawn,
+                            square.x + square.size.x - drawn,
+                            square.y + square.size.y + drawn);
+
+        blit_all_at_only(src, dest, 0, 0, // right
+                            square.pos.x + square.size.x - drawn,
+                            square.pos.y + drawn, square.x + square.size.x + drawn,
+                            square.y + square.size.y + drawn);
+        drawn++;
+    }
+}
+
 
 void fb_draw_gradient_at_only(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb, Recti bounds) {
     int original_height = height;

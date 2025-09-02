@@ -1,3 +1,4 @@
+#include "math.h"
 #ifdef VGA_VESA
 
 #include "vell.h"
@@ -185,6 +186,11 @@ void _vell_generate_drag_start_event(MouseButton button, Vector2i start_pos){
     }
 }
 
+#define FULL_WINDOW_DRAG false
+#define GHOST_BORDER_THICKNESS 4
+Vector2i ghost_window_delta = {0, 0};
+Recti last_square = {};
+
 void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos){
     if (button == MOUSE_LEFT){
         if (dragging_window == NULL) {
@@ -195,19 +201,51 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
             int dx = current_pos.x - dragging_prev_pos.x;
             int dy = current_pos.y - dragging_prev_pos.y;
             Recti r = recti_of_window(dragging_window);
-            dragging_window->x += dx;
-            dragging_window->y += dy;
-            Recti r2 = recti_of_window(dragging_window);
-            dragging_prev_pos = current_pos;
-            Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
-            __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
+            if (FULL_WINDOW_DRAG) {
+                dragging_window->x += dx;
+                dragging_window->y += dy;
+                Recti r2 = recti_of_window(dragging_window);
+                dragging_prev_pos = current_pos;
+                Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
+                __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
+            } else {
+                ghost_window_delta.x += dx;
+                ghost_window_delta.y += dy;
+
+                Recti ghost_square = {
+                    {dragging_window->x + ghost_window_delta.x, dragging_window->y + ghost_window_delta.y},
+                    {dragging_window->width + BORDER_WIDTH * 2, dragging_window->height + BORDER_WIDTH * 2 + TITLEBAR_HEIGHT}
+                };
+
+
+                blit_all_at_only_square(fb2, vga_fb, 0, 0, last_square, GHOST_BORDER_THICKNESS);
+                last_square = ghost_square;
+                dragging_prev_pos = current_pos;
+                
+                //blit_all_at_only(fb, vga_fb, 0, 0, from_x, from_y, to_x, to_y);
+                fb_draw_rect_at_only(ghost_square.x, ghost_square.y,
+                                     ghost_square.size.x, ghost_square.size.y,
+                                     GHOST_BORDER_THICKNESS, VESA_DARK_GREY, vga_fb,
+                                     recti_of_framebuffer(vga_fb));
+                
+
+                swap_framebuffers();
+            }
+            
         // }
         // drag_counter = (drag_counter + 1) % 3;
     }
 }
 
 void _vell_generate_drag_end_event(MouseButton button, Vector2i end_pos){
-    if (button == MOUSE_LEFT){
+    if (button == MOUSE_LEFT) {
+        if (!FULL_WINDOW_DRAG) {
+            dragging_window->x += ghost_window_delta.x;
+            dragging_window->y += ghost_window_delta.y;
+
+            ghost_window_delta.x = 0;
+            ghost_window_delta.y = 0;
+        }
         dragging_window = NULL;
         drag_counter = 0;
         _vell_draw();

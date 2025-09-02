@@ -1,0 +1,1 @@
+int run_all_mem_tests();

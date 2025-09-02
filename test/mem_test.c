@@ -1,5 +1,6 @@
 #include "../file_system/file_system.h"
 #include "../utils/string.h"
+#include "dynamic_mem.h"
 #ifdef VGA_VESA
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
@@ -18,6 +19,6 @@ int malloc_test(){
     return 0;
 }
 
-int run_all_mem_tests () {
+int run_all_mem_tests() {
     return malloc_test() /* + other tests ....  */;
 }

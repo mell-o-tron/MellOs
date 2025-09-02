@@ -21,10 +21,12 @@
 #include "../memory/paging/pat.h"
 #include "../memory/dynamic_mem.h"
 #include "../data_structures/allocator.h"
+#include "vell.h"
 #ifdef VGA_VESA
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
 #include "../drivers/mouse.h"
+#include "format.h"
 #else
 #include "../drivers/vga_text.h"
 #endif
@@ -90,41 +92,60 @@ void khang(){
     for(;;);
 }
 
-// This function has to be self contained - no dependencies to the rest of the kernel!
-extern  void kpanic(struct regs *r){
-    
-    #define ERRCOL 0x47 // Lightgrey on Lightred
-    #define VGAMEM (unsigned char*)0xB8000;
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
-    char panicscreen[4000];
+// This function has to be self contained - no dependencies to the rest of the kernel!
+extern  void kpanic(struct regs *r) {
+
     const char* components[] = {
         KPArt,
         "Exception message: ",
         exception_messages[r->int_no],
     };
-    int psidx = 0; //Index to access panicscreen
-    int idx = 0;
 
-    for(int x = 0; x < sizeof(components)/sizeof(char*); x++){
-        idx = 0;
-        while(components[x][idx] != 0){
-            if(components[x][idx] == '\n'){
-                do{
-                    panicscreen[psidx] = ' ';
-                    psidx++;
-                } while((psidx+1) % 80 != 0);
-            } else panicscreen[psidx] = components[x][idx];
-            psidx++;
-            idx++;
+#if defined(VGA_VESA) && defined(GRAPHICAL_PANIC)
+    char buf[256];
+    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
+
+    if (_vell_is_active()) {
+        fb_clear_screen_col_VESA(VESA_RED, *vga_fb);
+        fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
+    } else {
+#endif
+        #define ERRCOL 0x47 // Lightgrey on Lightred
+        #define VGAMEM (unsigned char*)vga_fb;
+
+        char panicscreen[4000];
+        
+        int psidx = 0; //Index to access panicscreen
+        int idx = 0;
+
+        for(int x = 0; x < sizeof(components)/sizeof(char*); x++){
+            idx = 0;
+            while(components[x][idx] != 0){
+                if(components[x][idx] == '\n'){
+                    do{
+                        panicscreen[psidx] = ' ';
+                        psidx++;
+                    } while((psidx+1) % 80 != 0);
+                } else panicscreen[psidx] = components[x][idx];
+                psidx++;
+                idx++;
+            }
         }
-    }
 
-    unsigned char *write = VGAMEM;
+        unsigned char *write = VGAMEM;
 
-    for(int i = 0; i < 4000; i++){
-        *write++ = panicscreen[i];
-        *write++ = ERRCOL;
+        for(int i = 0; i < 4000; i++){
+            *write++ = panicscreen[i];
+            *write++ = ERRCOL;
+        }
+#if defined(VGA_VESA) && defined(GRAPHICAL_PANIC)
     }
+#endif
+
+    
 
     // Disables the flashing cursor because that's annoying imo
     outb(0x3D4, 0x0A);
@@ -132,6 +153,8 @@ extern  void kpanic(struct regs *r){
 
     for(;;);
 }
+
+#pragma GCC pop_options
 
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
@@ -211,7 +234,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     //allocator.granularity = 512;
     //assign_kmallocator(&allocator);
-    buddy_init(0x800000, 100000000);
+    buddy_init((void *)0x800000, 100000000);
 
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA

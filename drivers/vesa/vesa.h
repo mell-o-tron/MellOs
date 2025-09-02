@@ -30,6 +30,7 @@ void deallocate_framebuffer(Framebuffer* fb);
 void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height);
 void blit_all_at(Framebuffer* src, Framebuffer* dest, int x, int y);
 void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int from_x, int from_y, int to_x, int to_y);
+void blit_all_at_only_square(Framebuffer *src, Framebuffer *dest, int x, int y, Recti square, int width);
 
 void clear_screen();
 void clear_screen_col_VESA(VESA_Colour col);
