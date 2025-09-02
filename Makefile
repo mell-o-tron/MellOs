@@ -39,7 +39,7 @@ debug:
 	$(MAKE) build
 	$(OBJCP) --only-keep-debug $(BIN)/kernel.elf $(BIN)/kernel.sym
 
-	qemu-system-x86_64 -drive format=raw,file=os_image.bin,index=0,if=floppy -hda test_disk.img -m 128M -s -S -vga std &
+	qemu-system-x86_64 -cdrom mellos.iso -hda test_disk.img -m 128M -s -S -vga std &
 
 prebuild: clean	## Prebuild instructions
 	clear
