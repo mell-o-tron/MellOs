@@ -16,6 +16,7 @@ SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=./wee_bins
 ## Compiler Flags
+# possible options (ifdef): GRAPHICAL_PANIC, BOX_WINDOW_DRAG
 FLAGS=-ffreestanding -m32 -g -D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP) -O3
 ## NASM Flags
 NASMFLAGS=-D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP)
@@ -39,7 +40,7 @@ debug:
 	$(MAKE) build
 	$(OBJCP) --only-keep-debug $(BIN)/kernel.elf $(BIN)/kernel.sym
 
-	qemu-system-x86_64 -cdrom mellos.iso -hda test_disk.img -m 128M -s -S -vga std &
+	qemu-system-x86_64 -cdrom mellos.iso -hda test_disk.img -m 128M -s -vga std &
 
 prebuild: clean	## Prebuild instructions
 	clear
