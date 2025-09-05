@@ -191,7 +191,7 @@ void _vell_generate_drag_start_event(MouseButton button, Vector2i start_pos){
 Vector2i ghost_window_delta = {0, 0};
 Recti last_square = {};
 
-void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos){
+void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos) {
     if (button == MOUSE_LEFT){
         if (dragging_window == NULL) {
             return;
@@ -216,18 +216,15 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
                     {dragging_window->x + ghost_window_delta.x, dragging_window->y + ghost_window_delta.y},
                     {dragging_window->width + BORDER_WIDTH * 2, dragging_window->height + BORDER_WIDTH * 2 + TITLEBAR_HEIGHT}
                 };
+                
 
-
-                blit_all_at_only_square(fb2, vga_fb, 0, 0, last_square, GHOST_BORDER_THICKNESS);
+                blit_all_at_only_square(fb2, vga_fb, 0, 0, last_square, GHOST_BORDER_THICKNESS * 2);
                 last_square = ghost_square;
                 dragging_prev_pos = current_pos;
                 
-                //blit_all_at_only(fb, vga_fb, 0, 0, from_x, from_y, to_x, to_y);
                 fb_draw_rect_at_only(ghost_square.x, ghost_square.y,
                                      ghost_square.size.x, ghost_square.size.y,
-                                     GHOST_BORDER_THICKNESS, VESA_DARK_GREY, vga_fb,
-                                     recti_of_framebuffer(vga_fb));
-                
+                                     GHOST_BORDER_THICKNESS, VESA_DARK_GREY, vga_fb, recti_of_framebuffer(vga_fb));
 
                 swap_framebuffers();
             }
