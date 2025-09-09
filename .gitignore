@@ -9,3 +9,4 @@ osimage_formated.bin
 
 # logs
 serial.log
+qemu_debug.log
