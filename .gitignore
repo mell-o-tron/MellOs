@@ -7,3 +7,5 @@ wee_bins/*
 os_image.bin
 osimage_formated.bin
 
+# logs
+serial.log
