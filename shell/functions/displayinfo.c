@@ -10,11 +10,15 @@
 
 FDEF(displayinfo){
     kprint("Display Information:\n");
+#ifdef VGA_VESA
     kprint("Resolution: ");
     kprint(tostring_inplace(Hres, 10));
     kprint("x");
     kprint(tostring_inplace(Vres, 10));
     kprint("\nPitch: ");
     kprint(tostring_inplace(Pitch, 10));
+#else
+    kprint("Resolution: 80x25 characters");
+#endif
     kprint("\n");
 }
