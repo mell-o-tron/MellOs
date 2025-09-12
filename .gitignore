@@ -12,3 +12,7 @@ osimage_formated.bin
 mellos.iso
 test_disk.img
 iso/boot/kernel.elf
+
+# logs
+serial.log
+qemu_debug.log
