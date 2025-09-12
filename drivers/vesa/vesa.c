@@ -81,7 +81,7 @@ void fb_draw_rect_at_only(int x, int y, size_t width, size_t height, size_t thic
 }
 
 void fb_draw_rect(int x, int y, size_t width, size_t height, size_t thickness, VESA_Colour col, Framebuffer* fb) {
-    fb_draw_rect_at_only(x, y, width, height, thickness, col, fb, recti_of_framebuffer(vga_fb));
+    fb_draw_rect_at_only(x, y, width, height, thickness, col, fb, recti_of_framebuffer(fb));
 }
 
 void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
