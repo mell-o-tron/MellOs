@@ -16,7 +16,7 @@ SRC=$(shell pwd)
 ## Directory to write binaries to
 BIN=./wee_bins
 ## Compiler Flags
-# possible options (ifdef): GRAPHICAL_PANIC, BOX_WINDOW_DRAG
+# possible options (ifdef): BOX_WINDOW_DRAG
 FLAGS=-ffreestanding -m32 -g -D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP) -O3
 ## NASM Flags
 NASMFLAGS=-D$(VGA) -DHRES=$(HRES) -DVRES=$(VRES) -DBPP=$(BPP)

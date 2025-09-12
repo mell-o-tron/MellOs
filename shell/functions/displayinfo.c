@@ -9,6 +9,7 @@
 #define SCALE 16
 
 FDEF(displayinfo){
+#ifdef VGA_VESA
     kprint("Display Information:\n");
     kprint("Resolution: ");
     kprint(tostring_inplace(Hres, 10));
@@ -17,4 +18,7 @@ FDEF(displayinfo){
     kprint("\nPitch: ");
     kprint(tostring_inplace(Pitch, 10));
     kprint("\n");
+#else
+    kprint("This command is disabled when the os is not built with the VGA_VESA option.");
+#endif
 }

@@ -104,44 +104,40 @@ extern  void kpanic(struct regs *r) {
         exception_messages[r->int_no],
     };
 
-#if defined(VGA_VESA) && defined(GRAPHICAL_PANIC)
+#if VGA_VESA
     char buf[256];
     snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
 
-    if (_vell_is_active()) {
-        fb_clear_screen_col_VESA(VESA_RED, *vga_fb);
-        fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
-    } else {
-#endif
-        #define ERRCOL 0x47 // Lightgrey on Lightred
-        #define VGAMEM (unsigned char*)vga_fb;
+    fb_clear_screen_col_VESA(VESA_RED, *vga_fb);
+    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
+#else
+    #define ERRCOL 0x47 // Lightgrey on Lightred
+    #define VGAMEM (unsigned char*)0xB8000;
 
-        char panicscreen[4000];
-        
-        int psidx = 0; //Index to access panicscreen
-        int idx = 0;
+    char panicscreen[4000];
+    
+    int psidx = 0; //Index to access panicscreen
+    int idx = 0;
 
-        for(int x = 0; x < sizeof(components)/sizeof(char*); x++){
-            idx = 0;
-            while(components[x][idx] != 0){
-                if(components[x][idx] == '\n'){
-                    do{
-                        panicscreen[psidx] = ' ';
-                        psidx++;
-                    } while((psidx+1) % 80 != 0);
-                } else panicscreen[psidx] = components[x][idx];
-                psidx++;
-                idx++;
-            }
+    for(int x = 0; x < sizeof(components)/sizeof(char*); x++){
+        idx = 0;
+        while(components[x][idx] != 0){
+            if(components[x][idx] == '\n'){
+                do{
+                    panicscreen[psidx] = ' ';
+                    psidx++;
+                } while((psidx+1) % 80 != 0);
+            } else panicscreen[psidx] = components[x][idx];
+            psidx++;
+            idx++;
         }
+    }
 
-        unsigned char *write = VGAMEM;
+    unsigned char *write = VGAMEM;
 
-        for(int i = 0; i < 4000; i++){
-            *write++ = panicscreen[i];
-            *write++ = ERRCOL;
-        }
-#if defined(VGA_VESA) && defined(GRAPHICAL_PANIC)
+    for(int i = 0; i < 4000; i++){
+        *write++ = panicscreen[i];
+        *write++ = ERRCOL;
     }
 #endif
 
