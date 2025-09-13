@@ -25,6 +25,8 @@
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
 #include "../drivers/mouse.h"
+#include "vell.h"
+#include "format.h"
 #else
 #include "../drivers/vga_text.h"
 #endif
@@ -90,18 +92,30 @@ void khang(){
     for(;;);
 }
 
-// This function has to be self contained - no dependencies to the rest of the kernel!
-extern  void kpanic(struct regs *r){
-    
-    #define ERRCOL 0x47 // Lightgrey on Lightred
-    #define VGAMEM (unsigned char*)0xB8000;
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
-    char panicscreen[4000];
+// This function has to be self contained - no dependencies to the rest of the kernel!
+extern  void kpanic(struct regs *r) {
+
     const char* components[] = {
         KPArt,
         "Exception message: ",
         exception_messages[r->int_no],
     };
+
+#if VGA_VESA
+    char buf[256];
+    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
+
+    fb_clear_screen_col_VESA(VESA_RED, *vga_fb);
+    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
+#else
+    #define ERRCOL 0x47 // Lightgrey on Lightred
+    #define VGAMEM (unsigned char*)0xB8000;
+
+    char panicscreen[4000];
+    
     int psidx = 0; //Index to access panicscreen
     int idx = 0;
 
@@ -125,6 +139,9 @@ extern  void kpanic(struct regs *r){
         *write++ = panicscreen[i];
         *write++ = ERRCOL;
     }
+#endif
+
+    
 
     // Disables the flashing cursor because that's annoying imo
     outb(0x3D4, 0x0A);
@@ -132,6 +149,8 @@ extern  void kpanic(struct regs *r){
 
     for(;;);
 }
+
+#pragma GCC pop_options
 
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
@@ -211,7 +230,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     //allocator.granularity = 512;
     //assign_kmallocator(&allocator);
-    buddy_init(0x800000, 100000000);
+    buddy_init((void *)0x800000, 100000000);
 
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA

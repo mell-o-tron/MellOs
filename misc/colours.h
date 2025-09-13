@@ -9,6 +9,7 @@
 #include "../utils/typedefs.h"
 
 VESA_Colour vga2vesa(Colour col);
+void generate_vga_palette(VESA_Colour palette[256]);
 
 #define VESA_BLACK (VESA_Colour){0, 0, 0, 0xFF}
 #define VESA_WHITE (VESA_Colour){0xFF, 0xFF, 0xFF, 0xFF}

@@ -1,11 +1,16 @@
 .vscode/
+.cache/
 compile_flags.txt
+compile_commands.json
 
 # binaries
 WeeBins/
 wee_bins/*
 os_image.bin
 osimage_formated.bin
+mellos.iso
+test_disk.img
+iso/boot/kernel.elf
 
 # logs
 serial.log

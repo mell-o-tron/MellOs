@@ -268,6 +268,59 @@ void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int fro
 }
 
 
+void blit_clamped(Framebuffer* src, Framebuffer* dest, int from_x, int from_y, int to_x, int to_y) {
+    Recti fb = recti_of_framebuffer(dest);
+
+    int fx = max(from_x, fb.x);
+    int fy = max(from_y, fb.y);
+    int tx = min(to_x, fb.x + fb.width);
+    int ty = min(to_y, fb.y + fb.height);
+
+    if (fx < tx && fy < ty) { // To not call blit if we are outside the fb
+        blit_all_at_only(src, dest, 0, 0, fx, fy, tx, ty);
+    }
+}
+
+void blit_all_at_only_square(Framebuffer *src, Framebuffer *dest, int x, int y, Recti square, int width) {
+    int half = width / 2;
+
+    for (int i = -half; i <= half; ++i) {
+        int left = square.x + i;
+        int right = square.x + square.width + i;
+        int top = square.y + i;
+        int bottom = square.y + square.height + i;
+
+        // Top
+        blit_clamped(src, dest,
+            square.x - half,
+            top,
+            square.x + square.width + half,
+            top + 1);
+
+        // Bottom
+        blit_clamped(src, dest,
+            square.x - half,
+            bottom - 1,
+            square.x + square.width + half,
+            bottom);
+
+        // Left
+        blit_clamped(src, dest,
+            left,
+            square.y + half,
+            left + 1,
+            square.y + square.width - half);
+
+        // Right
+        blit_clamped(src, dest,
+            right - 1,
+            square.y - half,
+            right,
+            square.y + square.width - half);
+    }
+}
+
+
 void fb_draw_gradient_at_only(int x, int y, int width, int height, VESA_Colour col1, VESA_Colour col2, Framebuffer* fb, Recti bounds) {
     int original_height = height;
     int start_y = max(y, bounds.pos.y);
