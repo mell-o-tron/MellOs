@@ -2,7 +2,6 @@
 .cache/
 compile_flags.txt
 compile_commands.json
-qemu_debug.log
 
 # binaries
 WeeBins/
