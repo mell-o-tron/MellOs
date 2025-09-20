@@ -2,6 +2,7 @@
 .idea/
 CMakeCache.txt
 CMakeFiles
+Makefile
 cmake_install.cmake
 .cache/
 compile_flags.txt
