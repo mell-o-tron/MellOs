@@ -1,4 +1,8 @@
 .vscode/
+.idea/
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
 .cache/
 compile_flags.txt
 compile_commands.json
