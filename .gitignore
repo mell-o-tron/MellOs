@@ -9,8 +9,7 @@ compile_flags.txt
 compile_commands.json
 
 # binaries
-WeeBins/
-wee_bins/*
+wee_bins/
 os_image.bin
 osimage_formated.bin
 mellos.iso
