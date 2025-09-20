@@ -13,7 +13,6 @@ wee_bins/
 os_image.bin
 osimage_formated.bin
 mellos.iso
-test_disk.img
 iso/boot/kernel.elf
 
 # logs
