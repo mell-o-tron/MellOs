@@ -59,6 +59,9 @@
 #ifdef VGA_VESA
 __attribute__((section(".multiboot")))
 #define MULTIBOOT_HEADER_MAGIC 0x1BADB002
+
+#define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+
 #define MULTIBOOT_HEADER_FLAGS 0x00000007
 const uint32_t multiboot_header[] = {
     MULTIBOOT_HEADER_MAGIC,
@@ -193,13 +196,95 @@ void task_2(){
 allocator_t allocator;
 
 extern void main(uint32_t multiboot_tags_addr){
-        
+    #if 1
+    #ifdef VGA_VESA
+    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+    #endif
+    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
+    stupid_printf("lower: %i\n", multiboot_tags->mem_upper);
+    stupid_printf("upper: %i\n", multiboot_tags->mem_lower);
+
+    stupid_printf("map:\n");
+
+    char* names[5] = {
+        "Available",
+        "Reserved",
+        "ACPI reclaimable",
+        "NVS",
+        "Bad RAM"
+    };
+
+    /*
+        +-------------------+
+-4      | size              |
+        +-------------------+
+0       | base_addr         |
+8       | length            |
+16      | type              |
+        +-------------------+
+    */
+
+    uint64_t base_mem = 0L;
+    uint64_t len_mem = 0L;
+
+    if (CHECK_FLAG(multiboot_tags->flags, 6)) {
+        multiboot_memory_map_t *mmap;
+        stupid_printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
+                        (unsigned)multiboot_tags->mmap_addr,
+                        (unsigned)multiboot_tags->mmap_length);
+        for (mmap = (multiboot_memory_map_t *)multiboot_tags->mmap_addr;
+            (unsigned long)mmap <
+            multiboot_tags->mmap_addr + multiboot_tags->mmap_length;
+            mmap = (multiboot_memory_map_t *)((unsigned long)mmap + mmap->size +
+                                    sizeof(mmap->size))) {
+#ifdef VGA_VESA
+            if (framebuffer_addr > mmap->addr &&
+                multiboot_tags->framebuffer_height *
+                multiboot_tags->framebuffer_width * BYTES_PER_PIXEL +
+                framebuffer_addr < mmap->addr + mmap->len &&
+                mmap->type == MULTIBOOT_MEMORY_AVAILABLE &&
+                mmap->addr > 0x800000) {
+                if (mmap->len > len_mem) {
+                    len_mem = mmap->len;
+                    base_mem = mmap->addr;
+                }
+            }
+#endif
+            stupid_printf("base = 0x%016llx, length = 0x%016llx, type = %s\n",
+               (unsigned long long)mmap->addr,
+               (unsigned long long)mmap->len,
+               names[mmap->type - 1]);
+        }
+
+        /*
+        int i = 0;
+        uint32_t offset = 0;
+        multiboot_memory_map_t current_entry;
+
+        stupid_printf("mmap len: %u\n", multiboot_tags->mmap_length);
+
+        while (i < multiboot_tags->mmap_length) {
+
+            current_entry = *(multiboot_memory_map_t *)(multiboot_tags->mmap_addr
+        + offset - sizeof(uint32_t)/8); offset += current_entry.size; char
+        buf[512]; snprintf(buf, sizeof buf, "offset: %u size: %u\n", offset,
+        current_entry.size); kprint(buf); snprintf(buf, sizeof buf, "a: %lu end:
+        %lu type: %s\n", current_entry.addr, current_entry.addr -
+        current_entry.len, names[current_entry.type - 1]); kprint(buf); i++;
+        }*/
+    } else {
+        kprint("bit 6 not set");
+        return;
+    }
+    stupid_printf("selected: %016llx..%016llx", base_mem, len_mem);
+    #endif
+    // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
+    buddy_init((void *)(uint32_t)base_mem, len_mem);
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
-    init_paging(page_directory, first_page_table, second_page_table);
+    init_paging(page_directory, first_page_table, second_page_table, (void *)(uint32_t)base_mem);
     
     // Sets up the Page Attribute Table
     setup_pat();
-
     
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
@@ -209,7 +294,7 @@ extern void main(uint32_t multiboot_tags_addr){
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
-    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+    
     for (int i = 0; i < NUM_FB_PAGES; i++){
         add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/ + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
     }
@@ -236,7 +321,7 @@ extern void main(uint32_t multiboot_tags_addr){
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
     set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
-    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
+    //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
     Pitch = multiboot_tags->framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
@@ -244,7 +329,7 @@ extern void main(uint32_t multiboot_tags_addr){
     _vesa_text_init();
     mouse_install();
     #else
-    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    set_dynamic_mem_loc ((void*)base_mem + len_mem/2);
     #endif
     
     

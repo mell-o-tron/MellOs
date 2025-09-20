@@ -10,7 +10,7 @@
 #include "../utils/conversions.h"
 
 #define MAX_ORDER 23
-#define MIN_ORDER 5       
+#define MIN_ORDER 5
 #define PAGE_SIZE 4096
 
 // ----- OLD ALLOCATOR -----
@@ -249,11 +249,11 @@ void slab_free(void* loc, size_t size) {
 
 void* kmalloc(size_t size) {
     if (size <= 256) {
-        uint32_t offset = slab_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) slab_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     } else {
-        uint32_t offset = buddy_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) buddy_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     }
 }
 

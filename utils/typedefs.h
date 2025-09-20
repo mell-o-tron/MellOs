@@ -30,6 +30,7 @@ typedef int int32_t;
 typedef unsigned int uint32_t;
 typedef unsigned long size_t;
 typedef long ssize_t;
+typedef unsigned long long uint64_t;
 
 typedef uint8_t Colour;
 typedef union {
