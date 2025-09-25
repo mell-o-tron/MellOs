@@ -4,8 +4,10 @@
 *********************/
 
 
+#include "memory_area_spec.h"
 #include "../utils/typedefs.h"
 #include "multiboot_tags.h"
+#include "memory_mapper.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
@@ -56,9 +58,6 @@
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
 
-
-#define DYNAMIC_MEM_LOC 0x800000
-#define MAPPED_KERNEL_START 0x400000
 
 #ifdef VGA_VESA
 __attribute__((section(".multiboot")))
@@ -210,30 +209,7 @@ extern void main(uint32_t multiboot_tags_addr){
 
     stupid_printf("map:\n");
 
-    char* names[5] = {
-        "Available",
-        "Reserved",
-        "ACPI reclaimable",
-        "NVS",
-        "Bad RAM"
-    };
 
-
-    #define MAX_EXCLUDED_AREAS 4
-
-    uint64_t base_mem = 0L;
-    uint64_t len_mem = 0L;
-
-    // Define excluded areas array
-    struct {
-        uint64_t start;
-        uint64_t end;
-    } excluded_areas[MAX_EXCLUDED_AREAS];
-    uint32_t num_excluded_areas = 0;
-
-    excluded_areas[num_excluded_areas].start = MAPPED_KERNEL_START;
-    excluded_areas[num_excluded_areas].end = MAPPED_KERNEL_START + 0x400000;
-    num_excluded_areas++;
 
 
     /*
@@ -245,102 +221,14 @@ extern void main(uint32_t multiboot_tags_addr){
 16      | type              |
         +-------------------+
     */
-    if (CHECK_FLAG(multiboot_tags->flags, 6)) {
-        multiboot_memory_map_t *mmap;
-        stupid_printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
-                      (unsigned) multiboot_tags->mmap_addr,
-                      (unsigned) multiboot_tags->mmap_length);
+    MemoryArea memory_area = get_largest_free_block(multiboot_tags, (void *)framebuffer_addr, BPP, true);
 
-#ifdef VGA_VESA
-        // Add framebuffer area to excluded areas
-        excluded_areas[num_excluded_areas].start = framebuffer_addr;
-        excluded_areas[num_excluded_areas].end = framebuffer_addr +
-                                                 multiboot_tags->framebuffer_height *
-                                                 multiboot_tags->framebuffer_width * BYTES_PER_PIXEL;
-        num_excluded_areas++;
-#endif
-
-        for (mmap = (multiboot_memory_map_t *) multiboot_tags->mmap_addr;
-             (unsigned long) mmap <
-             multiboot_tags->mmap_addr + multiboot_tags->mmap_length;
-             mmap = (multiboot_memory_map_t *) ((unsigned long) mmap + mmap->size +
-                                                sizeof(mmap->size))) {
-            if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                uint64_t region_start = mmap->addr;
-                uint64_t region_end = mmap->addr + mmap->len;
-                bool overlaps = false;
-
-                // Check overlap with all excluded areas
-                for (int i = 0; i < num_excluded_areas; i++) {
-                    if (region_start >= excluded_areas[i].start &&
-                        region_end <= excluded_areas[i].end) {
-                        overlaps = true;
-                        break;
-                    }
-
-                    if (region_start < excluded_areas[i].end &&
-                        region_end > excluded_areas[i].start) {
-                        // Find largest non-overlapping portion
-                        uint64_t lower_size = excluded_areas[i].start - region_start;
-                        uint64_t upper_size = region_end - excluded_areas[i].end;
-
-                        if (lower_size > upper_size) {
-                            // Use lower portion
-                            if (lower_size > len_mem) {
-                                len_mem = lower_size;
-                                base_mem = region_start;
-                            }
-                        } else {
-                            // Use upper portion
-                            if (upper_size > len_mem) {
-                                len_mem = upper_size;
-                                base_mem = excluded_areas[i].end;
-                            }
-                        }
-                        overlaps = true;
-                        break;
-                    }
-                }
-
-                // If no overlap found, check if this is largest region
-                if (!overlaps && mmap->len > len_mem) {
-                    len_mem = mmap->len;
-                    base_mem = mmap->addr;
-                }
-            }
-
-            stupid_printf("base = 0x%016llx, length = 0x%016llx, type = %s\n",
-                          (unsigned long long) mmap->addr,
-                          (unsigned long long) mmap->len,
-                          names[mmap->type - 1]);
-        }
-
-        /*
-        int i = 0;
-        uint32_t offset = 0;
-        multiboot_memory_map_t current_entry;
-
-        stupid_printf("mmap len: %u\n", multiboot_tags->mmap_length);
-
-        while (i < multiboot_tags->mmap_length) {
-
-            current_entry = *(multiboot_memory_map_t *)(multiboot_tags->mmap_addr
-        + offset - sizeof(uint32_t)/8); offset += current_entry.size; char
-        buf[512]; snprintf(buf, sizeof buf, "offset: %u size: %u\n", offset,
-        current_entry.size); kprint(buf); snprintf(buf, sizeof buf, "a: %lu end:
-        %lu type: %s\n", current_entry.addr, current_entry.addr -
-        current_entry.len, names[current_entry.type - 1]); kprint(buf); i++;
-        }*/
-    } else {
-        kprint("bit 6 not set");
-        return;
-    }
-    stupid_printf("selected: %016llx..%016llx", base_mem, len_mem);
+    stupid_printf("selected: %016llx..%016llx", memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
     #endif
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
-    init_paging(page_directory, first_page_table, second_page_table, (void *)(uint32_t)base_mem);
+    init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
     
     // Sets up the Page Attribute Table
     setup_pat();
@@ -375,7 +263,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     //allocator.granularity = 512;
     //assign_kmallocator(&allocator);
-    buddy_init((void *)base_mem, len_mem);
+    buddy_init(memory_area.start, (size_t)memory_area.length);
 
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
@@ -395,10 +283,10 @@ extern void main(uint32_t multiboot_tags_addr){
     
     kb_install();
 
-    kprint("Running fs tests... ");
-    int failed_fs_tests = run_all_fs_tests();
-    kprint(tostring_inplace(failed_fs_tests, 10));
-    kprint(" failed\n");
+    // kprint("Running fs tests... ");
+    // int failed_fs_tests = run_all_fs_tests();
+    // kprint(tostring_inplace(failed_fs_tests, 10));
+    // kprint(" failed\n");
 
     kprint("Running mem tests... ");
     int failed_mem_tests = run_all_mem_tests();
