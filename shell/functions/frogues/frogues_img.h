@@ -1,3 +1,4 @@
+#pragma once
 #define frogues_width 24
 #define frogues_height 14
 static unsigned char frogues_bits[] = {

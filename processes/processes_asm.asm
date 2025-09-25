@@ -1,3 +1,4 @@
+[bits 32]
 eax_buffer:
     dd 0
 

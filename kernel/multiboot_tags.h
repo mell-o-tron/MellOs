@@ -46,6 +46,10 @@
 
 #include "../utils/typedefs.h"
 
+#ifndef CHECK_FLAG
+#define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+#endif
+
 typedef struct MultibootTags {
     uint32_t flags;
     uint32_t mem_lower;
@@ -76,3 +80,16 @@ typedef struct MultibootTags {
     uint8_t framebuffer_type;
     uint8_t color_info[6];
 } MultibootTags;
+
+struct multiboot_mmap_entry {
+  uint32_t size;
+  uint64_t addr;
+  uint64_t len;
+#define MULTIBOOT_MEMORY_AVAILABLE              1
+#define MULTIBOOT_MEMORY_RESERVED               2
+#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE       3
+#define MULTIBOOT_MEMORY_NVS                    4
+#define MULTIBOOT_MEMORY_BADRAM                 5
+  uint32_t type;
+} __attribute__((packed));
+typedef struct multiboot_mmap_entry multiboot_memory_map_t;

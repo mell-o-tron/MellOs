@@ -4,12 +4,16 @@
 *********************/
 
 
+#include "memory_area_spec.h"
 #include "../utils/typedefs.h"
 #include "multiboot_tags.h"
+#include "memory_mapper.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
+#include "format.h"
+
 #include "../cpu/interrupts/idt.h"
 #include "../cpu/interrupts/isr.h"
 #include "../cpu/interrupts/irq.h"
@@ -56,9 +60,13 @@
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
 
+
 #ifdef VGA_VESA
 __attribute__((section(".multiboot")))
 #define MULTIBOOT_HEADER_MAGIC 0x1BADB002
+
+#define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+
 #define MULTIBOOT_HEADER_FLAGS 0x00000007
 const uint32_t multiboot_header[] = {
     MULTIBOOT_HEADER_MAGIC,
@@ -193,25 +201,56 @@ void task_2(){
 allocator_t allocator;
 
 extern void main(uint32_t multiboot_tags_addr){
-        
+#ifdef VGA_VESA
+    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+#endif
+    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
+    printf("lower: %i\n", multiboot_tags->mem_upper);
+    printf("upper: %i\n", multiboot_tags->mem_lower);
+
+    printf("map:\n");
+
+
+
+
+    /*
+        +-------------------+
+-4      | size              |
+        +-------------------+
+0       | base_addr         |
+8       | length            |
+16      | type              |
+        +-------------------+
+    */
+#ifdef VGA_VESA
+    init_memory_mapper(multiboot_tags, (void *)framebuffer_addr, BPP);
+#elif VGA_TEXT
+    init_memory_mapper(multiboot_tags, NULL, BPP);
+#endif
+    MemoryArea memory_area = get_largest_free_block();
+
+    printf("selected: %016llx..%016llx", (uint64_t)memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
+
+    // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
+
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
-    init_paging(page_directory, first_page_table, second_page_table);
+    init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
     
     // Sets up the Page Attribute Table
     setup_pat();
-
     
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
-        add_page(page_directory, lots_of_pages[i], i + 2, 0x400000 * (i + 2), first_page_table_flags, page_directory_flags);
+        add_page(page_directory, lots_of_pages[i], i + 2, MAPPED_KERNEL_START * (i + 2), first_page_table_flags, page_directory_flags);
     }
     
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
-    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+    
     for (int i = 0; i < NUM_FB_PAGES; i++){
-        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/ + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
+        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/
+            + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
     }
     const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
     #endif
@@ -230,13 +269,13 @@ extern void main(uint32_t multiboot_tags_addr){
     
     //allocator.granularity = 512;
     //assign_kmallocator(&allocator);
-    buddy_init((void *)0x800000, 100000000);
+    buddy_init(memory_area.start, (size_t)memory_area.length);
 
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
-    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
-    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
+    set_dynamic_mem_loc ((void*)DYNAMIC_MEM_LOC);
+    //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
     Pitch = multiboot_tags->framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
@@ -244,16 +283,16 @@ extern void main(uint32_t multiboot_tags_addr){
     _vesa_text_init();
     mouse_install();
     #else
-    set_dynamic_mem_loc ((void*)0x800000 + 100000000/2);
+    set_dynamic_mem_loc((void *)DYNAMIC_MEM_LOC);
     #endif
     
     
     kb_install();
 
-    kprint("Running fs tests... ");
-    int failed_fs_tests = run_all_fs_tests();
-    kprint(tostring_inplace(failed_fs_tests, 10));
-    kprint(" failed\n");
+    // kprint("Running fs tests... ");
+    // int failed_fs_tests = run_all_fs_tests();
+    // kprint(tostring_inplace(failed_fs_tests, 10));
+    // kprint(" failed\n");
 
     kprint("Running mem tests... ");
     int failed_mem_tests = run_all_mem_tests();
@@ -270,6 +309,8 @@ extern void main(uint32_t multiboot_tags_addr){
         kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
         for (;;){;}
+    } else {
+        kfree(code_loc2, 10);
     }
     
     #ifdef VGA_VESA

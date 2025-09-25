@@ -10,7 +10,7 @@
 #include "../utils/conversions.h"
 
 #define MAX_ORDER 23
-#define MIN_ORDER 5       
+#define MIN_ORDER 5
 #define PAGE_SIZE 4096
 
 // ----- OLD ALLOCATOR -----
@@ -48,6 +48,7 @@ typedef struct Block {
 
 Block* free_list[MAX_ORDER + 1];
 
+bool buddy_inited = false;
 static void* allocator_base = NULL;
 static size_t allocator_size = 0;
 
@@ -67,6 +68,7 @@ void buddy_init(void *base, size_t size) {
     block->free = 1;
     block->next = NULL;
     free_list[order] = block;
+    buddy_inited = true;
 }
 
 Block* get_buddy(Block* block) {
@@ -248,12 +250,14 @@ void slab_free(void* loc, size_t size) {
 }
 
 void* kmalloc(size_t size) {
+    if (!buddy_inited)
+        return NULL;
     if (size <= 256) {
-        uint32_t offset = slab_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) slab_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     } else {
-        uint32_t offset = buddy_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) buddy_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     }
 }
 
