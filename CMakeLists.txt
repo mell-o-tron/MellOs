@@ -149,14 +149,14 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_SOURCE_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_SOURCE_DIR}/qemu_debug.log -hda ${CMAKE_SOURCE_DIR}/test_disk.img
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_SOURCE_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_SOURCE_DIR}/qemu_debug.log -hda ${CMAKE_SOURCE_DIR}/test_disk.img -enable-kvm -cpu pentium2
         DEPENDS iso
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -hda ${CMAKE_SOURCE_DIR}/test_disk.img -m 128M -s -vga std
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -hda ${CMAKE_SOURCE_DIR}/test_disk.img -m 128M -s -vga std -enable-kvm -cpu pentium2
         DEPENDS iso
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
