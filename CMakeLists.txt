@@ -122,6 +122,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
+        $<$<COMPILE_LANGUAGE:C>:-Wno-error>
         $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
 )
 

@@ -11,7 +11,18 @@
 #include "memory_area_spec.h"
 #include "multiboot_tags.h"
 
-MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp, bool print_info) {
+MultibootTags *multiboot_tags_local = NULL;
+void *framebuffer_addr_local = NULL;
+uint8_t bpp_local = 0;
+
+
+void init_memory_mapper(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp) {
+    multiboot_tags_local = multiboot_tags;
+    framebuffer_addr_local = framebuffer_addr;
+    bpp_local = bpp;
+}
+
+MemoryArea get_largest_free_block() {
     uint32_t num_excluded_areas = 0;
     struct {
         uint64_t start;
@@ -25,30 +36,26 @@ MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuff
     uint64_t base_mem = 0L;
     uint64_t len_mem = 0L;
 
-    if (CHECK_FLAG(multiboot_tags->flags, 6)) {
-        multiboot_memory_map_t *mmap;
-        if (print_info)
-            stupid_printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
-                          (unsigned) multiboot_tags->mmap_addr,
-                          (unsigned) multiboot_tags->mmap_length);
+    if (CHECK_FLAG(multiboot_tags_local->flags, 6)) {
+        printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
+               (unsigned) multiboot_tags_local->mmap_addr,
+               (unsigned) multiboot_tags_local->mmap_length);
 
-#ifdef VGA_VESA
         // Add framebuffer area to excluded areas
-        excluded_areas[num_excluded_areas].start = (unsigned long long) framebuffer_addr;
-        excluded_areas[num_excluded_areas].end = (unsigned long long) framebuffer_addr +
-                                                 multiboot_tags->framebuffer_height *
-                                                 multiboot_tags->framebuffer_width * bpp;
+        excluded_areas[num_excluded_areas].start = (unsigned long long) framebuffer_addr_local;
+        excluded_areas[num_excluded_areas].end = (unsigned long long) framebuffer_addr_local +
+                                                 multiboot_tags_local->framebuffer_height *
+                                                 multiboot_tags_local->framebuffer_width * bpp_local;
         num_excluded_areas++;
-#endif
 
-        for (mmap = (multiboot_memory_map_t *) multiboot_tags->mmap_addr;
+        for (multiboot_memory_map_t *mmap = (multiboot_memory_map_t *) multiboot_tags_local->mmap_addr;
              (unsigned long) mmap <
-             multiboot_tags->mmap_addr + multiboot_tags->mmap_length;
+             multiboot_tags_local->mmap_addr + multiboot_tags_local->mmap_length;
              mmap = (multiboot_memory_map_t *) ((unsigned long) mmap + mmap->size +
                                                 sizeof(mmap->size))) {
             if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                uint64_t region_start = mmap->addr;
-                uint64_t region_end = mmap->addr + mmap->len;
+                const uint64_t region_start = mmap->addr;
+                const uint64_t region_end = mmap->addr + mmap->len;
                 bool overlaps = false;
 
                 // Check overlap with all excluded areas
@@ -62,8 +69,8 @@ MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuff
                     if (region_start < excluded_areas[i].end &&
                         region_end > excluded_areas[i].start) {
                         // Find largest non-overlapping portion
-                        uint64_t lower_size = excluded_areas[i].start - region_start;
-                        uint64_t upper_size = region_end - excluded_areas[i].end;
+                        const uint64_t lower_size = excluded_areas[i].start - region_start;
+                        const uint64_t upper_size = region_end - excluded_areas[i].end;
 
                         if (lower_size > upper_size) {
                             // Use lower portion
@@ -90,7 +97,7 @@ MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuff
                 }
             }
 
-            stupid_printf("base = 0x%016llx, length = 0x%016llx, type = %s\n",
+            printf("base = 0x%016llx, length = 0x%016llx, type = %s\n",
                           (unsigned long long) mmap->addr,
                           (unsigned long long) mmap->len,
                           names[mmap->type - 1]);
@@ -113,8 +120,9 @@ MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuff
         current_entry.len, names[current_entry.type - 1]); kprint(buf); i++;
         }*/
     } else {
-        kprint("bit 6 not set");
+        printf("bit 6 not set");
         return (MemoryArea){0, 0};
     }
+
     return (MemoryArea){(void *)base_mem, (void *)len_mem};
 }

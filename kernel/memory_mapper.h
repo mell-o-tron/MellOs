@@ -26,7 +26,9 @@ typedef struct {
 
 // Define excluded areas array
 
-MemoryArea get_largest_free_block(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp, bool print_info);
+void init_memory_mapper(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp);
+
+MemoryArea get_largest_free_block();
 
 #endif //MELLOS_MEMORY_MAPPER_H
 

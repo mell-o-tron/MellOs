@@ -38,3 +38,4 @@ FHDR(vell);
 FHDR(frogues);
 #endif
 FHDR(displayinfo);
+FHDR(meminfo);

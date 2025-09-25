@@ -48,6 +48,7 @@ typedef struct Block {
 
 Block* free_list[MAX_ORDER + 1];
 
+bool buddy_inited = false;
 static void* allocator_base = NULL;
 static size_t allocator_size = 0;
 
@@ -67,6 +68,7 @@ void buddy_init(void *base, size_t size) {
     block->free = 1;
     block->next = NULL;
     free_list[order] = block;
+    buddy_inited = true;
 }
 
 Block* get_buddy(Block* block) {
@@ -248,6 +250,8 @@ void slab_free(void* loc, size_t size) {
 }
 
 void* kmalloc(size_t size) {
+    if (!buddy_inited)
+        return NULL;
     if (size <= 256) {
         long unsigned int offset = (long unsigned int) slab_alloc(size);
         return (void*)((long unsigned int)dynamic_mem_loc + offset);

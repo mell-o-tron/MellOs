@@ -12,6 +12,8 @@
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
+#include "format.h"
+
 #include "../cpu/interrupts/idt.h"
 #include "../cpu/interrupts/isr.h"
 #include "../cpu/interrupts/irq.h"
@@ -199,15 +201,14 @@ void task_2(){
 allocator_t allocator;
 
 extern void main(uint32_t multiboot_tags_addr){
-    #if 1
-    #ifdef VGA_VESA
+#ifdef VGA_VESA
     const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
-    #endif
+#endif
     MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
-    stupid_printf("lower: %i\n", multiboot_tags->mem_upper);
-    stupid_printf("upper: %i\n", multiboot_tags->mem_lower);
+    printf("lower: %i\n", multiboot_tags->mem_upper);
+    printf("upper: %i\n", multiboot_tags->mem_lower);
 
-    stupid_printf("map:\n");
+    printf("map:\n");
 
 
 
@@ -221,10 +222,15 @@ extern void main(uint32_t multiboot_tags_addr){
 16      | type              |
         +-------------------+
     */
-    MemoryArea memory_area = get_largest_free_block(multiboot_tags, (void *)framebuffer_addr, BPP, true);
+#ifdef VGA_VESA
+    init_memory_mapper(multiboot_tags, (void *)framebuffer_addr, BPP);
+#elif VGA_TEXT
+    init_memory_mapper(multiboot_tags, NULL, BPP);
+#endif
+    MemoryArea memory_area = get_largest_free_block();
 
-    stupid_printf("selected: %016llx..%016llx", memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
-    #endif
+    printf("selected: %016llx..%016llx", (uint64_t)memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
+
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
@@ -268,7 +274,7 @@ extern void main(uint32_t multiboot_tags_addr){
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
-    set_dynamic_mem_loc ((void*)DYNAMIC_MEM_LOC + 100000000/2);
+    set_dynamic_mem_loc ((void*)DYNAMIC_MEM_LOC);
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
@@ -277,7 +283,7 @@ extern void main(uint32_t multiboot_tags_addr){
     _vesa_text_init();
     mouse_install();
     #else
-    set_dynamic_mem_loc ((void*)base_mem + len_mem/2);
+    set_dynamic_mem_loc((void *)DYNAMIC_MEM_LOC);
     #endif
     
     
@@ -303,6 +309,8 @@ extern void main(uint32_t multiboot_tags_addr){
         kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
 
         for (;;){;}
+    } else {
+        kfree(code_loc2, 10);
     }
     
     #ifdef VGA_VESA

@@ -504,12 +504,13 @@ __attribute__((format(printf, 3, 4)))
 int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    int ret = vsnprintf(dest, dsize, fmt, va);
+    const int ret = vsnprintf(dest, dsize, fmt, va);
     va_end(va);
     return ret;
 }
 
-void stupid_printf (char* s, ...) {
+__attribute__((format(printf, 1, 2)))
+void printf(char* s, ...) {
     va_list va;
     va_start(va, s);
 	char buf [256];
