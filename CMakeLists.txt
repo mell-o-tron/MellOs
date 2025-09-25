@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
-set(CMAKE_ASM_NASM_OBJECT_FORMAT elf32)   # CMake will pass exactly "-f elf32"
-
-project(MellOs C ASM_NASM)
+set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)   # CMake will pass exactly "-f elf32"
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_C_STANDARD 11)
@@ -11,13 +9,24 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
 #set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
+project(MellOs C ASM_NASM)
+
+
 # Options matching Makefile defaults
-set(VGA "VGA_VESA" CACHE STRING "Video mode macro (e.g., VGA_VESA)")
+set(VGA "TEXT" CACHE STRING "Video mode macro VESA or TEXT")
 set(HRES "1920" CACHE STRING "Horizontal resolution")
 set(VRES "1080" CACHE STRING "Vertical resolution")
 set(BPP  "32"   CACHE STRING "Bits per pixel")
+set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
 set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
 
+#if (VGA STREQUAL "VESA")
+#    add_compile_definitions(VGA_VESA)
+#endif ()
+
+#if (WINDOW_DRAG STREQUAL "BOX")
+#    add_compile_definitions(BOX_WINDOW_DRAG)
+#endif ()
 
 # Toolchain (can be overridden by -D on configure)
 set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
@@ -33,8 +42,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 
 # Build flags similar to Makefile
-set(COMMON_DEFS ${VGA} HRES=${HRES} VRES=${VRES} BPP=${BPP})
-add_compile_definitions(${COMMON_DEFS})
+set(COMMON_DEFS VGA_${VGA} HRES=${HRES} VRES=${VRES} BPP=${BPP} WINDOW_DRAG_${WINDOW_DRAG})
+set(COMMON_DEFS_WITH_D)
+foreach (def ${COMMON_DEFS})
+    list(APPEND COMMON_DEFS_WITH_D "-D${def}")
+endforeach ()
+list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
+
+
+#add_compile_definitions(${COMMON_DEFS})
 
 
 
@@ -106,6 +122,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
+        $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
 )
 
 # Create the ISO using grub-mkrescue
