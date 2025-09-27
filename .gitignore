@@ -14,6 +14,7 @@ os_image.bin
 osimage_formated.bin
 mellos.iso
 iso/boot/kernel.elf
+build/
 
 # logs
 serial.log
