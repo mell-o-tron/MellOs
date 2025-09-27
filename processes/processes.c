@@ -91,7 +91,7 @@ void begin_execution() {
     if (processes[cur_pid] == NULL) return;
 
     kprint("code to be executed: ");
-    kprint(tostring_inplace(processes[cur_pid] -> state -> eip, 16));
+    kprint(tostring_inplace((int)(processes[cur_pid] -> state -> eip), 16));
     kprint("\n");
 
     load_task_state(processes[cur_pid] -> state, &&END_PORCAMADO);

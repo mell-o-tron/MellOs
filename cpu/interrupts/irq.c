@@ -59,7 +59,10 @@ void irq_remap(void)
     outb(0xA1, 0x0);
 }
 
-static volatile int currentInterrupts[15];
+// Originally this was an array with size 15, but I have strong
+//reasons to believe it should be 16. If this causes issues, revert this change.
+// - Perk
+static volatile int currentInterrupts[16];
 
 void irq_install()
 {

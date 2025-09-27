@@ -18,7 +18,7 @@ void set_alloc_bitmap (allocator_t * allocator, bitmap_t loc, uint32_t length){
 }
 
 // allocates some space and returns the pointer
-uint32_t allocate (allocator_t * allocator, size_t n){   // first fit :(
+void* allocate (allocator_t * allocator, size_t n){   // first fit :(
     n = (n + (allocator -> granularity) - 1) / (allocator -> granularity);
     size_t contiguous = 0;
     uint32_t current_champion = 0;
@@ -39,7 +39,7 @@ uint32_t allocate (allocator_t * allocator, size_t n){   // first fit :(
                 set_bitmap(allocator -> bitmap, j);
             }
             
-            return (current_champion * allocator -> granularity);
+            return (void*)(current_champion * allocator -> granularity);
         }
     }
     return NULL;

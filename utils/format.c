@@ -1,7 +1,12 @@
+#include "format.h"
 #include "conversions.h"
 #include "string.h"
 #include "typedefs.h"
+#ifdef VGA_VESA
 #include "vesa_text.h"
+#else
+#include "vga_text.h"
+#endif
 
 union arg {
     long long ll;
@@ -251,7 +256,7 @@ static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, uni
     if (!arg->p) {
         len = __builtin_strlen("(null)");
         if (spec->qualifier == 'l')
-            arg->ws = L"(null)";
+            arg->ws = (const int32_t *)L"(null)";
         else
             arg->s = "(null)";
     } else if (spec->qualifier == 'l') {
