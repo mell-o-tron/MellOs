@@ -38,7 +38,7 @@ int allocate_file(uint32_t req_sectors){
     allocator.size = 512;
     allocator.granularity = 1;
     
-    int res = allocate(&allocator, req_sectors);
+    int res = (int)allocate(&allocator, req_sectors);
     if (res != NULL)
         write_string_to_disk(tmp, 0xA0, 2, 1);
     else

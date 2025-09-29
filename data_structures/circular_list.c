@@ -4,6 +4,12 @@
 
 #include "../memory/dynamic_mem.h"
 
+#ifdef VGA_VESA
+#include "../drivers/vesa/vesa_text.h"
+#else
+#include "../drivers/vga_text.h"
+#endif
+
 void clist_append(CircularList** list, void* data){
     CircularList* new_node = kmalloc(sizeof(CircularList));
     new_node->data = data;

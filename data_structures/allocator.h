@@ -12,6 +12,6 @@ bitmap_t get_allocator_bitmap (allocator_t * allocator);
 
 void set_alloc_bitmap (allocator_t * allocator, bitmap_t loc, uint32_t length);
 
-uint32_t allocate (allocator_t * allocator, size_t n);
+void* allocate (allocator_t * allocator, size_t n);
 
 int allocator_free(allocator_t * allocator, uint32_t index, size_t size);

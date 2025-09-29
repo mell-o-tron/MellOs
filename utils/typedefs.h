@@ -58,7 +58,7 @@ typedef uint8_t bool;
 #define low_8(address) (uint8_t)((address) &  0xFF)
 #define high_8(address) (uint8_t)(((address) >> 8) & 0xFF)
 
-#define NULL (void*)0
+#define NULL ((void*)0)
 
 typedef struct {
     bool is_some;
