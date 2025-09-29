@@ -4,6 +4,8 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
+cmake-build-debug
+.cmake
 .cache/
 compile_flags.txt
 compile_commands.json

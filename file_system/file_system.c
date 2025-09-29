@@ -154,7 +154,7 @@ void new_file (char* name, uint32_t n_sectors){
         if(strcmp(name, files[i].name) == 0){
             // TODO deallocate that
             kprint("File with this name already exists.\n");
-            return;
+            goto cleanup;
         }
         if(files[i].name[0] == 0){
             new_file_pos = i;
@@ -164,14 +164,14 @@ void new_file (char* name, uint32_t n_sectors){
 
     if(new_file_pos == -1){
         kprint("Not enough space for new file\n");
-        return;
+        goto cleanup;
     }
 
-    uint32_t LBA = allocate_file(n_sectors);
+    int32_t LBA = allocate_file(n_sectors);
     
     if(LBA < 0) {
         kprint("Could not allocate file\n");
-        return;
+        goto cleanup;
     }
 
     // WARNING name is truncated here, so we can still end up with files with same name
@@ -186,6 +186,9 @@ void new_file (char* name, uint32_t n_sectors){
     files[new_file_pos].n_sectors = n_sectors;
     
     write_file_list(files, 0xA0, 1, 1);
+
+cleanup:
+    kfree(files, sizeof(file_t) * 32);
 }
 
 void remove_file(char* name){

@@ -29,9 +29,9 @@ typedef enum {
 } PT_FLAGS;
 
 
-void init_paging(unsigned int * page_directory, unsigned int * first_page_table, unsigned int * second_page_table, void * high_mem_start);
+void init_paging(unsigned int * page_directory, unsigned int * first_page_table, unsigned int * second_page_table, uintptr_t high_mem_start);
 void stop_paging();
-void add_page (unsigned int * page_directory, unsigned int * page_table, int index, uint32_t offset, PT_FLAGS ptf, PD_FLAGS pdf);
+void add_page_directory(unsigned int * page_directory, unsigned int * page_table, int index, uint32_t offset, PT_FLAGS ptf, PD_FLAGS pdf);
 
-void initialize_page_directory (unsigned int* page_directory);
+void initialize_page_directory(unsigned int* page_directory);
 void switch_page_directory(unsigned int * page_directory);

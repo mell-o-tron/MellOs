@@ -9,11 +9,15 @@
 #include "../drivers/vga_text.h"
 #endif
 
+#define TEST_SIZE 10
+
 int malloc_test(){
-    void * code_loc = (void*) kmalloc(10);
+    void * code_loc = kmalloc(TEST_SIZE);
 
     if (code_loc == NULL){                          // null check
         return 1;
+    } else {
+        kfree(code_loc, TEST_SIZE);
     }
 
     return 0;

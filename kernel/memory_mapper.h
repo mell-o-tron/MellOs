@@ -16,8 +16,8 @@ static char* names[5] = {
 
 
 typedef struct {
-    void *start;
-    void *length;
+    uintptr_t start;
+    size_t length;
 } MemoryArea;
 
 
@@ -25,6 +25,8 @@ typedef struct {
 
 
 // Define excluded areas array
+
+uintptr_t get_multiboot_framebuffer_addr(const MultibootTags* mb);
 
 void init_memory_mapper(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp);
 

@@ -112,11 +112,12 @@ target_link_options(kernel.elf PRIVATE
         -nostdlib -nodefaultlibs -nostartfiles
         -Wl,-m,elf_i386
 )
-
 # Freestanding kernel style build
+# add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
 target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-g>
-        $<$<COMPILE_LANGUAGE:C>:-O3>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-m32>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>

@@ -40,9 +40,9 @@ void fill_rect(int x, int y, int width, int height, VESA_Colour col);
 void fill_circle(int x, int y, int radius, VESA_Colour col);
 void draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY);
 
-void fb_clear_screen(Framebuffer fb);
-void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer fb);
-void fb_clear_screen_col(Colour col, Framebuffer fb);
+void fb_clear_screen(Framebuffer *fb);
+void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer *fb);
+void fb_clear_screen_col(Colour col, Framebuffer *fb);
 
 void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb);
 void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb);

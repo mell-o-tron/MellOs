@@ -249,7 +249,7 @@ static long long do_char_output(struct fmt *spec, char **dest, size_t *dsize, un
 static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, union arg *arg) {
     int len;
     if (!arg->p) {
-        len = __builtin_strlen("(null)");
+        len = strlen("(null)");
         if (spec->qualifier == 'l')
             arg->ws = L"(null)";
         else
@@ -508,6 +508,8 @@ int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
     va_end(va);
     return ret;
 }
+
+// todo: formatted kernel printing and some kernel log
 
 __attribute__((format(printf, 1, 2)))
 void printf(char* s, ...) {

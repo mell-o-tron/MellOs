@@ -12,6 +12,8 @@
 #include "../misc/colours.h"
 #include "../utils/conversions.h"
 // #include "../utils/string.h"
+#include "paging_utils.h"
+
 #include "format.h"
 
 #include "../cpu/interrupts/idt.h"
@@ -116,7 +118,7 @@ extern  void kpanic(struct regs *r) {
     char buf[256];
     snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
 
-    fb_clear_screen_col_VESA(VESA_RED, *vga_fb);
+    fb_clear_screen_col_VESA(VESA_RED, vga_fb);
     fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
 #else
     #define ERRCOL 0x47 // Lightgrey on Lightred
@@ -160,14 +162,15 @@ extern  void kpanic(struct regs *r) {
 
 #pragma GCC pop_options
 
+#define PAGE_LENGTH 4096
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
 uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
-#define NUM_MANY_PAGES (uint32_t)512
-uint32_t lots_of_pages[NUM_MANY_PAGES][1024]  __attribute__((aligned(4096)));
+#define NUM_MANY_DIRECTORIES (uint32_t)512
+uint32_t lots_of_pages[NUM_MANY_DIRECTORIES][1024]  __attribute__((aligned(4096)));
 #ifdef VGA_VESA
-#define NUM_FB_PAGES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
-unsigned int framebuffer_pages[NUM_FB_PAGES][1024]     __attribute__((aligned(4096)));
+#define NUM_FB_DIRECTORIES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
+unsigned int framebuffer_pages[NUM_FB_DIRECTORIES][1024]     __attribute__((aligned(4096)));
 PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE;
 PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING;
 #endif
@@ -202,7 +205,9 @@ allocator_t allocator;
 
 extern void main(uint32_t multiboot_tags_addr){
 #ifdef VGA_VESA
-    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_PAGES); // Addr of the next page that will be added
+
+    uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
+    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_DIRECTORIES); // Addr of the next page that will be added
 #endif
     MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     printf("lower: %i\n", multiboot_tags->mem_upper);
@@ -223,13 +228,12 @@ extern void main(uint32_t multiboot_tags_addr){
         +-------------------+
     */
 #ifdef VGA_VESA
-    init_memory_mapper(multiboot_tags, (void *)framebuffer_addr, BPP);
+    init_memory_mapper(multiboot_tags, (void *)fb_addr, BPP);
 #elif VGA_TEXT
     init_memory_mapper(multiboot_tags, NULL, BPP);
 #endif
     MemoryArea memory_area = get_largest_free_block();
 
-    printf("selected: %016llx..%016llx", (uint64_t)memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
 
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
@@ -240,19 +244,22 @@ extern void main(uint32_t multiboot_tags_addr){
     setup_pat();
     
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
-    for(uint32_t i = 0; i < NUM_MANY_PAGES; i++){
-        add_page(page_directory, lots_of_pages[i], i + 2, MAPPED_KERNEL_START * (i + 2), first_page_table_flags, page_directory_flags);
+    for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
+        uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
+        add_page_directory(page_directory, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
     }
     
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
-    
-    for (int i = 0; i < NUM_FB_PAGES; i++){
-        add_page(page_directory, framebuffer_pages[i], 2 + NUM_MANY_PAGES + i, 0xFD000000 /*This value should be retrieved from the vbe mode info retrieved during boot*/
-            + i * 0x400000, framebuffer_page_tflags, framebuffer_page_dflags);
+
+    for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++){
+        uintptr_t phys_base = (fb_addr & ~0x3FFFFF) + (i * 0x400000);
+        add_page_directory(page_directory, framebuffer_pages[i],
+            2 + NUM_MANY_DIRECTORIES + i,
+            phys_base,
+            framebuffer_page_tflags, framebuffer_page_dflags);
     }
-    const uint32_t framebuffer_end = 0x400000 * (2 + NUM_MANY_PAGES + NUM_FB_PAGES);
     #endif
     
     gdt_init();
@@ -264,28 +271,31 @@ extern void main(uint32_t multiboot_tags_addr){
     
     asm volatile ("sti");
     timer_install();
-    clear_screen_col(DEFAULT_COLOUR);
     set_cursor_pos_raw(0);
-    
+
     //allocator.granularity = 512;
     //assign_kmallocator(&allocator);
-    buddy_init(memory_area.start, (size_t)memory_area.length);
-
+    set_dynamic_mem_loc ((void*)memory_area.start);
+    if (!buddy_init(memory_area.start, memory_area.length)) {
+        printf("Buddy allocator fault.\n");
+        // todo: error handling
+        //asm volatile ("hlt");
+    }
+    // allocates space for the process data
+    //init_scheduler();
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
-    set_dynamic_mem_loc ((void*)DYNAMIC_MEM_LOC);
+
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
     Pitch = multiboot_tags->framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
-    _vesa_framebuffer_init(framebuffer_addr);
+    _vesa_framebuffer_init(fb_addr);
     _vesa_text_init();
     mouse_install();
-    #else
-    set_dynamic_mem_loc((void *)DYNAMIC_MEM_LOC);
     #endif
-    
+
     
     kb_install();
 
@@ -294,17 +304,17 @@ extern void main(uint32_t multiboot_tags_addr){
     // kprint(tostring_inplace(failed_fs_tests, 10));
     // kprint(" failed\n");
 
-    kprint("Running mem tests... ");
+    printf("Running mem tests... ");
     int failed_mem_tests = run_all_mem_tests();
-    kprint(tostring_inplace(failed_mem_tests, 10));
-    kprint(" failed\n");
+    printf("%016x", failed_mem_tests);
+    printf(" failed\n");
 
-    kprint("\n\n ENTERING COMMAND MODE...\n");
+    printf("\n\n ENTERING COMMAND MODE...\n");
 
 
     sleep(30);
 
-    void * code_loc2 = (void*) kmalloc(10);
+    void *code_loc2 = kmalloc(10);
     if (code_loc2 == NULL){
         kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
 

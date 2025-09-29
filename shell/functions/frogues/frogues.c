@@ -23,7 +23,7 @@ FDEF(frogues){
             return;
         }
         w->fb->fb = fbptr;
-        fb_clear_screen(*w->fb);
+        fb_clear_screen(w->fb);
 
         /*for (int y = 0; y < frogues_height; y++) {
             for (int x = 0; x < frogues_width; x++) {

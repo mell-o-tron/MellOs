@@ -1,4 +1,7 @@
 #include "circular_list.h"
+
+#include "vesa_text.h"
+
 #include "../memory/dynamic_mem.h"
 
 void clist_append(CircularList** list, void* data){
