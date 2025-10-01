@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)   # CMake will pass exactly "-f elf32"
+set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(CMAKE_C_STANDARD 11)
@@ -36,7 +36,7 @@ set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
 # Output directory compatible with Makefile
-set(OUT_BIN_DIR "${CMAKE_SOURCE_DIR}/wee_bins")
+set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
@@ -129,15 +129,21 @@ target_compile_options(kernel.elf PRIVATE
 
 # Create the ISO using grub-mkrescue
 set(ISO_NAME "mellos.iso")
-set(ISO_PATH "${CMAKE_SOURCE_DIR}/${ISO_NAME}")
-set(KERNEL_DEST "${CMAKE_SOURCE_DIR}/iso/boot/kernel.elf")
+set(ISO_PATH "${CMAKE_BINARY_DIR}/${ISO_NAME}")
+set(KERNEL_DEST "${CMAKE_BINARY_DIR}/iso/boot/kernel.elf")
+set(GRUB_DIR "${CMAKE_BINARY_DIR}/iso/boot/grub")
+
+add_custom_target(prepare_grub_dir
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${GRUB_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/grub.cfg ${GRUB_DIR}/grub.cfg
+)
 
 add_custom_command(
         OUTPUT ${ISO_PATH}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${OUT_BIN_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:kernel.elf> ${KERNEL_DEST}
-        COMMAND grub-mkrescue -o ${ISO_PATH} ${CMAKE_SOURCE_DIR}/iso
-        DEPENDS kernel.elf ${CMAKE_SOURCE_DIR}/iso/boot/grub/grub.cfg
+        COMMAND grub-mkrescue -o ${ISO_PATH} ${CMAKE_BINARY_DIR}/iso
+        DEPENDS kernel.elf prepare_grub_dir
         VERBATIM
         COMMENT "Creating bootable ISO with grub-mkrescue"
 )
@@ -151,7 +157,7 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_SOURCE_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_SOURCE_DIR}/qemu_debug.log -enable-kvm -cpu pentium2 -hda ${CMAKE_SOURCE_DIR}/test_disk.img
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu pentium2 -hda ${CMAKE_SOURCE_DIR}/test_disk.img
         DEPENDS iso
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
@@ -170,9 +176,9 @@ add_custom_target(distclean
         ${CMAKE_BINARY_DIR}/cmake_install.cmake
         ${CMAKE_BINARY_DIR}/serial.log
         ${CMAKE_BINARY_DIR}/CMakeCache.txt
-        ${CMAKE_SOURCE_DIR}/wee_bins
-        ${CMAKE_SOURCE_DIR}/iso/boot/kernel.elf
-        ${CMAKE_SOURCE_DIR}/mellos.iso
+        ${CMAKE_BINARY_DIR}/wee_bins
+        ${CMAKE_BINARY_DIR}/iso/boot/kernel.elf
+        ${CMAKE_BINARY_DIR}/mellos.iso
         COMMENT "Remove generated binaries and ISO"
 )
 
