@@ -8,8 +8,8 @@
 
 
 /* integer powers of a float */
-float pow_f (float x, uint32_t n) {
-    float res = 1.0;
+float pow_f(const float x, const uint32_t n) {
+    float res = 1.0f;
 
     for (uint32_t i = 0; i < n; i++)
         res *= x;
@@ -18,8 +18,8 @@ float pow_f (float x, uint32_t n) {
 }
 
 /* auxiliary function for ln */
-float aux_ln (int x) {
-    return ((float)x - 1) / ((float)x+1);
+float aux_ln (const float x) {
+    return (x - 1) / (x + 1);
 }
 
 
@@ -28,18 +28,18 @@ float aux_ln (int x) {
 float ln (float x, uint32_t order) {
     float res = 0;
     for (uint32_t i = 1; i < order; i+=2){
-        res += (1.0 / (float) i) * pow_f(aux_ln(x), i);
+        res += (1.0f / (float) i) * pow_f(aux_ln(x), i);
     }
     return 2 * (res);
 }
 
 /* lookup values for log */
-float ln2  = 0.6931471805599453;
-float ln10 = 2.302585092994046;
-float ln16 = 2.772588722239781;
+float ln2  = 0.6931471805599453f;
+float ln10 = 2.302585092994046f;
+float ln16 = 2.772588722239781f;
 
 /* returns ceil of log approx */
-uint32_t ceil_log (uint32_t x, uint32_t base) {
+uint32_t ceil_log (const uint32_t x, const uint32_t base) {
     if (base == 2)
         return CEILING(ln(x, 1000) / ln2);
 
@@ -54,15 +54,15 @@ uint32_t ceil_log (uint32_t x, uint32_t base) {
     for(;;);
 }
 
-int abs(int x) {
+int abs(const int x) {
     return x < 0 ? -x : x;
 }
 
-int min(int a, int b) {
+int min(const int a, const int b) {
     return a < b ? a : b;
 }
 
-int max(int a, int b) {
+int max(const int a, const int b) {
     return a > b ? a : b;
 }
 

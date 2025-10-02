@@ -1,5 +1,5 @@
 #pragma once
-#ifdef VGA
+#ifndef VGA_VESA
 #include "../utils/typedefs.h"
 void set_cursor_pos_raw(uint16_t pos);
 uint16_t get_cursor_pos_raw();

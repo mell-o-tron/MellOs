@@ -13,21 +13,22 @@ uint32_t Hres;
 uint32_t Vres;
 uint32_t Pitch;
 
-Framebuffer vga_fb_true;
-Framebuffer* vga_fb;
+Framebuffer *vga_fb_true;
+Framebuffer *vga_fb;
 static uint8_t bytes_per_pixel;
 
 void _vesa_framebuffer_init(PIXEL addr){
-	vga_fb_true.fb = (volatile PIXEL*)addr;
-    vga_fb_true.width = Hres;
-    vga_fb_true.height = Vres;
-    vga_fb_true.pitch = Pitch;
-    vga_fb = &vga_fb_true;
+    vga_fb_true = kmalloc(sizeof(Framebuffer));
+	vga_fb_true->fb = (volatile PIXEL*)addr;
+    vga_fb_true->width = Hres;
+    vga_fb_true->height = Vres;
+    vga_fb_true->pitch = Pitch;
+    vga_fb = vga_fb_true;
 
-	clear_screen(vga_fb);
+	clear_screen();
 }
 
-void fb_clear_screen(Framebuffer fb) {
+void fb_clear_screen(Framebuffer *fb) {
     fb_clear_screen_col_VESA(VESA_BLACK, fb);
 }
 
@@ -35,13 +36,16 @@ void clear_screen() {
     fb_clear_screen(vga_fb_true);
 }
 
-void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer fb){
+void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer *fb){
+    if (fb == NULL) {
+        return;
+    }
     uint32_t offset = 0;
-    for (int i = 0; i < fb.height /*TODO: Remove -1 as below*/; i++) {
-        for (int j = 0; j < fb.width; j++) {
-            fb.fb[offset + j] = col.val;
+    for (int i = 0; i < fb->height /*TODO: Remove -1 as below*/; i++) {
+        for (int j = 0; j < fb->width; j++) {
+            fb->fb[offset + j] = col.val;
         }
-        offset += fb.pitch; // TODO: This goes at the end of the loop, once memory issues are figured out
+        offset += fb->pitch; // TODO: This goes at the end of the loop, once memory issues are figured out
     }
 }
 
@@ -49,7 +53,7 @@ void clear_screen_col_VESA(VESA_Colour col) {
     fb_clear_screen_col_VESA(col, vga_fb_true);
 }
 
-void fb_clear_screen_col(Colour col, Framebuffer fb) {
+void fb_clear_screen_col(Colour col, Framebuffer *fb) {
     VESA_Colour vesa_col = vga2vesa(col);
     fb_clear_screen_col_VESA(vesa_col, fb);
 }
@@ -89,7 +93,7 @@ void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
 }
 
 void fill_square(int x, int y, int size, VESA_Colour col) {
-    fb_fill_rect(x, y, size, size, col, vga_fb_true);
+    fb_fill_rect(x, y, size, size, col, *vga_fb_true);
 }
 
 void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb, Recti bounds) {
@@ -123,7 +127,7 @@ void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuf
 }
 
 void fill_rect(int x, int y, int width, int height, VESA_Colour col) {
-    fb_fill_rect(x, y, width, height, col, vga_fb_true);
+    fb_fill_rect(x, y, width, height, col, *vga_fb_true);
 }
 
 void fb_fill_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb) {
@@ -137,7 +141,7 @@ void fb_fill_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb) {
 }
 
 void fill_circle(int x, int y, int radius, VESA_Colour col) {
-    fb_fill_circle(x, y, radius, col, vga_fb_true);
+    fb_fill_circle(x, y, radius, col, *vga_fb_true);
 }
 
 void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb) {
@@ -153,7 +157,7 @@ void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scal
 }
 
 void draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY) {
-    fb_draw_char(x, y, c, colour, scaleX, scaleY, vga_fb_true);
+    fb_draw_char(x, y, c, colour, scaleX, scaleY, *vga_fb_true);
 }
 
 void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb) {
@@ -166,8 +170,14 @@ void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, f
 
 Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height) {
     Framebuffer* out = kmalloc(sizeof(Framebuffer));
-    uint32_t size = width * height * bytes_per_pixel;
+    if (out == NULL) {
+        return NULL;
+    }
+    const uint32_t size = width * height * bytes_per_pixel;
     out->fb = kmalloc(size);
+    if (out->fb == NULL) {
+        return NULL;
+    }
     out->width = width;
     out->height = height;
     out->pitch = width;

@@ -93,7 +93,7 @@ FDEF(vell){
         _deinit_vterm();
         deallocate_framebuffer(fb);
         deallocate_framebuffer(fb2);
-        fb_clear_screen_col_VESA(VESA_BLACK, *vga_fb);
+        fb_clear_screen_col_VESA(VESA_BLACK, vga_fb);
         fb = NULL;
         fb2 = NULL;
         while (windows != NULL){

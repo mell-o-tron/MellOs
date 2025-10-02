@@ -10,8 +10,8 @@
 #include "../utils/conversions.h"
 
 #define MAX_ORDER 23
-#define MIN_ORDER 5       
-#define PAGE_SIZE 4096
+#define MIN_ORDER 5
+#define PAGE_LENGTH 4096
 
 // ----- OLD ALLOCATOR -----
 
@@ -48,31 +48,39 @@ typedef struct Block {
 
 Block* free_list[MAX_ORDER + 1];
 
+bool buddy_inited = false;
 static void* allocator_base = NULL;
 static size_t allocator_size = 0;
 
-void buddy_init(void *base, size_t size) {
-    allocator_base = base;
+bool buddy_init(const uintptr_t base, const size_t size) {
+    if (size < 1UL << 7) return false;
+
+    allocator_base = (void *) base;
     allocator_size = size; 
 
     for (int i = MIN_ORDER; i <= MAX_ORDER; ++i) {
         free_list[i] = NULL;
     }
     int order = MAX_ORDER;
-    while ((1UL << order) > size){
+    while (1UL << order > size){
         order--;
     }
-    Block* block = (Block*)base;
+
+    Block* block = (void *) base;
     block->order = order;
-    block->free = 1;
+
+    block->free = true;
     block->next = NULL;
+
     free_list[order] = block;
+    buddy_inited = true;
+    return true;
 }
 
 Block* get_buddy(Block* block) {
-    size_t size = 1 << block->order;
-    size_t offset = (char*)block - (char*)allocator_base;
-    size_t buddy_offset = offset ^ size;
+    const size_t size = 1 << block->order;
+    const size_t offset = (char*)block - (char*)allocator_base;
+    const size_t buddy_offset = offset ^ size;
     return (Block*)((char*)allocator_base + buddy_offset);
 }
 
@@ -81,8 +89,8 @@ void* buddy_alloc(size_t size) {
         return NULL;
     }
 
-    int order = MIN_ORDER;
-    while ((1 << order) < size + sizeof(Block)) {
+    uint16_t order = MIN_ORDER;
+    while (1 << order < size + sizeof(Block)) {
         order++;
     }
 
@@ -115,12 +123,12 @@ void* buddy_alloc(size_t size) {
     block->free = 0;
     block->next = NULL;
 
-    return (void*)((char*)block + sizeof(Block));
+    return (char*)block + sizeof(Block);
 }
 
 void buddy_free(void* loc) {
     if (!loc) return;
-    uint32_t off = (uint32_t)((uint32_t)loc - (uint32_t)dynamic_mem_loc);
+    const uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
 
     Block* block = (Block*)((char*)off - sizeof(Block));
     int order = block->order;
@@ -167,7 +175,7 @@ typedef struct LilSlab {
 
 LilSlab* slab_heads[SLAB_OBJ_SIZES] = { NULL };
 
-void* slab_alloc(size_t size) {
+void* slab_alloc(const size_t size) {
     int idx = -1;
     for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
         if (size <= slab_sizes[i]) {
@@ -180,33 +188,33 @@ void* slab_alloc(size_t size) {
         return NULL;
     }
 
-    LilSlab* slab = slab_heads[idx];
+    const LilSlab* slab = slab_heads[idx];
 
     while (slab) {
         for (size_t i = 0; i < slab->capacity; i++) {
             if (!(slab->bitmap[i / 8] & (1 << (i % 8)))) {
                 slab->bitmap[i / 8] |= (1 << (i % 8));
-                return (char*)slab->memory + i * slab->obj_size;
+                return (char *) slab->memory + i * slab->obj_size;
             }
         }
         slab = slab->next;
     }
 
     // Creates new slab
-    void* slab_page = buddy_alloc(PAGE_SIZE);
+    void* slab_page = buddy_alloc(PAGE_LENGTH);
     if (!slab_page) {
         return NULL;
     }
 
-    size_t capacity_guess = (PAGE_SIZE - sizeof(LilSlab)) / slab_sizes[idx];
+    size_t capacity_guess = (PAGE_LENGTH - sizeof(LilSlab)) / slab_sizes[idx];
     size_t bitmap_size = (capacity_guess + 7) / 8;
-    size_t capacity = (PAGE_SIZE - sizeof(LilSlab) - bitmap_size) / slab_sizes[idx];
+    size_t capacity = (PAGE_LENGTH - sizeof(LilSlab) - bitmap_size) / slab_sizes[idx];
 
     if (capacity == 0) {
         return NULL;
     }
 
-    LilSlab* new_slab = (LilSlab*)slab_page;
+    LilSlab* new_slab = slab_page;
     new_slab->obj_size = slab_sizes[idx];
     new_slab->capacity = capacity;
     new_slab->bitmap = (uint8_t*)(new_slab + 1);
@@ -222,7 +230,7 @@ void* slab_alloc(size_t size) {
 }
 
 void slab_free(void* loc, size_t size) {
-    uint32_t off = (uint32_t)((uint32_t)loc - (uint32_t)dynamic_mem_loc);
+    uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
     int idx = -1;
     for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
         if (size <= slab_sizes[i]) {
@@ -248,12 +256,14 @@ void slab_free(void* loc, size_t size) {
 }
 
 void* kmalloc(size_t size) {
+    if (!buddy_inited)
+        return NULL;
     if (size <= 256) {
-        uint32_t offset = slab_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) slab_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     } else {
-        uint32_t offset = buddy_alloc(size);
-        return (void*)((uint32_t)dynamic_mem_loc + offset);
+        long unsigned int offset = (long unsigned int) buddy_alloc(size);
+        return (void*)((long unsigned int)dynamic_mem_loc + offset);
     }
 }
 

@@ -1,4 +1,7 @@
 #include "processes.h"
+
+#include <format.h>
+
 #include "../memory/dynamic_mem.h"
 #include "../utils/typedefs.h"
 #ifdef VGA_VESA
@@ -58,27 +61,33 @@ void populate_task_noargs(state_t* state, void* code){
 
 /******* PROCESSES *******/
 
-process_t * processes [1000];
+#define MAX_PROCESSES 1000
+process_t **processes;
+uint32_t allocated_processes = MAX_PROCESSES;
 uint32_t cur_pid = 0; // for now, PIDs are just indices in the above array
 uint32_t max_pid = 0;
 
 bool scheduler_active = false;
 
-void scheduler_daemon (){
+void init_scheduler() {
+    processes = kmalloc(sizeof(process_t *) * MAX_PROCESSES);
+}
+
+void scheduler_daemon () {
 
     if (scheduler_active) {
-        kprint("Telling current process to shut up... ");
-        process_t * cur_proc = processes[cur_pid];
+        printf("Telling current process to shut up... ");
+        process_t *cur_proc = processes[cur_pid];
 
         // check if no process running
         if (cur_proc == NULL){
-            kprint(" ...No process currently running\n");
+            printf(" ...No process currently running\n");
             return;
         }
 
-        kprint(" ... Process 0x");
-        kprint(tostring_inplace(cur_pid, 16));
-        kprint(" notified\n");
+        printf(" ... Process 0x%x notified", cur_pid);
+        //kprint(tostring_inplace(cur_pid, 16));
+        //kprint(" notified\n");
 
         // save_task_state(cur_proc -> state, cur_proc -> state -> eip);
         cur_proc ->must_relinquish = true;
@@ -90,14 +99,14 @@ void begin_execution() {
 
     if (processes[cur_pid] == NULL) return;
 
-    kprint("code to be executed: ");
-    kprint(tostring_inplace(processes[cur_pid] -> state -> eip, 16));
-    kprint("\n");
+    printf("code to be executed: %p\n", processes[cur_pid] -> state -> eip);
+    //kprint(tostring_inplace(processes[cur_pid] -> state -> eip, 16));
+    //kprint("\n");
 
     load_task_state(processes[cur_pid] -> state, &&END_PORCAMADO);
 
     END_PORCAMADO:
-    kprint("finito\n");
+    printf("finito\n");
 
 
     // cannot return! new stack.
@@ -149,9 +158,13 @@ void try_to_terminate(){
 
 process_t* schedule_process(void * code){
 
-    if(max_pid >= 1000){
-        kprint("no more processes available!\n");
-        for(;;);
+    if(max_pid == allocated_processes){
+        const uint32_t allocated = allocated_processes + 20;
+        krealloc(processes[0], max_pid * sizeof(process_t *), allocated * sizeof(process_t *));
+        allocated_processes = allocated;
+    } else if (max_pid > allocated_processes) {
+        kprint("Illegal schedule process number, halting.");
+        for (;;){}
     }
 
     process_t* res = kmalloc(sizeof(process_t));

@@ -43,7 +43,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
     CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues"),
     #endif
-    CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo")
+    CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo"),
+    CMDENTRY(&meminfo, "meminfo", "Displays memory info", "meminfo")
 };
 
 
