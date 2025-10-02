@@ -9,6 +9,13 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
 #set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
+# Toolchain (can be overridden by -D on configure)
+set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
+set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
+# We let the gcc driver do the link but still pass linker script via link options
+set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
+set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
+
 project(MellOs C ASM_NASM)
 
 
@@ -28,12 +35,6 @@ set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
 #    add_compile_definitions(BOX_WINDOW_DRAG)
 #endif ()
 
-# Toolchain (can be overridden by -D on configure)
-set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
-set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
-# We let the gcc driver do the link but still pass linker script via link options
-set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
-set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
 # Output directory compatible with Makefile
 set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
@@ -168,19 +169,6 @@ add_custom_target(debug
         DEPENDS iso
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
-
-# Convenience clean for wee_bins artifacts
-add_custom_target(distclean
-        COMMAND ${CMAKE_COMMAND} -E rm -rf
-        ${CMAKE_BINARY_DIR}/CMakeFiles
-        ${CMAKE_BINARY_DIR}/cmake_install.cmake
-        ${CMAKE_BINARY_DIR}/serial.log
-        ${CMAKE_BINARY_DIR}/CMakeCache.txt
-        ${CMAKE_BINARY_DIR}/wee_bins
-        ${CMAKE_BINARY_DIR}/iso/boot/kernel.elf
-        ${CMAKE_BINARY_DIR}/mellos.iso
-        COMMENT "Remove generated binaries and ISO"
-)
 
 # Helpful: export compile commands (a compile_commands.json will be in build dir)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
