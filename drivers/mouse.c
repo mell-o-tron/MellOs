@@ -154,7 +154,8 @@ uint8_t receive_mouse_data(){
 void mouse_install() {
     send_mouse_command(MOUSE_CMD_ENABLE_AUX);
 
-    uint8_t response = receive_mouse_data();
+    // Receive and discard the response
+    receive_mouse_data();
 
     send_mouse_command(MOUSE_CMD_GET_COMPAQ_STATUS);
 

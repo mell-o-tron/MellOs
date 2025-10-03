@@ -147,7 +147,7 @@ void fill_circle(int x, int y, int radius, VESA_Colour col) {
 }
 
 void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY, Framebuffer* fb) {
-    uint8_t* font_char = font8x8_basic[(uint8_t)c];
+    uint8_t* font_char = (uint8_t*)(font8x8_basic[(uint8_t)c]);
     for (int row = 0; row < FONT_HEIGHT * scaleY; row++) {
         uint8_t pixels = font_char[(int)(row / scaleY)];
         for (int col = 0; col < FONT_WIDTH * scaleX; col++) {

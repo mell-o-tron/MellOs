@@ -124,7 +124,11 @@ target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
-        $<$<COMPILE_LANGUAGE:C>:-Wno-error>
+        $<$<COMPILE_LANGUAGE:C>:-Wall>
+        $<$<COMPILE_LANGUAGE:C>:-Wno-parentheses>
+        $<$<COMPILE_LANGUAGE:C>:-Wno-missing-braces>
+        $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
+        $<$<COMPILE_LANGUAGE:C>:-Werror=return-type>
         $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
 )
 

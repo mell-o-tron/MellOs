@@ -4,6 +4,7 @@
 #include "../drivers/vga_text.h"
 #endif
 #include "../misc/colours.h"
+#include "../kernel/kernel.h"
 
 extern char ker_tty[4000];
 
