@@ -2,3 +2,4 @@
 #include "../../../utils/format.h"
 #include "../../../shell/functions/vell.h"
 #include "../../../GUI/gui.h"
+#include "../../../cpu/timer/timer.h"
