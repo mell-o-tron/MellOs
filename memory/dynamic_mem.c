@@ -8,6 +8,7 @@
 #include "../drivers/vga_text.h"
 #endif
 #include "../utils/conversions.h"
+#include "../utils/assert.h"
 
 #define MAX_ORDER 24
 #define MIN_ORDER 5
@@ -264,6 +265,7 @@ void* kmalloc(size_t size) {
     } else {
         offset = (long unsigned int) buddy_alloc(size);
     }
+    assert(offset != NULL);
     if (offset == NULL) return NULL;
     return (void*)((long unsigned int)dynamic_mem_loc + offset);
 }
