@@ -1,17 +1,24 @@
 .vscode/
+.idea/
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+cmake-build-debug
+.cmake
 .cache/
 compile_flags.txt
 compile_commands.json
 
 # binaries
-WeeBins/
-wee_bins/*
+wee_bins/
 os_image.bin
 osimage_formated.bin
 mellos.iso
-test_disk.img
 iso/boot/kernel.elf
+build/
 
 # logs
 serial.log
 qemu_debug.log
+.gdb_history

@@ -24,6 +24,7 @@ void kprint_task_state(struct task_state *state);
 
 void populate_task_noargs(state_t* state, void* code);
 
+void init_scheduler();
 void scheduler_daemon ();
 void begin_execution();
 

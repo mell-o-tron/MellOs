@@ -69,8 +69,8 @@ struct VBEScreen {
 } __attribute__((packed));
 
 #define VBE_INFO_LOC		(char*)0x5300
-#define VBE_MODE_INFO_LOC	(char*)0x5300 + sizeof(struct VbeInfoBlock)
-#define VBE_SCREEN_LOC		(char*)0x5300 + sizeof(struct VbeInfoBlock) + sizeof(struct VBEModeInfoBlock)
+#define VBE_MODE_INFO_LOC	((char*)0x5300 + sizeof(struct VbeInfoBlock))
+#define VBE_SCREEN_LOC		((char*)0x5300 + sizeof(struct VbeInfoBlock) + sizeof(struct VBEModeInfoBlock))
 
 
 #define FONT_WIDTH 8
@@ -81,8 +81,8 @@ struct VBEScreen {
 #define FONT_VOFFSET 1
 #define CONSOLE_HRES (Hres > 1000 ? 640 : (Hres - 10))
 #define CONSOLE_VRES (Vres > 700  ? 480 : (Vres - 30))
-#define CONSOLE_HOFF (Hres - CONSOLE_HRES) / 2
-#define CONSOLE_VOFF (Vres - CONSOLE_VRES) / 2
+#define CONSOLE_HOFF ((Hres - CONSOLE_HRES) / 2)
+#define CONSOLE_VOFF ((Vres - CONSOLE_VRES) / 2)
 // #define CONSOLE_HRES 1920
 // #define CONSOLE_VRES 1080
 // #define CONSOLE_HOFF 0
@@ -112,7 +112,6 @@ void _vesa_text_set_dirty_callback(function_type f){
 
 void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
-	fb->fb = kmalloc(fb->width * fb->height * 4);
 	// char buf[256];
 	// tostring((int)fb->fb, 16, buf);
 	// kprint(buf);
@@ -143,24 +142,24 @@ void increment_cursor_pos(){
 }
 
 void clear_line_col(uint32_t line, Colour col){
-	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), *fb);
+	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), fb);
 }
 
 void scroll_up(){
 	// Scroll by inplace blit to itself
-	blit(*fb, *fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
+	blit(fb, fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
 	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
 	set_cursor_pos_raw(cursor_pos - CONSOLE_WIDTH(fb));
 }
 
 void kclear_screen(){
 	// return;
-	fb_clear_screen(*fb);
+	fb_clear_screen(fb);
 	set_cursor_pos_raw(0);
 }
 
 void kprint_col(const char* s, Colour col){
-	VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
+	const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
 	while (*s) {
 		if (*s == '\n') {
 			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
@@ -169,7 +168,7 @@ void kprint_col(const char* s, Colour col){
 			}
 		} else {
 			size_t hpos = HSLOT(fb);
-			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, *fb);
+			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
 			increment_cursor_pos();
 			if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
 				cursor_pos += CONSOLE_WIDTH(fb) - hpos;
@@ -182,7 +181,7 @@ void kprint_col(const char* s, Colour col){
 	}
 
 	if (autoblit) {
-		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
 	}
 	
 	if (dirty_callback) {
@@ -199,10 +198,10 @@ void kprint_char (char c, bool caps){
 
 	VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
 	// Blank out the slot for the next character. Needed to implement backspace as going back and printing a space
-	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), *fb);
-	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, *fb);
+	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), fb);
+	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
 	if (autoblit){
-		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
 	}
 	
 	if (dirty_callback) {

@@ -87,7 +87,7 @@ void *memcpy(void * restrict dest, const void * restrict src, uint64_t size)
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
 
-	if (features->sse2 && size >= 16) {
+	if (cpuid_have_sse() && size >= 16) {
         // SSE2 copy using unaligned load/store. Disable IRQs to avoid ISR clobber.
         irq_flags_t irqf = save_irq_flags(); // if you do not have this, tell me.
         cli();

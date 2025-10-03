@@ -1,6 +1,12 @@
+#include "format.h"
 #include "conversions.h"
 #include "string.h"
 #include "typedefs.h"
+#ifdef VGA_VESA
+#include "vesa_text.h"
+#else
+#include "vga_text.h"
+#endif
 
 union arg {
     long long ll;
@@ -248,9 +254,9 @@ static long long do_char_output(struct fmt *spec, char **dest, size_t *dsize, un
 static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, union arg *arg) {
     int len;
     if (!arg->p) {
-        len = __builtin_strlen("(null)");
+        len = strlen("(null)");
         if (spec->qualifier == 'l')
-            arg->ws = L"(null)";
+            arg->ws = (const int32_t *)L"(null)";
         else
             arg->s = "(null)";
     } else if (spec->qualifier == 'l') {
@@ -503,15 +509,19 @@ __attribute__((format(printf, 3, 4)))
 int snprintf(char *dest, size_t dsize, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
-    int ret = vsnprintf(dest, dsize, fmt, va);
+    const int ret = vsnprintf(dest, dsize, fmt, va);
     va_end(va);
     return ret;
 }
 
-void stupid_printf (char* s, ...) {
+// todo: formatted kernel printing and some kernel log
+
+__attribute__((format(printf, 1, 2)))
+void printf(char* s, ...) {
     va_list va;
     va_start(va, s);
 	char buf [256];
-    snprintf(buf, sizeof buf, s, va);
+    vsnprintf(buf, sizeof buf, s, va);
+    va_end(va);
     kprint(buf);
 }

@@ -6,7 +6,7 @@
 void assign_kmallocator(allocator_t* allocator);
 void set_dynamic_mem_loc (void *loc);
 
-void buddy_init(void *base, size_t size);
+bool buddy_init(uintptr_t base, size_t size);
 
 void * kmalloc (size_t size);
 int kdisintegrate(void* loc, size_t size);

@@ -4,11 +4,13 @@
 #include "../drivers/vga_text.h"
 #endif
 #include "../misc/colours.h"
+#include "../kernel/kernel.h"
 
 extern char ker_tty[4000];
 
 void assert(uint8_t condition){
     if(!condition){
+        kpanic(NULL);
         #ifdef VGA_VESA
         kclear_screen();
         #else

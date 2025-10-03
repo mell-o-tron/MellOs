@@ -1,3 +1,8 @@
+/* Basic Framebuffer graphic library
+ * Part of MellOS
+ * - Perk
+ */
+
 #ifdef VGA_VESA
 
 #include "vesa.h"
@@ -13,49 +18,50 @@ uint32_t Hres;
 uint32_t Vres;
 uint32_t Pitch;
 
-Framebuffer vga_fb_true;
 Framebuffer* vga_fb;
-static uint8_t bytes_per_pixel;
 
 void _vesa_framebuffer_init(PIXEL addr){
-	vga_fb_true.fb = (volatile PIXEL*)addr;
-    vga_fb_true.width = Hres;
-    vga_fb_true.height = Vres;
-    vga_fb_true.pitch = Pitch;
-    vga_fb = &vga_fb_true;
+    vga_fb = kmalloc(sizeof(Framebuffer));
+	vga_fb->fb = (volatile PIXEL*)addr;
+    vga_fb->width = Hres;
+    vga_fb->height = Vres;
+    vga_fb->pitch = Pitch;
 
-	clear_screen(vga_fb);
+	clear_screen();
 }
 
-void fb_clear_screen(Framebuffer fb) {
+void fb_clear_screen(Framebuffer* fb) {
     fb_clear_screen_col_VESA(VESA_BLACK, fb);
 }
 
 void clear_screen() {
-    fb_clear_screen(vga_fb_true);
+    fb_clear_screen(vga_fb);
 }
 
-void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer fb){
+void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer* fb){
+    if (fb == NULL) {
+        return;
+    }
     uint32_t offset = 0;
-    for (int i = 0; i < fb.height /*TODO: Remove -1 as below*/; i++) {
-        for (int j = 0; j < fb.width; j++) {
-            fb.fb[offset + j] = col.val;
+    for (int i = 0; i < fb->height /*TODO: Remove -1 as below*/; i++) {
+        for (int j = 0; j < fb->width; j++) {
+            fb->fb[offset + j] = col.val;
         }
-        offset += fb.pitch; // TODO: This goes at the end of the loop, once memory issues are figured out
+        offset += fb->pitch; // TODO: This goes at the end of the loop, once memory issues are figured out
     }
 }
 
 void clear_screen_col_VESA(VESA_Colour col) {
-    fb_clear_screen_col_VESA(col, vga_fb_true);
+    fb_clear_screen_col_VESA(col, vga_fb);
 }
 
-void fb_clear_screen_col(Colour col, Framebuffer fb) {
+void fb_clear_screen_col(Colour col, Framebuffer* fb) {
     VESA_Colour vesa_col = vga2vesa(col);
     fb_clear_screen_col_VESA(vesa_col, fb);
 }
 
 void clear_screen_col(Colour col) {
-    fb_clear_screen_col(col, vga_fb_true);
+    fb_clear_screen_col(col, vga_fb);
 }
 
 void fb_draw_line_at_only(int x1, int y1, int x2, int y2, size_t thickness, VESA_Colour col, Framebuffer* fb, Recti bounds){
@@ -67,7 +73,7 @@ void fb_draw_line_at_only(int x1, int y1, int x2, int y2, size_t thickness, VESA
     float X = x1;
     float Y = y1;
     for (int i = 0; i <= steps; i++) {
-        fb_fill_rect_at_only(X, Y, thickness, thickness, col, *fb, bounds);
+        fb_fill_rect_at_only(X, Y, thickness, thickness, col, fb, bounds);
         X += Xinc;
         Y += Yinc;
     }
@@ -84,15 +90,15 @@ void fb_draw_rect(int x, int y, size_t width, size_t height, size_t thickness, V
     fb_draw_rect_at_only(x, y, width, height, thickness, col, fb, recti_of_framebuffer(fb));
 }
 
-void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer fb){
+void fb_fill_square(int x, int y, int size, VESA_Colour col, Framebuffer* fb){
 	fb_fill_rect(x, y, size, size, col, fb);
 }
 
 void fill_square(int x, int y, int size, VESA_Colour col) {
-    fb_fill_rect(x, y, size, size, col, vga_fb_true);
+    fb_fill_rect(x, y, size, size, col, vga_fb);
 }
 
-void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb, Recti bounds) {
+void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, Framebuffer* fb, Recti bounds) {
     if (x < 0) {
         width += x;
         x = 0;
@@ -101,8 +107,8 @@ void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, 
         height += y;
         y = 0;
     }
-    width = min(width, fb.width - x);
-    height = min(height, fb.height - y);
+    width = min(width, fb->width - x);
+    height = min(height, fb->height - y);
 
     // width = min(width, bounds.width);
     // height = min(height, bounds.height);
@@ -113,50 +119,50 @@ void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, 
 
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
+            fb->fb[(y + i) * fb->pitch + (x + j)] = col.val;
         }
     }
 }
 
-void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer fb) {
-    fb_fill_rect_at_only(x, y, width, height, col, fb, recti_of_framebuffer(&fb));
+void fb_fill_rect(int x, int y, int width, int height, VESA_Colour col, Framebuffer* fb) {
+    fb_fill_rect_at_only(x, y, width, height, col, fb, recti_of_framebuffer(fb));
 }
 
 void fill_rect(int x, int y, int width, int height, VESA_Colour col) {
-    fb_fill_rect(x, y, width, height, col, vga_fb_true);
+    fb_fill_rect(x, y, width, height, col, vga_fb);
 }
 
-void fb_fill_circle(int x, int y, int radius, VESA_Colour col, Framebuffer fb) {
+void fb_fill_circle(int x, int y, int radius, VESA_Colour col, Framebuffer* fb) {
 	for (int i = -radius; i < radius; i++) {
 		for (int j = -radius; j < radius; j++) {
 			if (i * i + j * j < radius * radius) {
-				fb.fb[(y + i) * fb.pitch + (x + j)] = col.val;
+				fb->fb[(y + i) * fb->pitch + (x + j)] = col.val;
 			}
 		}
 	}
 }
 
 void fill_circle(int x, int y, int radius, VESA_Colour col) {
-    fb_fill_circle(x, y, radius, col, vga_fb_true);
+    fb_fill_circle(x, y, radius, col, vga_fb);
 }
 
-void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb) {
-    uint8_t* font_char = font8x8_basic[(uint8_t)c];
+void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY, Framebuffer* fb) {
+    uint8_t* font_char = (uint8_t*)(font8x8_basic[(uint8_t)c]);
     for (int row = 0; row < FONT_HEIGHT * scaleY; row++) {
         uint8_t pixels = font_char[(int)(row / scaleY)];
         for (int col = 0; col < FONT_WIDTH * scaleX; col++) {
             if (pixels & (1 << (int)(col / scaleX))) { // Check if the bit is set
-                fb.fb[((y + row) * fb.pitch) + (x + col)] = colour.val;
+                fb->fb[((y + row) * fb->pitch) + (x + col)] = colour.val;
             }
         }
     }
 }
 
 void draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scaleX, float scaleY) {
-    fb_draw_char(x, y, c, colour, scaleX, scaleY, vga_fb_true);
+    fb_draw_char(x, y, c, colour, scaleX, scaleY, vga_fb);
 }
 
-void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, float scaleX, float scaleY, Framebuffer fb) {
+void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, float scaleX, float scaleY, Framebuffer* fb) {
     while (*s) {
         fb_draw_char(x, y, *s, colour, scaleX, scaleY, fb);
         x += FONT_WIDTH * scaleX;
@@ -166,8 +172,14 @@ void fb_draw_string(uint16_t x, uint16_t y, const char* s, VESA_Colour colour, f
 
 Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height) {
     Framebuffer* out = kmalloc(sizeof(Framebuffer));
-    uint32_t size = width * height * bytes_per_pixel;
+    if (out == NULL) {
+        return NULL;
+    }
+    const uint32_t size = width * height * BYTES_PER_PIXEL;
     out->fb = kmalloc(size);
+    if (out->fb == NULL) {
+        return NULL;
+    }
     out->width = width;
     out->height = height;
     out->pitch = width;
@@ -179,23 +191,23 @@ Framebuffer* allocate_full_screen_framebuffer() {
 }
 
 void deallocate_framebuffer(Framebuffer* fb) {
-    kfree((void*)fb->fb, fb->width * fb->height * bytes_per_pixel);
+    kfree((void*)fb->fb, fb->width * fb->height * BYTES_PER_PIXEL);
     kfree((void*)fb, sizeof(Framebuffer));
 }
 
-void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {
-    if (width < 0 || height < 0 || x > ((int)dest.width) || y > ((int)dest.height)) return;
-    if (from_x > x + src.width || from_x > dest.width || from_y > y + src.height || from_y > dest.height) return;
+void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {
+    if (width < 0 || height < 0 || x > ((int)destptr->width) || y > ((int)destptr->height)) return;
+    if (from_x > x + srcptr->width || from_x > destptr->width || from_y > y + srcptr->height || from_y > destptr->height) return;
     if (from_x < 0) from_x = 0;
     if (from_y < 0) from_y = 0;
-    if (to_x > dest.width) to_x = dest.width;
-    if (to_y > dest.height) to_y = dest.height;
+    if (to_x > destptr->width) to_x = destptr->width;
+    if (to_y > destptr->height) to_y = destptr->height;
     
     uint32_t src_offset = 0;
 
     if (y < 0) {
         // The following is negative because y is negative
-        src_offset = -y * src.pitch;
+        src_offset = -y * srcptr->pitch;
         height += y;
         y = 0;
     }
@@ -207,64 +219,64 @@ void _blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint
         x = 0;
     }
 
-    uint32_t dest_offset = y * dest.pitch + x;
+    uint32_t dest_offset = y * destptr->pitch + x;
 
     uint32_t xdiff = max(0, from_x - x);
     uint32_t ydiff = max(0, from_y - y);
     src_offset += xdiff;
     dest_offset += xdiff;
-    src_offset += ydiff * src.pitch;
-    dest_offset += ydiff * dest.pitch;
+    src_offset += ydiff * srcptr->pitch;
+    dest_offset += ydiff * destptr->pitch;
     width -= xdiff;
     height -= ydiff;
 
     width = min(width, to_x - from_x);
     height = min(height, to_y - from_y);
 
-    width = min(width, dest.width - x);
-    height = min(height, dest.height - y);
+    width = min(width, destptr->width - x);
+    height = min(height, destptr->height - y);
 
-    width = min(width, src.width);
-    height = min(height, src.height);
+    width = min(width, srcptr->width);
+    height = min(height, srcptr->height);
 
-    if (src.transparent){ // If transparency is enabled, blitting will be faster, as we have to check alpha for each byte. TODO: Improve performance
+    if (srcptr->transparent){ // If transparency is enabled, blitting will be faster, as we have to check alpha for each byte. TODO: Improve performance
         for (uint32_t i = 0; i < height; i++) {
             for (uint32_t j = 0; j < width; j++) {
-                if (((VESA_Colour)(src.fb[src_offset + j])).a) {// For now, only 0x00 and 0xFF transparency values are supported
+                if (((VESA_Colour)(srcptr->fb[src_offset + j])).a) {// For now, only 0x00 and 0xFF transparency values are supported
                     /* This is some test code to check if width and height are set properly. */
                     // if (from_x != 0){
-                    //     dest.fb[dest_offset + j] = (src_offset / src.pitch) << 16 | (j) << 8 | 0xFF;
+                    //     destptr->fb[dest_offset + j] = (src_offset / srcptr->pitch) << 16 | (j) << 8 | 0xFF;
                     //     continue;
                     // }
-                    dest.fb[dest_offset + j] = src.fb[src_offset + j];
+                    destptr->fb[dest_offset + j] = srcptr->fb[src_offset + j];
                 }
             }
-            dest_offset += dest.pitch;
-            src_offset += src.pitch;
+            dest_offset += destptr->pitch;
+            src_offset += srcptr->pitch;
         }
     } else {
         for (uint32_t i = 0; i < height; i++) {
-            // memcpy(dest.fb + dest_offset, src.fb + src_offset, width);
-            memcp(src.fb + src_offset, dest.fb + dest_offset, width * 4);
+            // memcpy(destptr->fb + dest_offset, srcptr->fb + src_offset, width);
+            memcp(srcptr->fb + src_offset, destptr->fb + dest_offset, width * 4);
             // for (uint32_t j = 0; j < width; j++) {
-            //     dest.fb[dest_offset + j] = src.fb[src_offset + j];
+            //     destptr->fb[dest_offset + j] = srcptr->fb[src_offset + j];
             // }
-            dest_offset += dest.pitch;
-            src_offset += src.pitch;
+            dest_offset += destptr->pitch;
+            src_offset += srcptr->pitch;
         }
     }
 }
 
-void blit(Framebuffer src, Framebuffer dest, int x, int y, uint32_t width, uint32_t height) {
-    _blit(src, dest, x, y, width, height, 0, 0, dest.width, dest.height);
+void blit(Framebuffer* src, Framebuffer* dest, int x, int y, uint32_t width, uint32_t height) {
+    _blit(src, dest, x, y, width, height, 0, 0, dest->width, dest->height);
 }
 
 void blit_all_at(Framebuffer* src, Framebuffer* dest, int x, int y) {
-    blit(*src, *dest, x, y, src->width, src->height);
+    blit(src, dest, x, y, src->width, src->height);
 }
 
 void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int from_x, int from_y, int to_x, int to_y) {
-    _blit(*src, *dest, x, y, src->width, src->height, from_x, from_y, to_x, to_y);
+    _blit(src, dest, x, y, src->width, src->height, from_x, from_y, to_x, to_y);
 }
 
 
@@ -281,7 +293,7 @@ void blit_clamped(Framebuffer* src, Framebuffer* dest, int from_x, int from_y, i
     }
 }
 
-void blit_all_at_only_square(Framebuffer *src, Framebuffer *dest, int x, int y, Recti square, int width) {
+void blit_all_at_only_square(Framebuffer* src, Framebuffer* dest, int x, int y, Recti square, int width) {
     int half = width / 2;
 
     for (int i = -half; i <= half; ++i) {
