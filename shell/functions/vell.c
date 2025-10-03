@@ -81,9 +81,7 @@ void _vell_draw(){
 FDEF(vell){
     if (fb == NULL) {
         fb = allocate_full_screen_framebuffer();
-        fb->fb = kmalloc(fb->width * fb->height * 4);
         fb2 = allocate_full_screen_framebuffer();
-        fb2->fb = kmalloc(fb2->width * fb2->height * 4);
         _init_vterm();
         ((Window*)windows->data)->focused = true;
         _init_mouse_handler();

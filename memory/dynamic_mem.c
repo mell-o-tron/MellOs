@@ -9,7 +9,7 @@
 #endif
 #include "../utils/conversions.h"
 
-#define MAX_ORDER 23
+#define MAX_ORDER 24
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
@@ -42,8 +42,8 @@ void set_kmalloc_bitmap (bitmap_t loc, uint32_t length){
 
 typedef struct Block {
     struct Block* next;
-    int order;
-    int free;      // 1 = free, 0 = full
+    size_t order;
+    bool free;      // 1 = free, 0 = full
 } Block;
 
 Block* free_list[MAX_ORDER + 1];
@@ -58,10 +58,10 @@ bool buddy_init(const uintptr_t base, const size_t size) {
     allocator_base = (void *) base;
     allocator_size = size; 
 
-    for (int i = MIN_ORDER; i <= MAX_ORDER; ++i) {
+    for (size_t i = MIN_ORDER; i <= MAX_ORDER; ++i) {
         free_list[i] = NULL;
     }
-    int order = MAX_ORDER;
+    size_t order = MAX_ORDER;
     while (1UL << order > size){
         order--;
     }
@@ -89,8 +89,8 @@ void* buddy_alloc(size_t size) {
         return NULL;
     }
 
-    uint16_t order = MIN_ORDER;
-    while (1 << order < size + sizeof(Block)) {
+    size_t order = MIN_ORDER;
+    while (((size_t)1) << order < size + sizeof(Block)) {
         order++;
     }
 
@@ -98,7 +98,7 @@ void* buddy_alloc(size_t size) {
         return NULL;
     }
 
-    int current_order = order;
+    size_t current_order = order;
     while (current_order <= MAX_ORDER && free_list[current_order] == NULL) {
         current_order++;
     }
@@ -114,13 +114,13 @@ void* buddy_alloc(size_t size) {
         current_order--;
         Block* buddy = (Block*)((char*)block + (1 << current_order));
         buddy->order = current_order;
-        buddy->free = 1;
+        buddy->free = true;
         buddy->next = free_list[current_order];
         free_list[current_order] = buddy;
         block->order = current_order;
     }
 
-    block->free = 0;
+    block->free = false;
     block->next = NULL;
 
     return (char*)block + sizeof(Block);
@@ -131,8 +131,8 @@ void buddy_free(void* loc) {
     const uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
 
     Block* block = (Block*)((char*)off - sizeof(Block));
-    int order = block->order;
-    block->free = 1;
+    size_t order = block->order;
+    block->free = true;
 
     while (order < MAX_ORDER) {
         Block* buddy = get_buddy(block);
@@ -258,13 +258,14 @@ void slab_free(void* loc, size_t size) {
 void* kmalloc(size_t size) {
     if (!buddy_inited)
         return NULL;
+    long unsigned int offset;
     if (size <= 256) {
-        long unsigned int offset = (long unsigned int) slab_alloc(size);
-        return (void*)((long unsigned int)dynamic_mem_loc + offset);
+        offset = (long unsigned int) slab_alloc(size);
     } else {
-        long unsigned int offset = (long unsigned int) buddy_alloc(size);
-        return (void*)((long unsigned int)dynamic_mem_loc + offset);
+        offset = (long unsigned int) buddy_alloc(size);
     }
+    if (offset == NULL) return NULL;
+    return (void*)((long unsigned int)dynamic_mem_loc + offset);
 }
 
 void kfree(void* loc, size_t size) {
