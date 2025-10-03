@@ -36,6 +36,7 @@ FHDR(exec);
 // vell.c
 FHDR(vell);
 FHDR(frogues);
+FHDR(sperkaster);
 #endif
 FHDR(displayinfo);
 FHDR(meminfo);
