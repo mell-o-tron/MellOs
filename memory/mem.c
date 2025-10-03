@@ -50,6 +50,7 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
     //     *(dest + i) = *(source + i);
 }
 
+// TODO: see if this function works. If so, it might be faster than memcp
 void *memcpy(void * restrict to, const void * restrict from, unsigned int n)
 {
 	if(cpuid_has_sse())

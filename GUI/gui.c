@@ -3,15 +3,18 @@
 #include "../drivers/vesa/vesa.h"
 #include "../functions/vell.h"
 #include "../memory/dynamic_mem.h"
+#include "../utils/assert.h"
 
 Window* create_window(const char* title){
     Framebuffer* fb = allocate_full_screen_framebuffer();
-    create_window_with_fb(fb, title);
+    assert(fb != NULL);
+    return create_window_with_fb(fb, title);
 }
 
 Window* create_window_with_size(const char* title, uint32_t width, uint32_t height){
     Framebuffer* fb = allocate_framebuffer(width, height);
-    create_window_with_fb(fb, title);
+    assert(fb != NULL);
+    return create_window_with_fb(fb, title);
 }
 
 Window* create_window_with_fb(Framebuffer* fb, const char* title){

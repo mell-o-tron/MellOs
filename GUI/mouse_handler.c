@@ -32,8 +32,8 @@ void _init_mouse_handler(){
     set_window_transparent(mouse_window, true);
     mouse_window->x = vga_fb->width / 2;
     mouse_window->y = vga_fb->height / 2;
-    fb_fill_circle(fb->width / 2, fb->height / 2, 6, VESA_BLACK, *mouse_window->fb);
-    fb_fill_circle(fb->width / 2, fb->height / 2, 4, VESA_WHITE, *mouse_window->fb);
+    fb_fill_circle(fb->width / 2, fb->height / 2, 6, VESA_BLACK, mouse_window->fb);
+    fb_fill_circle(fb->width / 2, fb->height / 2, 4, VESA_WHITE, mouse_window->fb);
     // draw_mouse();
     return;
 }

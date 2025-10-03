@@ -30,7 +30,7 @@ void draw_xbm_scaled(unsigned char* bits, int width, int height, int scale, VESA
             int draw_x = x * scale;
             int draw_y = y * scale;
             
-            fb_fill_rect_at_only(draw_x, draw_y, scale, scale, color, *fb, bounds);
+            fb_fill_rect_at_only(draw_x, draw_y, scale, scale, color, fb, bounds);
         }
     }
 }
@@ -40,7 +40,7 @@ FDEF(frogues){
         Window* w = create_window_with_size("Frogues", frogues_width * SCALE, frogues_height * SCALE);
         
         draw_xbm_scaled(frogues_bits, frogues_width, frogues_height, SCALE, 
-                       VESA_BLACK, VESA_GREEN, w->fb, recti_of_framebuffer(&w->fb));
+                       VESA_BLACK, VESA_GREEN, w->fb, recti_of_framebuffer(w->fb));
         
         set_window_dirty(w);
     }
