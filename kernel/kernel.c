@@ -119,7 +119,7 @@ extern  void kpanic(struct regs *r) {
     snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
 
     fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
+    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
 #else
     #define ERRCOL 0x47 // Lightgrey on Lightred
     #define VGAMEM (unsigned char*)0xB8000;

@@ -30,7 +30,7 @@ void draw_xbm_scaled(unsigned char* bits, int width, int height, int scale, VESA
             int draw_x = x * scale;
             int draw_y = y * scale;
             
-            fb_fill_rect_at_only(draw_x, draw_y, scale, scale, color, *fb, bounds);
+            fb_fill_rect_at_only(draw_x, draw_y, scale, scale, color, fb, bounds);
         }
     }
 }

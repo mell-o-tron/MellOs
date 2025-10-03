@@ -142,12 +142,12 @@ void increment_cursor_pos(){
 }
 
 void clear_line_col(uint32_t line, Colour col){
-	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), *fb);
+	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), fb);
 }
 
 void scroll_up(){
 	// Scroll by inplace blit to itself
-	blit(*fb, *fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
+	blit(fb, fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
 	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
 	set_cursor_pos_raw(cursor_pos - CONSOLE_WIDTH(fb));
 }
@@ -168,7 +168,7 @@ void kprint_col(const char* s, Colour col){
 			}
 		} else {
 			size_t hpos = HSLOT(fb);
-			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, *fb);
+			fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
 			increment_cursor_pos();
 			if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
 				cursor_pos += CONSOLE_WIDTH(fb) - hpos;
@@ -181,7 +181,7 @@ void kprint_col(const char* s, Colour col){
 	}
 
 	if (autoblit) {
-		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
 	}
 	
 	if (dirty_callback) {
@@ -198,10 +198,10 @@ void kprint_char (char c, bool caps){
 
 	VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
 	// Blank out the slot for the next character. Needed to implement backspace as going back and printing a space
-	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), *fb);
-	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, *fb);
+	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), fb);
+	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
 	if (autoblit){
-		blit(*fb, *vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
 	}
 	
 	if (dirty_callback) {
