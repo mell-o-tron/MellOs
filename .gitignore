@@ -21,3 +21,4 @@ build/
 # logs
 serial.log
 qemu_debug.log
+.gdb_history

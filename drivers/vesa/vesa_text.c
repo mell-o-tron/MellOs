@@ -112,7 +112,6 @@ void _vesa_text_set_dirty_callback(function_type f){
 
 void _vesa_text_init(){
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
-	fb->fb = kmalloc(fb->width * fb->height * BYTES_PER_PIXEL);
 	// char buf[256];
 	// tostring((int)fb->fb, 16, buf);
 	// kprint(buf);

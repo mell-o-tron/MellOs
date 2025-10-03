@@ -15,7 +15,6 @@ uint32_t Pitch;
 
 Framebuffer *vga_fb_true;
 Framebuffer *vga_fb;
-static uint8_t bytes_per_pixel;
 
 void _vesa_framebuffer_init(PIXEL addr){
     vga_fb_true = kmalloc(sizeof(Framebuffer));
@@ -173,7 +172,7 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height) {
     if (out == NULL) {
         return NULL;
     }
-    const uint32_t size = width * height * bytes_per_pixel;
+    const uint32_t size = width * height * BYTES_PER_PIXEL;
     out->fb = kmalloc(size);
     if (out->fb == NULL) {
         return NULL;
@@ -189,7 +188,7 @@ Framebuffer* allocate_full_screen_framebuffer() {
 }
 
 void deallocate_framebuffer(Framebuffer* fb) {
-    kfree((void*)fb->fb, fb->width * fb->height * bytes_per_pixel);
+    kfree((void*)fb->fb, fb->width * fb->height * BYTES_PER_PIXEL);
     kfree((void*)fb, sizeof(Framebuffer));
 }
 

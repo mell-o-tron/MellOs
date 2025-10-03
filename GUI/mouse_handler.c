@@ -25,7 +25,6 @@ static MouseState mouse_state;
 
 void _init_mouse_handler(){
     Framebuffer* fb = allocate_framebuffer(16, 16);
-    fb->fb = kmalloc(fb->width*fb->height*4);
     mouse_window = create_window_with_fb(fb, "mouse");
     _vell_deregister_window(mouse_window);
     _vell_register_mouse(mouse_window);
