@@ -40,7 +40,7 @@ FDEF(frogues){
         Window* w = create_window_with_size("Frogues", frogues_width * SCALE, frogues_height * SCALE);
         
         draw_xbm_scaled(frogues_bits, frogues_width, frogues_height, SCALE, 
-                       VESA_BLACK, VESA_GREEN, w->fb, recti_of_framebuffer(&w->fb));
+                       VESA_BLACK, VESA_GREEN, w->fb, recti_of_framebuffer(w->fb));
         
         set_window_dirty(w);
     }
