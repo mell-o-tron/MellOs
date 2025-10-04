@@ -48,6 +48,10 @@ float atan_lookup(float x); // arctan lookup table for the CORDIC algorithm
 float powf(float x, float n);
 float tan(float x);
 float fclamp(float x, float min, float max);
+uint32_t uclamp(int x, int min, int max);
+int clamp(int x, int min, int max);
+float fmin(float a, float b);
+float fmax(float a, float b);
 
 int vector2i_distance(Vector2i a, Vector2i b);
 bool vector2i_in_recti(Vector2i a, Recti b);

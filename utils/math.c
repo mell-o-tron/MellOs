@@ -219,6 +219,26 @@ float fclamp(float x, float min, float max) {
     return x;
 }
 
+uint32_t uclamp(int x, int min, int max) {
+    if (x < min) return (uint32_t)min;
+    if (x > max) return (uint32_t)max;
+    return (uint32_t)x;
+}
+
+int clamp(int x, int min, int max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+float fmin(float a, float b) {
+    return a < b ? a : b;
+}
+
+float fmax(float a, float b) {
+    return a > b ? a : b;
+}
+
 int vector2i_distance(Vector2i a, Vector2i b) {
     return sqrt(pow_f(a.x - b.x, 2) + pow_f(a.y - b.y, 2));
 }
