@@ -1,3 +1,4 @@
+#ifdef VGA_VESA
 #include "includes.h"
 
 typedef float float_16_arr[16];
@@ -391,3 +392,4 @@ void jb_fb_set_pixel(size_t x, size_t y, VESA_Colour colour, Framebuffer* fb) {
     }
     
 }
+#endif
