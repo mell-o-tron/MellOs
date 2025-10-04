@@ -106,17 +106,24 @@ void khang(){
 #pragma GCC optimize ("O0")
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-extern  void kpanic(struct regs *r) {
+void _kpanic(const char* msg, unsigned int int_no);
+void kpanic_message(const char* msg) {
+    _kpanic(msg, 0);
+}
 
+extern  void kpanic(struct regs *r) {
+    _kpanic(exception_messages[r->int_no], r->int_no);
+}
+
+void _kpanic(const char* msg, unsigned int int_no) {
     const char* components[] = {
         KPArt,
-        "Exception message: ",
-        exception_messages[r->int_no],
+        "Kernel panic: ",
+        msg,
     };
-
 #if VGA_VESA
     char buf[256];
-    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
+    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
 
     fb_clear_screen_col_VESA(VESA_RED, vga_fb);
     fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
