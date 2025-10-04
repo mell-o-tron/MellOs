@@ -271,6 +271,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     asm volatile ("sti");
     timer_install();
+    timer_phase(60);
     set_cursor_pos_raw(0);
 
     //allocator.granularity = 512;
@@ -304,15 +305,15 @@ extern void main(uint32_t multiboot_tags_addr){
     // kprint(tostring_inplace(failed_fs_tests, 10));
     // kprint(" failed\n");
 
-    printf("Running mem tests... ");
-    int failed_mem_tests = run_all_mem_tests();
-    printf("%016x", failed_mem_tests);
-    printf(" failed\n");
+    // printf("Running mem tests... ");
+    // int failed_mem_tests = run_all_mem_tests();
+    // printf("%016x", failed_mem_tests);
+    // printf(" failed\n");
 
-    printf("\n\n ENTERING COMMAND MODE...\n");
+    // printf("\n\n ENTERING COMMAND MODE...\n");
 
 
-    sleep(30);
+    // sleep(30);
 
     void *code_loc2 = kmalloc(10);
     if (code_loc2 == NULL){

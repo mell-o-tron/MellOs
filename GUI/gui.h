@@ -3,7 +3,7 @@
 
 #include "../utils/typedefs.h"
 #include "../drivers/vesa/vesa.h"
-#include "../../utils/math.h"
+#include "../utils/math.h"
 
 #define BORDER_WIDTH 5
 #define TITLEBAR_HEIGHT 20

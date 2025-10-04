@@ -1,7 +1,7 @@
 #pragma once
 #ifdef VGA_VESA
 
-#include "../../drivers/mouse.h"
+#include "../drivers/mouse.h"
 
 typedef enum MouseButton {
     MOUSE_LEFT = 0,

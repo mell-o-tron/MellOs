@@ -20,9 +20,9 @@ project(MellOs C ASM_NASM)
 
 
 # Options matching Makefile defaults
-set(VGA "TEXT" CACHE STRING "Video mode macro VESA or TEXT")
-set(HRES "1920" CACHE STRING "Horizontal resolution")
-set(VRES "1080" CACHE STRING "Vertical resolution")
+set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
+set(HRES "600" CACHE STRING "Horizontal resolution")
+set(VRES "400" CACHE STRING "Vertical resolution")
 set(BPP  "32"   CACHE STRING "Bits per pixel")
 set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
 set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
