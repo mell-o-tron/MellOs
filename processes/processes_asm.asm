@@ -13,6 +13,25 @@ ebx_buffer:
 ;     uint16_t    cs, ds, es, fs, gs, ss;
 ; } state_t;
 
+struc task_state
+    .eax resd 1
+    .ebx resd 1
+    .ecx resd 1
+    .edx resd 1
+    .esi resd 1
+    .edi resd 1
+    .ebp resd 1
+    .esp resd 1
+    .eip resd 1
+    .eflags resd 1
+    .cs resw 1
+    .ds resw 1
+    .es resw 1
+    .fs resw 1
+    .gs resw 1
+    .ss resw 1
+endstruc
+
 global save_task_state
 
 ; save_task_state (state_pointer, new_eip_pointer)
@@ -24,30 +43,30 @@ save_task_state:
 
     push ecx
     mov ecx, [eax_buffer]
-    mov [eax], ecx
+    mov [eax + task_state.eax], ecx
 
     mov ecx, [ebx_buffer]
-    mov [eax + 4], ecx
+    mov [eax + task_state.ebx], ecx
     pop ecx
 
-    mov [eax + 8], ecx
-    mov [eax + 12], edx
-    mov [eax + 16], esi
-    mov [eax + 20], edi
-    mov [eax + 24], ebp
-    mov [eax + 28], esp
+    mov [eax + task_state.ecx], ecx
+    mov [eax + task_state.edx], edx
+    mov [eax + task_state.esi], esi
+    mov [eax + task_state.edi], edi
+    mov [eax + task_state.ebp], ebp
+    mov [eax + task_state.esp], esp
 
-    mov [eax + 32], ebx    ; new eip pointer
+    mov [eax + task_state.eip], ebx    ; new eip pointer
 
     pushf
-    pop dword [eax + 36]
+    pop dword [eax + task_state.eflags]
 
-    mov word [eax + 40], cs
-    mov word [eax + 42], ds
-    mov word [eax + 44], es
-    mov word [eax + 46], fs
-    mov word [eax + 48], gs
-    mov word [eax + 50], ss
+    mov word [eax + task_state.cs], cs
+    mov word [eax + task_state.ds], ds
+    mov word [eax + task_state.es], es
+    mov word [eax + task_state.fs], fs
+    mov word [eax + task_state.gs], gs
+    mov word [eax + task_state.ss], ss
 
     ret
 
@@ -60,19 +79,19 @@ load_task_state:
     mov eax, [esp+4]    ; state pointer
     mov ebx, [esp+8]    ; return pointer
 
-    mov ecx, [eax + 8]
-    mov edx, [eax + 12]
-    mov esi, [eax + 16]
-    mov edi, [eax + 20]
-    mov ebp, [eax + 24]
-    mov esp, [eax + 28]
+    mov ecx, [eax + task_state.eax]
+    mov edx, [eax + task_state.edx]
+    mov esi, [eax + task_state.esi]
+    mov edi, [eax + task_state.edi]
+    mov ebp, [eax + task_state.ebp]
+    mov esp, [eax + task_state.esp]
 
 
-    push dword [eax + 36]
+    push dword [eax + task_state.eflags]
     popf
 
     push ecx
-    mov ecx, [eax + 32]
+    mov ecx, [eax + task_state.eip]
     mov [procedure_address], ecx
     pop ecx
 
@@ -80,8 +99,8 @@ load_task_state:
     mov [esp], ebx
 
 
-    mov ebx, [eax + 4]
-    mov eax, [eax]
+    mov ebx, [eax + task_state.ebx]
+    mov eax, [eax + task_state.eax]
 
     jmp [procedure_address]
 
