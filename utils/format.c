@@ -7,6 +7,7 @@
 #else
 #include "vga_text.h"
 #endif
+#include "../memory/mem.h"
 
 union arg {
     long long ll;
@@ -14,6 +15,7 @@ union arg {
     const char *s;
     const int32_t *ws;
     void *p;
+    double d;  // Added for float support
 };
 
 struct va_wrap {
@@ -29,13 +31,15 @@ enum fmt_flags {
 
     FMT_TYPE_CHAR = (1 << 5),
     FMT_TYPE_STR = (1 << 6),
-
+    
     FMT_INT_B2 = (1 << 7),
     FMT_INT_B8 = (1 << 8),
     FMT_INT_B16 = (1 << 9),
-
+    
     FMT_INT_SIGNED = (1 << 10),
-    FMT_INT_UPPER = (1 << 11)
+    FMT_INT_UPPER = (1 << 11),
+
+    FMT_TYPE_FLOAT = (1 << 12)
 };
 
 struct fmt {
@@ -145,6 +149,11 @@ static int get_arg(struct fmt *spec, struct va_wrap* va, char c, union arg *arg)
         spec->flags |= FMT_SPECIAL | FMT_INT_B16;
         spec->precision = sizeof(void *) * 2;
         spec->qualifier = 'z'; /* Make sure do_int doesn't cast the pointer to a lower size */
+        break;
+    case 'f':
+    case 'F':
+        arg->d = va_arg(va->va, double);
+        spec->flags |= FMT_TYPE_FLOAT;
         break;
     case 'd':
     case 'i':
@@ -307,6 +316,53 @@ static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, uni
     return len + spaces;
 }
 
+/* Handle outputting a float to a buffer */
+static long long do_float_output(struct fmt *spec, char **dest, size_t *dsize, union arg *arg) {
+    char conversion[64];
+    
+    // Initialize buffer 
+    memset(conversion, 0, sizeof(conversion));
+    
+    // Call dtostr
+    int result = dtostr(conversion, arg->d, (spec->precision < 0 ? 6 : spec->precision), sizeof(conversion));
+    if (result < 0) {
+        return -1;
+    }
+    
+    int conversion_len = strlen(conversion);
+    if (conversion_len == 0) {
+        return -1;
+    }
+    
+    /* Handle field width and padding */
+    int spaces = 0;
+    if (conversion_len >= spec->field_width) {
+        spec->field_width = 0;
+    } else {
+        spec->field_width -= conversion_len;
+        spaces = spec->field_width;
+    }
+    
+    /* Right pad first (unless left-aligned) */
+    if (!(spec->flags & FMT_LEFT)) {
+        while (spec->field_width) {
+            write_one(dest, ' ', dsize);
+            spec->field_width--;
+        }
+    }
+    
+    /* Write the conversion */
+    write_many(dest, conversion, conversion_len, dsize);
+    
+    /* Left pad if needed */
+    while (spec->field_width) {
+        write_one(dest, ' ', dsize);
+        spec->field_width--;
+    }
+    
+    return conversion_len + spaces;
+}
+
 static int do_int(char *dest, char qualifier, unsigned long long x, unsigned int base, size_t dsize) {
     /* This must be done, otherwise there will be errors when x >
      * TYPE_WIDTH_SIGNED_MAX */
@@ -460,6 +516,8 @@ static inline long long do_output(struct fmt *spec, char **dest, size_t *dsize, 
         return do_char_output(spec, dest, dsize, arg);
     else if (spec->flags & FMT_TYPE_STR)
         return do_str_output(spec, dest, dsize, arg);
+    else if (spec->flags & FMT_TYPE_FLOAT)
+        return do_float_output(spec, dest, dsize, arg);
     return do_int_output(spec, dest, dsize, arg);
 }
 
@@ -520,7 +578,7 @@ __attribute__((format(printf, 1, 2)))
 void printf(char* s, ...) {
     va_list va;
     va_start(va, s);
-	char buf [256];
+    char buf [256];
     vsnprintf(buf, sizeof buf, s, va);
     va_end(va);
     kprint(buf);
