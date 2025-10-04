@@ -37,6 +37,7 @@ FHDR(exec);
 FHDR(vell);
 FHDR(frogues);
 FHDR(jb_juggle_balls);
+FHDR(sperkaster);
 #endif
 FHDR(displayinfo);
 FHDR(meminfo);
