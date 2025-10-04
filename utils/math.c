@@ -90,20 +90,10 @@ int sqrt(int x) {
 }
 
 float fsqrt(float x) {
-    if (x < 0.0f)
-        return -1.0f; // or handle error as needed
-
-    float guess = x / 2.0f;
-    float epsilon = 0.00001f;
-
-    if (x == 0.0f)
-        return 0.0f;
-
-    while (1) {
-        float next = 0.5f * (guess + x / guess);
-        if (abs(next - guess) < epsilon)
-            break;
-        guess = next;
+    const float difference = 0.00001;
+    float guess = 1.0;
+    while(fabs(guess * guess - x) >= difference){
+        guess = (x/guess + guess)/2.0;
     }
     return guess;
 }
