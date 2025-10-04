@@ -1,11 +1,27 @@
 /// MellOS - mem.c
 /// Edited by assembler-0 on 30/09/25
-/// NOTE: the proposed change is taken from the VoidFrame kernel by assembler-0 licensed under GPLv2.0-only
+/// The files in mm/MemOps.c, arch/x86_64/features/x64.h were originally licensed under GPLv2-only for the VoidFrame kernel, but as the sole author, I, assembler-0, hereby release them into the public domain as of 05-10-25 (dd-mm-yy).
 #include "../utils/typedefs.h"
 #include "../cpu/cpuid.h"
 
+
+#define _full_mem_prot_start() {\
+    __sync_synchronize();\
+    __asm__ volatile("mfence; sfence; lfence" ::: "memory");\
+}
+#define _full_mem_prot_end() {\
+    __asm__ volatile("mfence; sfence; lfence" ::: "memory");\
+    __sync_synchronize();\
+}
+// to use this compiles with -mserialize
+#define _full_mem_prot_end_intel() {\
+    __asm__ volatile("mfence; sfence; lfence" ::: "memory");\
+    __sync_synchronize();\
+    __builtin_ia32_serialize();\ 
+}
+
 void* memset(void* dest, unsigned char value, size_t size){
-    // ASSERT(dest != NULL)
+    if (!dest) return NULL;
     if (size == 0) return;
     uint8_t* d = (uint8_t*)dest;
     uint8_t val = (uint8_t)value
@@ -41,41 +57,107 @@ void* memset(void* dest, unsigned char value, size_t size){
     return dest;
 }
 
+// helper, could later moved for system wide use
+static inline int __attribute__((always_inline)) is_aligned16(const void* p){
+    return (((unsigned long)p) & 15UL) == 0UL;
+}
+
 /* Copy blocks of memory */
+// You would use __attribute__((target(...))) for C++ like compile time function overloading targeting older x86 revisions that doesnt have sse2 
 void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count){
-    if (!source || !dest)
-        return;
+    if (!source || !dest || count == 0) return;
+    
+    unsigned char *src = source;
+    unsigned char *dst = dest;
 
+    if (count < 16){
+        return memcpy(source, dest, count);
+    }
+    
+    size_t head = ((unsigned long)dst) & 15UL;
+    if (head != 0){
+        head = 16 - head; /* how many bytes to copy to reach 16-byte alignment */
+        if (head > count) head = count;
+        count -= head;
+        while (head--) *dst++ = *src++;
+        if (count == 0) return;
+    }
+    
+    int src_aligned = is_aligned16(src);
+    int dst_aligned = is_aligned16(dst);
+    
+    /* Use non-temporal stores when destination is aligned to reduce cache pollution for big copies.
+    * We'll copy 128 bytes per loop iteration using XMM0..XMM7.
+    * The inline asm loop below accepts registers: src -> %0, dst -> %1, count -> %2
+    */
+    if (count >= 128){
+        size_t chunks = count / 128; /* number of 128-byte iterations */
+        /* Inline asm loop: load 8 xmm registers from src, store them with MOVNTDQ to dst, update pointers */
+        _full_mem_prot_start();
+        asm volatile(
+            "1:\n\t"
+            "movdqu (%%rsi), %%xmm0\n\t"
+            "movdqu 16(%%rsi), %%xmm1\n\t"
+            "movdqu 32(%%rsi), %%xmm2\n\t"
+            "movdqu 48(%%rsi), %%xmm3\n\t"
+            "movdqu 64(%%rsi), %%xmm4\n\t"
+            "movdqu 80(%%rsi), %%xmm5\n\t"
+            "movdqu 96(%%rsi), %%xmm6\n\t"
+            "movdqu 112(%%rsi), %%xmm7\n\t"
+            /* Use MOVNTDQ if dst is aligned (non-temporal). If src_aligned==1 and dst_aligned==1, we could use MOVDQA loads,
+            * but MOVDQU loads are safe & often just as fast on modern CPUs; keep it simple and correct for unaligned src.
+            */
+            "movntdq %%xmm0, (%%rdx)\n\t"
+            "movntdq %%xmm1, 16(%%rdx)\n\t"
+            "movntdq %%xmm2, 32(%%rdx)\n\t"
+            "movntdq %%xmm3, 48(%%rdx)\n\t"
+            "movntdq %%xmm4, 64(%%rdx)\n\t"
+            "movntdq %%xmm5, 80(%%rdx)\n\t"
+            "movntdq %%xmm6, 96(%%rdx)\n\t"
+            "movntdq %%xmm7, 112(%%rdx)\n\t"
+            "add $128, %%rsi\n\t"
+            "add $128, %%rdx\n\t"
+            "dec %%rcx\n\t"
+            "jnz 1b\n\t"
+            : /* outputs */
+            : /* inputs */ "S"(src), "D"(dst), "c"(chunks)
+            : "memory", "xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"
+        );
+        
+        _full_mem_prot_end();
+        
+        size_t moved = (count / 128) * 128;
+        src += moved;
+        dst += moved;
+        count -= moved;
+    }
+    
+    while (count >= 16){
+        if (is_aligned16(src)){
+        /* aligned load + aligned store */
+            asm volatile(
+                "movdqa (%%rsi), %%xmm0\n\t"
+                "movdqa %%xmm0, (%%rdx)\n\t"
+                :
+                : "S"(src), "D"(dst)
+                : "memory", "xmm0"
+                );
+                } else {
+                /* unaligned load, aligned store */
+                asm volatile(
+                "movdqu (%%rsi), %%xmm0\n\t"
+                "movdqa %%xmm0, (%%rdx)\n\t"
+                :
+                : "S"(src), "D"(dst)
+                : "memory", "xmm0"
+            );
+        }
+        src += 16;
+        dst += 16;
+        count -= 16;
+    }
 
-	// TODO: Need to make 4byte alignment considerations
-	// This implementation should be faster than the one below
-	// It first copies bytes until the number of bytes to copy is a multiple of 4
-	// Then it copies 4 bytes at a time
-	
-	while (count % 4 != 0)
-	{
-		*dest = *source;
-		dest++;
-		source++;
-		count--;
-	}
-
-	const char* restrict final = source + count;
-	while (source < final) {
-		*(uint32_t*)dest = *(uint32_t*)source;
-		dest += 4;
-		source += 4;
-	}
-
-	// /* Copy 4 bytes at a time */
-	// if (count / 4 > 0){
-	// 	for (size_t i = 0; i < count / 4; i++)
-	// 		*(uint32_t*)(dest + i * 4) = *(uint32_t*)(source + i * 4);
-	// 	count = count % 4;
-	// }
-
-    // for (size_t i = 0; i < count; i++)
-    //     *(dest + i) = *(source + i);
+    while (count--) *dst++ = *src++;
 }
 
 void *memcpy(void * restrict dest, const void * restrict src, uint64_t size)
