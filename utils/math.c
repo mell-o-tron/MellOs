@@ -213,6 +213,12 @@ float powf(float x, float n) {
     return result;
 }
 
+float fclamp(float x, float min, float max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
 int vector2i_distance(Vector2i a, Vector2i b) {
     return sqrt(pow_f(a.x - b.x, 2) + pow_f(a.y - b.y, 2));
 }
