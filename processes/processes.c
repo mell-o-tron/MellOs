@@ -3,6 +3,7 @@
 #include <format.h>
 
 #include "../memory/dynamic_mem.h"
+#include "../memory/mem.h"
 #include "../utils/typedefs.h"
 #ifdef VGA_VESA
 #include "../drivers/vesa/vesa_text.h"
@@ -10,6 +11,7 @@
 #include "../drivers/vga_text.h"
 #endif
 #include "../utils/conversions.h"
+#include "../utils/assert.h"
 
 
 /******* Tasks *******/
@@ -55,7 +57,13 @@ void kprint_task_state(struct task_state *state) {
 }
 
 void populate_task_noargs(state_t* state, void* code){
-    state -> eip = code;
+    memset(state, 0, sizeof(state_t));
+    void* stack = kmalloc(0x1000); // 4KB stack
+    assert_msg(stack != NULL, "Failed to allocate stack");
+    state->esp = (uint32_t)stack + 0x1000 - 4; // Point to top of stack
+    state->ebp = state->esp;
+    state->eflags = 0x202; // IF = 1
+    state->eip = code;
 }
 
 
@@ -67,7 +75,7 @@ uint32_t allocated_processes = MAX_PROCESSES;
 uint32_t cur_pid = 0; // for now, PIDs are just indices in the above array
 uint32_t max_pid = 0;
 
-bool scheduler_active = false;
+bool scheduler_active = true;
 
 void init_scheduler() {
     processes = kmalloc(sizeof(process_t *) * MAX_PROCESSES);
@@ -76,16 +84,16 @@ void init_scheduler() {
 void scheduler_daemon () {
 
     if (scheduler_active) {
-        printf("Telling current process to shut up... ");
+        // printf("Telling current process to shut up... ");
         process_t *cur_proc = processes[cur_pid];
 
         // check if no process running
         if (cur_proc == NULL){
-            printf(" ...No process currently running\n");
+            // printf(" ...No process currently running\n");
             return;
         }
 
-        printf(" ... Process 0x%x notified", cur_pid);
+        // printf(" ... Process 0x%x notified", cur_pid);
         //kprint(tostring_inplace(cur_pid, 16));
         //kprint(" notified\n");
 
@@ -127,7 +135,6 @@ void execute_next () {
     }
     while (processes [cur_pid] == NULL);
 
-
     load_task_state(processes[cur_pid] -> state, &&end_of_scheduler);
 
     end_of_scheduler:
@@ -160,7 +167,7 @@ process_t* schedule_process(void * code){
 
     if(max_pid == allocated_processes){
         const uint32_t allocated = allocated_processes + 20;
-        krealloc(processes[0], max_pid * sizeof(process_t *), allocated * sizeof(process_t *));
+        processes = krealloc(processes, max_pid * sizeof(process_t *), allocated * sizeof(process_t *));
         allocated_processes = allocated;
     } else if (max_pid > allocated_processes) {
         kprint("Illegal schedule process number, halting.");
@@ -168,10 +175,12 @@ process_t* schedule_process(void * code){
     }
 
     process_t* res = kmalloc(sizeof(process_t));
+    assert_msg(res != NULL, "Failed to allocate memory for new process");
     state_t* s = kmalloc(sizeof(state_t));
+    assert_msg(s != NULL, "Failed to allocate memory for new process state");
 
     // TEMPORARY - set stack and registers here instead of copying them
-    save_task_state(s, 0);
+    // save_task_state(s, 0);
 
     // PROBLEM if move stack lose reference to lots of previously defined variables hehe.
     // s -> ebp = 0x10000;
@@ -183,6 +192,7 @@ process_t* schedule_process(void * code){
     res -> must_relinquish = false;
 
     processes[max_pid] = res;
+    assert_msg(processes[max_pid] != NULL, "Failed to schedule new process");
 
     max_pid += 1;
 

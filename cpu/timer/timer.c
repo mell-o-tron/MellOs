@@ -35,7 +35,7 @@ void timer_handler(regs *r)
 		// kprint(tostring_inplace(seconds, 10));
 	}
 
-	if (timer_ticks % 36 == 0) {
+	if (timer_ticks % 1 == 0) {
 		scheduler_daemon();
 	}
 

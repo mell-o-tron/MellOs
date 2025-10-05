@@ -194,15 +194,17 @@ void test_task(){
 }
 
 void task_1(){
-    kprint("Hello there!\n");
     for (;;){
-        try_to_terminate();
+        kprint("Hello there!\n");
+        sleep(1);
+        try_to_relinquish();
     }
 }
 
 void task_2(){
-    kprint("BOIA DE\n");
     for (;;){
+        kprint("BOIA DE\n");
+        sleep(1);
         try_to_relinquish();
     }
 }
@@ -289,8 +291,6 @@ extern void main(uint32_t multiboot_tags_addr){
         // todo: error handling
         //asm volatile ("hlt");
     }
-    // allocates space for the process data
-    //init_scheduler();
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
@@ -341,14 +341,18 @@ extern void main(uint32_t multiboot_tags_addr){
 
     kprint(Fool);
     
-    load_shell();
+    // load_shell();
     // init_text_editor("test_file");
 
-    /*
+    while(!get_from_kb_buffer());
+
+    // allocates space for the process data
+    init_scheduler();
+
     schedule_process(task_1);
     schedule_process(task_2);
 
-    begin_execution();*/
+    begin_execution();
 
 
     return;

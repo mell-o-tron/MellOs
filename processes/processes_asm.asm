@@ -41,6 +41,7 @@ save_task_state:
     mov eax, [esp+4]   ; state pointer
     mov ebx, [esp+8]   ; new eip pointer
 
+    ; Save registers eax and ebx
     push ecx
     mov ecx, [eax_buffer]
     mov [eax + task_state.eax], ecx
@@ -49,6 +50,7 @@ save_task_state:
     mov [eax + task_state.ebx], ecx
     pop ecx
 
+    ; Save other registers
     mov [eax + task_state.ecx], ecx
     mov [eax + task_state.edx], edx
     mov [eax + task_state.esi], esi
@@ -58,9 +60,11 @@ save_task_state:
 
     mov [eax + task_state.eip], ebx    ; new eip pointer
 
+    ; Save flags
     pushf
     pop dword [eax + task_state.eflags]
 
+    ; Save segment registers
     mov word [eax + task_state.cs], cs
     mov word [eax + task_state.ds], ds
     mov word [eax + task_state.es], es
@@ -68,6 +72,9 @@ save_task_state:
     mov word [eax + task_state.gs], gs
     mov word [eax + task_state.ss], ss
 
+    ; cdecl does not save ebx automatically
+    ; so we need to restore it ourselves
+    mov ebx, [ebx_buffer]
     ret
 
 global load_task_state
@@ -79,6 +86,7 @@ load_task_state:
     mov eax, [esp+4]    ; state pointer
     mov ebx, [esp+8]    ; return pointer
 
+    ; Restore registers
     mov ecx, [eax + task_state.eax]
     mov edx, [eax + task_state.edx]
     mov esi, [eax + task_state.esi]
@@ -86,10 +94,12 @@ load_task_state:
     mov ebp, [eax + task_state.ebp]
     mov esp, [eax + task_state.esp]
 
-
+    ; Restore flags
     push dword [eax + task_state.eflags]
     popf
 
+    ; Put eip in a specific memory
+    ; location (jump to it later)
     push ecx
     mov ecx, [eax + task_state.eip]
     mov [procedure_address], ecx
@@ -98,10 +108,11 @@ load_task_state:
     ; push ebx
     mov [esp], ebx
 
-
+    ; Restore eax and ebx last
     mov ebx, [eax + task_state.ebx]
     mov eax, [eax + task_state.eax]
 
+    ; Jump to the new eip
     jmp [procedure_address]
 
 
