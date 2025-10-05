@@ -145,9 +145,10 @@ uint32_t allocated_processes = MAX_PROCESSES;
 uint32_t cur_pid = 0; // for now, PIDs are just indices in the above array
 uint32_t max_pid = 0;
 
-bool scheduler_active = true;
+bool scheduler_active = false;
 
 void init_scheduler() {
+    scheduler_active = true;
     processes = kmalloc(sizeof(process_t *) * MAX_PROCESSES);
 
     processes[0] = create_empty_task();

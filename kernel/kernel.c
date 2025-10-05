@@ -342,17 +342,13 @@ extern void main(uint32_t multiboot_tags_addr){
     set_cursor_pos_raw(0);
 
     kprint(Fool);
+
+    // Initialize the process scheduler and set this as the first process
+    init_scheduler();
     
-    // load_shell();
+    load_shell();
     // init_text_editor("test_file");
 
-    while(!get_from_kb_buffer());
-
-    // allocates space for the process data
-    init_scheduler();
-
-    schedule_process(task_1);
-    task_2();
 
     return;
 }
