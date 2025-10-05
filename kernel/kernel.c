@@ -199,7 +199,6 @@ void task_1(){
         printf("Hello there! %d\n", i);
         i++;
         sleep(1);
-        try_to_relinquish();
     }
 }
 
@@ -209,7 +208,6 @@ void task_2(){
         printf("BOIA DE %d\n", i);
         i++;
         sleep(1);
-        try_to_relinquish();
     }
 }
 
@@ -283,8 +281,8 @@ extern void main(uint32_t multiboot_tags_addr){
     
     
     asm volatile ("sti");
+    timer_phase(1);
     timer_install();
-    timer_phase(60);
     set_cursor_pos_raw(0);
 
     //allocator.granularity = 512;
@@ -354,10 +352,7 @@ extern void main(uint32_t multiboot_tags_addr){
     init_scheduler();
 
     schedule_process(task_1);
-    schedule_process(task_2);
-
-    begin_execution();
-
+    task_2();
 
     return;
 }

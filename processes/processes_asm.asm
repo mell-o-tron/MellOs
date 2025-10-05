@@ -6,117 +6,50 @@ ebx_buffer:
     dd 0
 
 ; typedef struct task_state {
-;     uint32_t    eax, ebx, ecx, edx;
-;     uint32_t    esi, edi, ebp, esp;
-;     void*       eip;
-;     uint32_t    eflags;
-;     uint16_t    cs, ds, es, fs, gs, ss;
+;     void* stack;
 ; } state_t;
 
-struc task_state
-    .eax resd 1
-    .ebx resd 1
-    .ecx resd 1
-    .edx resd 1
-    .esi resd 1
-    .edi resd 1
-    .ebp resd 1
-    .esp resd 1
-    .eip resd 1
-    .eflags resd 1
-    .cs resw 1
-    .ds resw 1
-    .es resw 1
-    .fs resw 1
-    .gs resw 1
-    .ss resw 1
+struc process
+    .pid resd 1
+    .state resd 1
+    .page_directory resd 1
+    .must_relinquish resb 1
 endstruc
 
-global save_task_state
+struc task_state
+    .stack resd 1
+endstruc
 
-; save_task_state (state_pointer, new_eip_pointer)
-save_task_state:
-    mov [eax_buffer], eax
-    mov [ebx_buffer], ebx
-    mov eax, [esp+4]   ; state pointer
-    mov ebx, [esp+8]   ; new eip pointer
+global switch_task
+; void switch_task(process_t* current, process_t* new);
+switch_task:
+    ; Save current task state
+    ; Calling convention is cdecl (since we are using gcc on x86).
+    ; So eax, ecx, edx are caller-saved, others are callee-saved.
+    push ebx
+    push esi
+    push edi
+    push ebp
 
-    ; Save registers eax and ebx
-    push ecx
-    mov ecx, [eax_buffer]
-    mov [eax + task_state.eax], ecx
+    ; Get the two parameters.
+    ; Since we pushed 4 * 4byte registers, we compute the offsets accordingly.
+    mov esi, [esp + 4 * (4 + 1)] ; current process pointer
+    mov edi, [esp + 4 * (4 + 2)] ; new process
 
-    mov ecx, [ebx_buffer]
-    mov [eax + task_state.ebx], ecx
-    pop ecx
-
-    ; Save other registers
-    mov [eax + task_state.ecx], ecx
-    mov [eax + task_state.edx], edx
-    mov [eax + task_state.esi], esi
-    mov [eax + task_state.edi], edi
-    mov [eax + task_state.ebp], ebp
-    mov [eax + task_state.esp], esp
-
-    mov [eax + task_state.eip], ebx    ; new eip pointer
-
-    ; Save flags
-    pushf
-    pop dword [eax + task_state.eflags]
-
-    ; Save interrupt context
-    ; mov 
-
-    ; Save segment registers
-    mov word [eax + task_state.cs], cs
-    mov word [eax + task_state.ds], ds
-    mov word [eax + task_state.es], es
-    mov word [eax + task_state.fs], fs
-    mov word [eax + task_state.gs], gs
-    mov word [eax + task_state.ss], ss
-
-    ; cdecl does not save ebx automatically
-    ; so we need to restore it ourselves
-    mov ebx, [ebx_buffer]
-    ret
-
-global load_task_state
-
-procedure_address:
-    dd 0
-
-load_task_state:
-    mov eax, [esp+4]    ; state pointer
-    ; mov ebx, [esp+8]    ; return pointer
+    ; Save current esp to current process state
+    mov eax, [esi + process.state]           ; eax = pointer to task_state
+    mov [eax + task_state.stack], esp        ; store esp into task_state.stack
+    ; Load new task state
+    mov eax, [edi + process.state]           ; eax = pointer to task_state
+    mov esp, [eax + task_state.stack]
 
     ; Restore registers
-    mov ecx, [eax + task_state.eax]
-    mov edx, [eax + task_state.edx]
-    mov esi, [eax + task_state.esi]
-    mov edi, [eax + task_state.edi]
-    mov ebp, [eax + task_state.ebp]
+    pop ebp
+    pop edi
+    pop esi
+    pop ebx
+    ret
 
-    ; Restore flags
-    push dword [eax + task_state.eflags]
-    popf
-
-    ; Put eip in a specific memory
-    ; location (jump to it later)
-    push ecx
-    mov ecx, [eax + task_state.eip]
-    mov [procedure_address], ecx
-    pop ecx
-
-    ; push ebx
-    ; mov [esp], ebx
-
-    ; Restore esp, eax and ebx last
-    mov esp, [eax + task_state.esp]
-    mov ebx, [eax + task_state.ebx]
-    mov eax, [eax + task_state.eax]
-
-    ; Jump to the new eip
-    jmp [procedure_address]
 
 
 global top_of_stack
