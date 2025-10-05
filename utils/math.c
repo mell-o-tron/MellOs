@@ -90,9 +90,9 @@ int sqrt(int x) {
 }
 
 float fsqrt(float x) {
-    const float difference = 0.00001;
-    float guess = 1.0;
-    while(fabs(guess * guess - x) >= difference){
+    const double difference = 0.00001;
+    double guess = 1.0;
+    while(dabs(guess * guess - x) >= difference){
         guess = (x/guess + guess)/2.0;
     }
     return guess;
@@ -164,6 +164,10 @@ float floor(float x) {
 }
 
 float fabs(float x) {
+    return x < 0 ? -x : x;
+}
+
+double dabs(double x) {
     return x < 0 ? -x : x;
 }
 
