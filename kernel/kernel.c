@@ -281,7 +281,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     
     asm volatile ("sti");
-    timer_phase(1);
+    timer_phase(60);
     timer_install();
     set_cursor_pos_raw(0);
 

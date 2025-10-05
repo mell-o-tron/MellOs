@@ -80,14 +80,14 @@ void init_process() {
      * To solve this, we manually set up the stack as if we were
      * leaving an interrupt, and then use iret to jump to the task.
     */
-    kprint("Process initialized!\n");
+    // kprint("Process initialized!\n");
     uint32_t* ret_addr;
     // Get the second value on the stack (the return address)
     asm volatile (
         "movl 4(%%ebp), %0"
         : "=r" (ret_addr) // output
     );
-    printf("Return address: 0x%x\n", ret_addr);
+    // printf("Return address: 0x%x\n", ret_addr);
 
     // Send End-of-Interrupt (EOI) signal to the PICs
     outb(0x20, 0x20);
@@ -123,7 +123,7 @@ process_t* create_task(void* code){
     uint32_t* cur_stack = stack + stack_size - 4;
     // Push default values for the registers that will be popped by the asm function
 
-    printf("Creating task with code at 0x%x and stack at 0x%x\n", (uint32_t)code, (uint32_t)stack);
+    // printf("Creating task with code at 0x%x and stack at 0x%x\n", (uint32_t)code, (uint32_t)stack);
     *(--cur_stack) = (uint32_t)code; // eip
     *(--cur_stack) = (uint32_t)init_process; // eip
     *(--cur_stack) = 4; // ebx

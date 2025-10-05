@@ -3,3 +3,4 @@
 #include "../../../shell/functions/vell.h"
 #include "../../../GUI/gui.h"
 #include "../../../cpu/timer/timer.h"
+#include "../../../processes/processes.h"

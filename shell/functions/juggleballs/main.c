@@ -345,13 +345,16 @@ void jb_juggle(Sphere* sphere, int ticks) {
     (*sphere).position = ((Vec3){pos_x, pos_y, (*sphere).position.z});
 }
 
+void jb_main();
 void jb_juggle_balls(char* s) {
     if (!_vell_is_active()) {
         printf("You need to run vell\n");
         return;
-    } else {
-
     }
+    schedule_process(jb_main);
+}
+
+void jb_main() {
     Window* w = create_window_with_size("Juggling...", jb_hres, jb_vres);
     set_window_dirty(w);
     fb_draw_rect(10, 10, ((size_t)(jb_get_width(w))) - ((size_t)(((size_t)(10)))), ((size_t)(jb_get_height(w))) - ((size_t)(((size_t)(10)))), ((size_t)(1)), jb_make_VESA_Colour(255, 255, 255, 255), jb_get_fb(w));
