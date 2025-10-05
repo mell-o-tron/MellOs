@@ -194,16 +194,20 @@ void test_task(){
 }
 
 void task_1(){
+    int i = 0;
     for (;;){
-        kprint("Hello there!\n");
+        printf("Hello there! %d\n", i);
+        i++;
         sleep(1);
         try_to_relinquish();
     }
 }
 
 void task_2(){
+    int i = 0;
     for (;;){
-        kprint("BOIA DE\n");
+        printf("BOIA DE %d\n", i);
+        i++;
         sleep(1);
         try_to_relinquish();
     }

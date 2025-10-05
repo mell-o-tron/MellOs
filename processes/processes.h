@@ -18,7 +18,7 @@ typedef struct process {
 
 
 extern void save_task_state(struct task_state *state, void* new_eip);
-extern void load_task_state(struct task_state *state, void* return_point);
+extern void load_task_state(struct task_state *state);
 
 void kprint_task_state(struct task_state *state);
 

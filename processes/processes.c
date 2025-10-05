@@ -17,7 +17,7 @@
 /******* Tasks *******/
 
 extern void save_task_state(struct task_state *state, void* new_eip);
-extern void load_task_state(struct task_state *state, void* return_point);
+extern void load_task_state(struct task_state *state);
 
 
 
@@ -111,9 +111,7 @@ void begin_execution() {
     //kprint(tostring_inplace(processes[cur_pid] -> state -> eip, 16));
     //kprint("\n");
 
-    load_task_state(processes[cur_pid] -> state, &&END_PORCAMADO);
-
-    END_PORCAMADO:
+    load_task_state(processes[cur_pid] -> state);
     printf("finito\n");
 
 
@@ -135,10 +133,7 @@ void execute_next () {
     }
     while (processes [cur_pid] == NULL);
 
-    load_task_state(processes[cur_pid] -> state, &&end_of_scheduler);
-
-    end_of_scheduler:
-
+    load_task_state(processes[cur_pid] -> state);
     return;
 }
 

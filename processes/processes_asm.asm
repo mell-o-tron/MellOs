@@ -64,6 +64,9 @@ save_task_state:
     pushf
     pop dword [eax + task_state.eflags]
 
+    ; Save interrupt context
+    ; mov 
+
     ; Save segment registers
     mov word [eax + task_state.cs], cs
     mov word [eax + task_state.ds], ds
@@ -84,7 +87,7 @@ procedure_address:
 
 load_task_state:
     mov eax, [esp+4]    ; state pointer
-    mov ebx, [esp+8]    ; return pointer
+    ; mov ebx, [esp+8]    ; return pointer
 
     ; Restore registers
     mov ecx, [eax + task_state.eax]
@@ -92,7 +95,6 @@ load_task_state:
     mov esi, [eax + task_state.esi]
     mov edi, [eax + task_state.edi]
     mov ebp, [eax + task_state.ebp]
-    mov esp, [eax + task_state.esp]
 
     ; Restore flags
     push dword [eax + task_state.eflags]
@@ -106,9 +108,10 @@ load_task_state:
     pop ecx
 
     ; push ebx
-    mov [esp], ebx
+    ; mov [esp], ebx
 
-    ; Restore eax and ebx last
+    ; Restore esp, eax and ebx last
+    mov esp, [eax + task_state.esp]
     mov ebx, [eax + task_state.ebx]
     mov eax, [eax + task_state.eax]
 
