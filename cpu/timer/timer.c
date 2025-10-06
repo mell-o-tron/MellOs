@@ -18,9 +18,9 @@ extern bool keyboard_enabled;
 
 void timer_phase(int hz)
 {
-	int divisor = 1193180 / hz;	   /* Calculate our divisor */
+	int divisor = 1193182 / hz;	 /* Calculate our divisor */
 	outb(0x43, 0x36);			 /* Set our command byte 0x36 */
-	outb(0x40, divisor & 0xFF);   /* Set low byte of divisor */
+	outb(0x40, divisor & 0xFF);  /* Set low byte of divisor */
 	outb(0x40, divisor >> 8);	 /* Set high byte of divisor */
 }
 
@@ -33,10 +33,6 @@ void timer_handler(regs *r)
 	{
 		seconds++;
 		// kprint(tostring_inplace(seconds, 10));
-	}
-
-	if (timer_ticks % 36 == 0) {
-		scheduler_daemon();
 	}
 
 	if (keyboard_enabled) {
@@ -64,6 +60,9 @@ void timer_handler(regs *r)
 		}
 	}
 
+    if (timer_ticks % 1 == 0) {
+		scheduler_daemon();
+	}
 }
 
 

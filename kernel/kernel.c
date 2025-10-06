@@ -106,17 +106,24 @@ void khang(){
 #pragma GCC optimize ("O0")
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-extern  void kpanic(struct regs *r) {
+void _kpanic(const char* msg, unsigned int int_no);
+void kpanic_message(const char* msg) {
+    _kpanic(msg, 0);
+}
 
+extern  void kpanic(struct regs *r) {
+    _kpanic(exception_messages[r->int_no], r->int_no);
+}
+
+void _kpanic(const char* msg, unsigned int int_no) {
     const char* components[] = {
         KPArt,
-        "Exception message: ",
-        exception_messages[r->int_no],
+        "Kernel panic: ",
+        msg,
     };
-
 #if VGA_VESA
     char buf[256];
-    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
+    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
 
     fb_clear_screen_col_VESA(VESA_RED, vga_fb);
     fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
@@ -187,16 +194,20 @@ void test_task(){
 }
 
 void task_1(){
-    kprint("Hello there!\n");
+    int i = 0;
     for (;;){
-        try_to_terminate();
+        printf("Hello there! %d\n", i);
+        i++;
+        sleep(1);
     }
 }
 
 void task_2(){
-    kprint("BOIA DE\n");
+    int i = 0;
     for (;;){
-        try_to_relinquish();
+        printf("BOIA DE %d\n", i);
+        i++;
+        sleep(1);
     }
 }
 
@@ -270,8 +281,8 @@ extern void main(uint32_t multiboot_tags_addr){
     
     
     asm volatile ("sti");
-    timer_install();
     timer_phase(60);
+    timer_install();
     set_cursor_pos_raw(0);
 
     //allocator.granularity = 512;
@@ -282,8 +293,6 @@ extern void main(uint32_t multiboot_tags_addr){
         // todo: error handling
         //asm volatile ("hlt");
     }
-    // allocates space for the process data
-    //init_scheduler();
     //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
     #ifdef VGA_VESA
     // set_dynamic_mem_loc ((void*)framebuffer_end);
@@ -333,15 +342,12 @@ extern void main(uint32_t multiboot_tags_addr){
     set_cursor_pos_raw(0);
 
     kprint(Fool);
+
+    // Initialize the process scheduler and set this as the first process
+    init_scheduler();
     
     load_shell();
     // init_text_editor("test_file");
-
-    /*
-    schedule_process(task_1);
-    schedule_process(task_2);
-
-    begin_execution();*/
 
 
     return;

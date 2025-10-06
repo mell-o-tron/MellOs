@@ -243,7 +243,7 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
     }
     
     // Get integer part
-    unsigned long long integer_part = (unsigned long long)value;
+    unsigned long integer_part = (unsigned long)value;
     
     // Convert integer part
     if (integer_part == 0) {
@@ -253,7 +253,7 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
     } else {
         char temp[32];
         int len = 0;
-        unsigned long long temp_int = integer_part;
+        unsigned long temp_int = integer_part;
         while (temp_int > 0) {
             temp[len++] = '0' + (temp_int % 10);
             temp_int /= 10;
