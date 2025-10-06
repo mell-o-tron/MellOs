@@ -96,13 +96,13 @@ typedef Parallelepiped* Parallelepiped_ptr;
 typedef Parallelepiped Parallelepiped_1_arr[1];
 typedef tup_Vec3__bool_le (*l_Ray_ptr__Vec3__Parallelepiped_ptr_to_tup_Vec3__bool_le_r)(Ray*, Vec3, Parallelepiped*);
 typedef Vec3_opt (*l_Ray_ptr__Parallelepiped_ptr_to_Vec3_opt_r)(Ray*, Parallelepiped*);
+typedef Sphere Sphere_4_arr[4];
 typedef Sphere* Sphere_ptr;
 typedef void (*l_Sphere_ptr__int_to_void_r)(Sphere*, int);
-typedef Sphere Sphere_3_arr[3];
 typedef tup_Vec3__bool_le (*l_Ray_ptr__Vec3__Sphere_ptr_to_tup_Vec3__bool_le_r)(Ray*, Vec3, Sphere*);
 typedef Vec3_opt (*l_Ray_ptr__Sphere_ptr_to_Vec3_opt_r)(Ray*, Sphere*);
-typedef HDColour (*l_Ray_ptr__Sphere_3_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Ray*, Sphere_3_arr, Parallelepiped_1_arr, int);
-typedef HDColour (*l_Material__Vec3__Ray_ptr__tup_Vec3__bool_le__Sphere_3_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_3_arr, Parallelepiped_1_arr, int);
+typedef HDColour (*l_Ray_ptr__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Ray*, Sphere_4_arr, Parallelepiped_1_arr, int);
+typedef HDColour (*l_Material__Vec3__Ray_ptr__tup_Vec3__bool_le__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_4_arr, Parallelepiped_1_arr, int);
 
 size_t get_height (Window*);
 Framebuffer* get_fb (Window*);
@@ -130,12 +130,12 @@ VESA_Colour VESA_Colour_multiply (VESA_Colour, VESA_Colour);
 HDColour HDColour_multiply (HDColour, HDColour);
 Vec3 vec3_random_in_hemisphere (Vec3);
 void sperkaster (char*);
-HDColour cast_ray (Ray*, Sphere_3_arr, Parallelepiped_1_arr, int);
+HDColour cast_ray (Ray*, Sphere_4_arr, Parallelepiped_1_arr, int);
 size_t get_width (Window*);
 tup_Vec3__bool_le ray_parallelepiped_hit_normal (Ray*, Vec3, Parallelepiped*);
 Vec3 vec3_normalized (Vec3);
 VESA_Colour VESA_Colour_scale (VESA_Colour, float);
-HDColour compute_colour (Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_3_arr, Parallelepiped_1_arr, int);
+HDColour compute_colour (Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_4_arr, Parallelepiped_1_arr, int);
 Vec3 vec3_reflect (Vec3, Vec3);
 Vec3 vec3_rotate (Vec3, Vec3, float);
 Ray camera_get_ray (PerspectiveCamera*, float, float);
@@ -143,11 +143,13 @@ Vec3 vec3_random ();
 float vec3_length (Vec3);
 Vec3 ray_at (Ray*, float);
 
-int colour_max = 1073741823;
+int colour_max = 65535;
 
-int int_size = 30;
+int colour_size = 16;
 
-int shift_amt = 22;
+int shift_amt = 8;
+
+int divider = 256;
 
 VESA_Colour make_VESA_Colour(int r, int g, int b, int a) {
     VESA_Colour* colour = ((VESA_Colour_ptr)(0));
@@ -209,10 +211,10 @@ VESA_Colour VESA_Colour_from_vec3(Vec3 v) {
 
 
 VESA_Colour HDColour_to_VESA_Colour(HDColour hd) {
-    int r = clamp(hd.r >> shift_amt, 0, 255);
-    int g = clamp(hd.g >> shift_amt, 0, 255);
-    int b = clamp(hd.b >> shift_amt, 0, 255);
-    int a = clamp(hd.a >> shift_amt, 0, 255);
+    int r = clamp(((int)(hd.r)) / ((int)(divider)), 0, 255);
+    int g = clamp(((int)(hd.g)) / ((int)(divider)), 0, 255);
+    int b = clamp(((int)(hd.b)) / ((int)(divider)), 0, 255);
+    int a = clamp(((int)(hd.a)) / ((int)(divider)), 0, 255);
     return make_VESA_Colour(r, g, b, a);
 }
 
@@ -221,7 +223,7 @@ HDColour HDColour_scale(HDColour c, float s) {
 }
 
 HDColour HDColour_multiply(HDColour c1, HDColour c2) {
-    return ((HDColour){clamp(((int)((((float)((((float)(((float)(c1.r)))) / ((float)(colour_max))))) * ((float)(c2.r))))), 0, colour_max), clamp(((int)((((float)((((float)(((float)(c1.g)))) / ((float)(colour_max))))) * ((float)(c2.g))))), 0, colour_max), clamp(((int)((((float)((((float)(((float)(c1.b)))) / ((float)(colour_max))))) * ((float)(c2.b))))), 0, colour_max), clamp(((int)((((float)((((float)(((float)(c1.a)))) / ((float)(colour_max))))) * ((float)(c2.a))))), 0, colour_max)});
+    return ((HDColour){clamp((((int)((c1.r >> 8))) * ((int)((c2.r >> 8)))), 0, colour_max), clamp((((int)((c1.g >> 8))) * ((int)((c2.g >> 8)))), 0, colour_max), clamp((((int)((c1.b >> 8))) * ((int)((c2.b >> 8)))), 0, colour_max), clamp((((int)((c1.a >> 8))) * ((int)((c2.a >> 8)))), 0, colour_max)});
 }
 
 HDColour HDColour_from_vec3(Vec3 v) {
@@ -428,15 +430,7 @@ Vec3 vec3_random() {
 }
 
 Vec3 vec3_random_in_unit_sphere() {
-    while (true) {
-        Vec3 p = vec3_random();
-        float p_len_sq = vec3_length_squared(p);
-        if (p_len_sq <= 1.) {
-            return vec3_scale(p, ((float)(1.)) / ((float)(fsqrt(p_len_sq))));
-        } else {
-
-        }
-    }
+    return vec3_normalized(vec3_random());
 }
 
 Vec3 vec3_random_in_hemisphere(Vec3 normal) {
@@ -457,27 +451,31 @@ Vec3 vec3_perturb(Vec3 v, float magnitude) {
 }
 
 
-int pixel_size = 5;
+int pixel_size = 2;
 
-uint32_t hres = ((uint32_t)(((int)(1270)) / ((int)(5))));
+uint32_t hres = ((uint32_t)(((int)(600)) / ((int)(2))));
 
-uint32_t vres = ((uint32_t)(((int)(770)) / ((int)(5))));
+uint32_t vres = ((uint32_t)(((int)(400)) / ((int)(2))));
 
-HDColour sky_colour = ((HDColour){144 << 22, 227 << 22, 252 << 22, 255 << 22});
+HDColour sky_colour = ((HDColour){144 << 8, 227 << 8, 252 << 8, 255 << 8});
 
-HDColour no_colour = ((HDColour){0, 0, 0, 1073741823});
+HDColour no_colour = ((HDColour){0, 0, 0, 65535});
 
-int num_rays = 10;
+int num_rays = 5;
 
-int num_bounces = 8;
+int num_bounces = 10;
 
 float scatter_amount = 0.001;
 
-float acne_bias = 1.;
+float acne_bias = 0.001;
+
+int initial_ticks = 78;
 
 int ticks = 0;
 
 bool animate = true;
+
+bool done = false;
 
 int sleep_time = 1;
 
@@ -505,28 +503,19 @@ size_t get_height(Window* w) {
     return height;
 }
 
-HDColour compute_colour(Material mat, Vec3 normal, Ray* ray, tup_Vec3__bool_le hit, Sphere_3_arr spheres, Parallelepiped_1_arr parallelepipeds, int max_bounces) {
+HDColour compute_colour(Material mat, Vec3 normal, Ray* ray, tup_Vec3__bool_le hit, Sphere_4_arr spheres, Parallelepiped_1_arr parallelepipeds, int max_bounces) {
     Vec3 reflected_dir = vec3_reflect((*ray).direction, normal);
     Vec3 new_origin = vec3_add(hit._0, vec3_scale(reflected_dir, acne_bias));
     if (mat.type == 0) {
         return mat.colour;
     } else {
         if (mat.type == 1) {
-            if (max_bounces == 1) {
-                return mat.colour;
-            } else {
-
-            }
             Vec3 direction = vec3_add(vec3_random_in_unit_sphere(), normal);
             HDColour sample = HDColour_scale(cast_ray(&(((Ray){new_origin, direction})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1))), mat.diffusion);
             return HDColour_multiply(sample, mat.colour);
         } else {
             if (mat.type == 2) {
-                if (max_bounces == 1) {
-                    return mat.colour;
-                } else {
                     return HDColour_multiply(cast_ray(&(((Ray){new_origin, reflected_dir})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1))), mat.colour);
-                }
             } else {
                 if (mat.type == 3) {
                     float etai_over_etat = (hit._1 ? mat.refractive_index : ((float)(1.)) / ((float)(mat.refractive_index)));
@@ -567,14 +556,14 @@ HDColour compute_colour(Material mat, Vec3 normal, Ray* ray, tup_Vec3__bool_le h
     return sky_colour;
 }
 
-HDColour cast_ray(Ray* ray, Sphere_3_arr spheres, Parallelepiped_1_arr parallelepipeds, int max_bounces) {
+HDColour cast_ray(Ray* ray, Sphere_4_arr spheres, Parallelepiped_1_arr parallelepipeds, int max_bounces) {
     if (max_bounces <= 0) {
         return no_colour;
     } else {
 
     }
     Vec3_opt hit = ((Vec3_opt) {0, 0});
-    for (size_t i = ((size_t)(0)); i < 3; i = ((size_t)(i)) + ((size_t)(1))) {
+    for (size_t i = ((size_t)(0)); i < 4; i = ((size_t)(i)) + ((size_t)(1))) {
         hit = ray_sphere_intersection_point(ray, &spheres[((int)(i))]);
         if (hit.is_some) {
             tup_Vec3__bool_le normal = ray_sphere_hit_normal(ray, ((Vec3)hit.contents), &spheres[((int)(i))]);
@@ -598,8 +587,8 @@ HDColour cast_ray(Ray* ray, Sphere_3_arr spheres, Parallelepiped_1_arr parallele
 }
 
 void juggle_balls(Sphere* sphere, int ticks) {
-    float pos_x = ((float)(20.)) * ((float)(sin(((float)(((float)(ticks)))) * ((float)(0.1)))));
-    float pos_y = fabs(((float)(20.)) * ((float)(cos(((float)(((float)(ticks)))) * ((float)(0.1))))));
+    float pos_x = ((float)(20.)) * ((float)(sin(((float)(((float)(((int)(initial_ticks)) + ((int)(ticks)))))) * ((float)(0.1)))));
+    float pos_y = fabs(((float)(20.)) * ((float)(cos(((float)(((float)(((int)(initial_ticks)) + ((int)(ticks)))))) * ((float)(0.1))))));
     (*sphere).position = ((Vec3){pos_x, pos_y, (*sphere).position.z});
 }
 
@@ -616,20 +605,22 @@ void sperkaster(char* s) {
         set_window_dirty(w);
         fb = get_fb(w);
     }
-    Sphere_3_arr spheres = {((Sphere){8., ((Vec3){0., 0., -60.}), ((Material){2, ((HDColour){200 << shift_amt, 250 << shift_amt, 200 << shift_amt, colour_max}), 1., 0.5})}), ((Sphere){8., ((Vec3){-40., 0., -70.}), ((Material){3, ((HDColour){colour_max, colour_max, colour_max, colour_max}), ((float)(1.)) / ((float)(1.33)), 1.})}), ((Sphere){8., ((Vec3){40., 0., -80.}), ((Material){1, ((HDColour){0, 0, colour_max, colour_max}), 1., 1.})})};
-    Parallelepiped_1_arr parallelepipeds = {((Parallelepiped){((Vec3){-4000., -8., -4000.}), ((Vec3){4000., -10., 4000.}), ((Material){1, ((HDColour){255 << shift_amt, 255 << shift_amt, 143 << shift_amt, 255 << shift_amt}), 1., 1.})})};
-    PerspectiveCamera camera = ((PerspectiveCamera){((Vec3){0., 10., -30.}), ((Vec3){0., 10., -31.}), ((Vec3){0., -1., 0.})});
+    Sphere_4_arr spheres = {((Sphere){8., ((Vec3){0., 0., -50.}), ((Material){1, ((HDColour){colour_max, 0, 0, colour_max}), 1., 0.5})}), ((Sphere){8., ((Vec3){0., 0., -60.}), ((Material){2, ((HDColour){200 << shift_amt, 250 << shift_amt, 200 << shift_amt, colour_max}), 1., 0.5})}), ((Sphere){8., ((Vec3){-40., 0., -70.}), ((Material){3, ((HDColour){250 << shift_amt, 250 << shift_amt, 250 << shift_amt, colour_max}), ((float)(1.)) / ((float)(1.33)), 1.})}), ((Sphere){8., ((Vec3){40., 0., -80.}), ((Material){1, ((HDColour){0, 0, colour_max, colour_max}), 1., 1.})})};
+    Parallelepiped_1_arr parallelepipeds = {((Parallelepiped){((Vec3){-4000., -10., -4000.}), ((Vec3){4000., -8., 4000.}), ((Material){1, ((HDColour){80 << shift_amt, 96 << shift_amt, 80 << shift_amt, 255 << shift_amt}), 1., 1.})})};
+    PerspectiveCamera camera = ((PerspectiveCamera){((Vec3){5., 10., -10.}), ((Vec3){5., 10., -11.}), ((Vec3){0., -1., 0.})});
     LightSource light_source = ((LightSource){((Vec3){5., 5., 0.}), 1., ((HDColour){colour_max, colour_max, colour_max, colour_max})});
     float aspect_ratio = ((float)(((float)(hres)))) / ((float)(((float)(vres))));
     float fov = 60.;
     float fov_rad = ((float)(((float)(fov)) * ((float)(3.14159)))) / ((float)(180.));
     float scale = tan(((float)(fov_rad)) * ((float)(0.5)));
     float inverse_num_rays = ((float)(1.)) / ((float)(((float)(num_rays))));
-    juggle_balls(&spheres[1], ticks);
-    juggle_balls(&spheres[0], ((int)(ticks)) + ((int)(20)));
-    juggle_balls(&spheres[2], ((int)(ticks)) + ((int)(40)));
+    juggle_balls(&spheres[0], ticks);
+    juggle_balls(&spheres[1], ((int)(ticks)) + ((int)(10)));
+    juggle_balls(&spheres[2], ((int)(ticks)) + ((int)(20)));
+    juggle_balls(&spheres[3], ((int)(ticks)) + ((int)(30)));
     ticks = ((int)(ticks)) + ((int)(1));
     while (true) {
+        if (!done) {
         for (size_t y = ((size_t)(0)); y < vres; y = ((size_t)(y)) + ((size_t)(1))) {
             for (size_t x = ((size_t)(0)); x < hres; x = ((size_t)(x)) + ((size_t)(1))) {
                 float x_norm = ((float)(((float)((((float)(((float)(x)))) / ((float)(((float)(hres))))))) * ((float)(2.)))) - ((float)(1.));
@@ -651,6 +642,8 @@ void sperkaster(char* s) {
                     } else {
 
                     }
+                        printf("%d ticks rendered\n", ticks);
+                        ticks = 0;
                     return;
                 } else {
 
@@ -659,16 +652,20 @@ void sperkaster(char* s) {
         }
         if (in_vell) {
             set_window_dirty(w);
+            } else {
+
+            }
         } else {
 
         }
         if (animate) {
-            juggle_balls(&spheres[1], ticks);
-            juggle_balls(&spheres[0], ((int)(ticks)) + ((int)(20)));
-            juggle_balls(&spheres[2], ((int)(ticks)) + ((int)(40)));
+            juggle_balls(&spheres[0], ticks);
+            juggle_balls(&spheres[1], ((int)(ticks)) + ((int)(10)));
+            juggle_balls(&spheres[2], ((int)(ticks)) + ((int)(20)));
+            juggle_balls(&spheres[3], ((int)(ticks)) + ((int)(30)));
             ticks = ((int)(ticks)) + ((int)(1));
         } else {
-
+            done = true;
         }
         sleep(sleep_time);
     }
