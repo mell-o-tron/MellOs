@@ -2,7 +2,7 @@
 
 void spinlock_lock(spinlock_t* lock) {
     while (__atomic_test_and_set(lock, __ATOMIC_ACQUIRE))
-        __asm__ volatile("pause" : : : "memory");
+        __builtin_ia32_pause();
 }
 
 void spinlock_unlock(spinlock_t* lock) {
