@@ -43,6 +43,7 @@ float sin(float x);
 float cos(float x);
 float floor(float x);
 float fabs(float x);
+double dabs(double x);
 float fmod(float x, float y);
 float atan_lookup(float x); // arctan lookup table for the CORDIC algorithm
 float powf(float x, float n);

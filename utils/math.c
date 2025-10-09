@@ -70,29 +70,14 @@ int max(const int a, const int b) {
 }
 
 int sqrt(int x) {
-    int res = 0;
-    int bit = 1 << 30; // The second-to-top bit is set: 1 << 30 for 32 bits
- 
-    // "bit" starts at the highest power of four <= the argument.
-    while (bit > x)
-        bit >>= 2;
- 
-    while (bit != 0) {
-        if (x >= res + bit) {
-            x -= res + bit;
-            res = (res >> 1) + bit;
-        } else
-            res >>= 1;
- 
-        bit >>= 2;
-    }
-    return res;
+    return (int)floor(fsqrt((float)x));
 }
 
 float fsqrt(float x) {
-    const float difference = 0.00001;
-    float guess = 1.0;
-    while(fabs(guess * guess - x) >= difference){
+    const double difference = 0.00001;
+    double guess = x / 2.0;
+    int num_guesses = 1000;
+    while(dabs(guess * guess - x) >= difference && num_guesses --> 0){
         guess = (x/guess + guess)/2.0;
     }
     return guess;
@@ -164,6 +149,10 @@ float floor(float x) {
 }
 
 float fabs(float x) {
+    return x < 0 ? -x : x;
+}
+
+double dabs(double x) {
     return x < 0 ? -x : x;
 }
 
