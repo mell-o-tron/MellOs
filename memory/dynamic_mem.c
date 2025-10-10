@@ -10,35 +10,13 @@
 #include "utils/conversions.h"
 #include "utils/assert.h"
 #include "utils/math.h"
+#include "kernel/kernel.h"
 
 #define MAX_ORDER 24
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
-// ----- OLD ALLOCATOR -----
-
-// A bitmap is used to keep track of the memory usage. 
-
-allocator_t* kmallocator = NULL;
-
 volatile void *dynamic_mem_loc = NULL;
-
-void assign_kmallocator(allocator_t* allocator){
-    kmallocator = allocator;
-}
-
-void set_dynamic_mem_loc (void *loc){
-    dynamic_mem_loc = loc;
-}
-
-bitmap_t get_kmallocator_bitmap (){
-    return get_allocator_bitmap(kmallocator);
-}
-
-void set_kmalloc_bitmap (bitmap_t loc, uint32_t length){
-    set_alloc_bitmap(kmallocator, loc, length);
-}
-
 
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
 
@@ -319,4 +297,13 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
     return newloc;    
     
 #endif
+}
+
+void init_allocators(void* loc, size_t size) {
+    dynamic_mem_loc = loc;
+    if (!buddy_init(loc, size)) {
+        // TODO: This is not ok: if in graphics mode, the
+        // fb has not been initialized yet, so we can't print.
+        kpanic_message("Buddy allocator fault");
+    }
 }

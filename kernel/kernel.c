@@ -285,18 +285,10 @@ extern void main(uint32_t multiboot_tags_addr){
     timer_install();
     set_cursor_pos_raw(0);
 
-    //allocator.granularity = 512;
-    //assign_kmallocator(&allocator);
-    set_dynamic_mem_loc ((void*)memory_area.start);
-    if (!buddy_init(memory_area.start, memory_area.length)) {
-        printf("Buddy allocator fault.\n");
-        // todo: error handling
-        //asm volatile ("hlt");
-    }
-    //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    // Initialize dynamic memory allocation
+    init_allocators(memory_area.start, memory_area.length);
+    
     #ifdef VGA_VESA
-    // set_dynamic_mem_loc ((void*)framebuffer_end);
-
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
