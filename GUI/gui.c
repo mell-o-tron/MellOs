@@ -43,7 +43,7 @@ void destroy_window(Window* w){
 
 void destroy_window_preserve_fb(Window* w){
     _vell_deregister_window(w);
-    kfree(w, sizeof(Window));
+    kfree(w);
 }
 
 Recti recti_of_window(Window* w){
