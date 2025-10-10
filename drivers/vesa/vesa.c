@@ -7,12 +7,12 @@
 
 #include "vesa.h"
 #include "test_font.h"
-#include "../utils/typedefs.h"
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
-#include "../memory/dynamic_mem.h"
-#include "../utils/math.h"
-#include "../memory/mem.h"
+#include "utils/typedefs.h"
+#include "misc/colours.h"
+#include "utils/conversions.h"
+#include "memory/dynamic_mem.h"
+#include "utils/math.h"
+#include "memory/mem.h"
 
 uint32_t Hres;
 uint32_t Vres;
@@ -191,8 +191,8 @@ Framebuffer* allocate_full_screen_framebuffer() {
 }
 
 void deallocate_framebuffer(Framebuffer* fb) {
-    kfree((void*)fb->fb, fb->width * fb->height * BYTES_PER_PIXEL);
-    kfree((void*)fb, sizeof(Framebuffer));
+    kfree((void*)fb->fb);
+    kfree((void*)fb);
 }
 
 void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t width, uint32_t height, int from_x, int from_y, int to_x, int to_y) {

@@ -1,16 +1,16 @@
-#include "math.h"
+#include "utils/math.h"
 #ifdef VGA_VESA
 
-#include "vell.h"
-#include "../../drivers/vesa/vesa.h"
-#include "../../drivers/vesa/vesa_text.h"
-#include "../../misc/colours.h"
-#include "../../utils/typedefs.h"
-#include "../../data_structures/circular_list.h"
-#include "../../memory/dynamic_mem.h"
-#include "../../GUI/gui.h"
-#include "../../GUI/vterm.h"
-#include "../../GUI/mouse_handler.h"
+#include "shell/functions/vell.h"
+#include "drivers/vesa/vesa.h"
+#include "drivers/vesa/vesa_text.h"
+#include "misc/colours.h"
+#include "utils/typedefs.h"
+#include "data_structures/circular_list.h"
+#include "memory/dynamic_mem.h"
+#include "GUI/gui.h"
+#include "GUI/vterm.h"
+#include "GUI/mouse_handler.h"
 
 static CircularList* windows = NULL;
 static Window* mouse_window = NULL;

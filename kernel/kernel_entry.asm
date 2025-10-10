@@ -127,12 +127,12 @@ init_serial:
     ret
 
 section .text
-
-%include "../cpu/interrupts/interrupt.asm"
-%include "../memory/paging/paging.asm"
+    
+%include "cpu/interrupts/interrupt.asm"
+%include "memory/paging/paging.asm"
 
 section .data
 
 section .rodata		    ; read only data
 
-%include "IncBins.asm"	; including binaries
+%include "kernel/IncBins.asm"	; including binaries

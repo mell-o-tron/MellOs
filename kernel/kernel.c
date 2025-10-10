@@ -4,23 +4,22 @@
 *********************/
 
 
-#include "kernel.h"
-#include "memory_area_spec.h"
-#include "../utils/typedefs.h"
+#include "utils/memory_area_spec.h"
+#include "utils/typedefs.h"
 #include "multiboot_tags.h"
 #include "memory_mapper.h"
 // #include "../utils/error_handling.h"                // read docs!
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
+#include "misc/colours.h"
+#include "utils/conversions.h"
 // #include "../utils/string.h"
-#include "paging_utils.h"
+#include "memory/paging/paging_utils.h"
 
-#include "format.h"
+#include "utils/format.h"
 
-#include "../cpu/interrupts/idt.h"
-#include "../cpu/interrupts/isr.h"
-#include "../cpu/interrupts/irq.h"
-#include "../cpu/timer/timer.h"
+#include "cpu/interrupts/idt.h"
+#include "cpu/interrupts/isr.h"
+#include "cpu/interrupts/irq.h"
+#include "cpu/timer/timer.h"
 #include "../cpu/gdt/gdt.h"
 #include "../drivers/keyboard.h"
 #include "../drivers/port_io.h"
@@ -32,8 +31,8 @@
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
 #include "../drivers/mouse.h"
-#include "vell.h"
-#include "format.h"
+#include "shell/functions/vell.h"
+#include "utils/format.h"
 #else
 #include "../drivers/vga_text.h"
 #endif
@@ -215,7 +214,7 @@ void task_2(){
 // char test[0xe749] = {1};
 allocator_t allocator;
 
-asmlinkage void main(uint32_t multiboot_tags_addr){
+extern void main(uint32_t multiboot_tags_addr){
 #ifdef VGA_VESA
 
     uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
@@ -286,18 +285,10 @@ asmlinkage void main(uint32_t multiboot_tags_addr){
     timer_install();
     set_cursor_pos_raw(0);
 
-    //allocator.granularity = 512;
-    //assign_kmallocator(&allocator);
-    set_dynamic_mem_loc ((void*)memory_area.start);
-    if (!buddy_init(memory_area.start, memory_area.length)) {
-        printf("Buddy allocator fault.\n");
-        // todo: error handling
-        //asm volatile ("hlt");
-    }
-    //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
+    // Initialize dynamic memory allocation
+    init_allocators(memory_area.start, memory_area.length);
+    
     #ifdef VGA_VESA
-    // set_dynamic_mem_loc ((void*)framebuffer_end);
-
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
@@ -310,20 +301,31 @@ asmlinkage void main(uint32_t multiboot_tags_addr){
 
     kb_install();
 
-    // kprint("Running fs tests... ");
-    // int failed_fs_tests = run_all_fs_tests();
-    // kprint(tostring_inplace(failed_fs_tests, 10));
-    // kprint(" failed\n");
+#ifdef MELLOS_DEBUG
+    kprint("MellOS Debug mode:\n\n");
 
-    // printf("Running mem tests... ");
-    // int failed_mem_tests = run_all_mem_tests();
-    // printf("%016x", failed_mem_tests);
-    // printf(" failed\n");
+    kprint("Running fs tests... ");
+    int failed_fs_tests = run_all_fs_tests();
+    kprint(tostring_inplace(failed_fs_tests, 10));
+    kprint(" failed\n");
 
-    // printf("\n\n ENTERING COMMAND MODE...\n");
+    printf("Running mem tests... ");
+    int failed_mem_tests = run_all_mem_tests();
+    printf("%016x", failed_mem_tests);
+    printf(" failed\n");
 
+    if (failed_fs_tests != 0 || failed_mem_tests != 0){
+        kprint_col("TESTS FAILED!!", DEFAULT_COLOUR);
 
-    // sleep(30);
+        for (;;){;}
+    } else {
+        kprint_col("All tests passed!", DEFAULT_COLOUR);
+    }
+
+    printf("\n\n ENTERING COMMAND MODE...\n");
+
+    sleep(100);
+#endif
 
     void *code_loc2 = kmalloc(10);
     if (code_loc2 == NULL){
@@ -331,7 +333,7 @@ asmlinkage void main(uint32_t multiboot_tags_addr){
 
         for (;;){;}
     } else {
-        kfree(code_loc2, 10);
+        kfree(code_loc2);
     }
 
     #ifdef VGA_VESA

@@ -1,10 +1,10 @@
 global Fool
 
-Fool: incbin "fool_new.txt"
+Fool: incbin "kernel/fool_new.txt"
 db 0
 
 
 global KPArt
 
-KPArt: incbin "KPArt.txt"
+KPArt: incbin "kernel/KPArt.txt"
 db 0

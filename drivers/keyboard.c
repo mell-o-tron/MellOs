@@ -1,9 +1,9 @@
 #include "../utils/typedefs.h"
 #include "../utils/conversions.h"
 #ifdef VGA_VESA
-#include "vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "vga_text.h"
+#include "drivers/vga_text.h"
 #endif
 #include "port_io.h"
 #include "../cpu/interrupts/irq.h"

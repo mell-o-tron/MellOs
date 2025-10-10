@@ -247,3 +247,14 @@ Recti recti_intersection(Recti a, Recti b) {
     r.size.y = min(a_end.y, b_end.y) - r.pos.y;
     return r;
 }
+
+// #ifndef USE_BUILTIN_POPCOUNT
+int popcount(uint32_t x) {
+    int count = 0;
+    while (x) {
+        count += x & 1;
+        x >>= 1;
+    }
+    return count;
+}
+// #endif

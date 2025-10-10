@@ -1,11 +1,11 @@
 #include "typedefs.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include <assert.h>
+#include "utils/conversions.h"
+#include "utils/assert.h"
 
 int unwrap (maybe_int x){
     assert (x.is_some);
