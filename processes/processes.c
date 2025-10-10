@@ -1,15 +1,15 @@
 #include "processes.h"
 
-#include <format.h>
+#include "stdio.h"
 
-#include "../memory/dynamic_mem.h"
-#include "../utils/typedefs.h"
+#include "dynamic_mem.h"
+#include "stddef.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../utils/conversions.h"
+#include "conversions.h"
 
 
 /******* Tasks *******/
@@ -17,41 +17,17 @@
 extern void save_task_state(struct task_state *state, void* new_eip);
 extern void load_task_state(struct task_state *state, void* return_point);
 
-
-
 void kprint_task_state(struct task_state *state) {
-    char tmp[10];
-
-    kprint("eax: 0x");
-    kprint(tostring(state -> eax, 16, tmp));
-
-    kprint("\nebx: 0x");
-    kprint(tostring(state -> ebx, 16, tmp));
-
-    kprint("\necx: 0x");
-    kprint(tostring(state->ecx, 16, tmp));
-
-    kprint("\nedx: 0x");
-    kprint(tostring(state->edx, 16, tmp));
-
-    kprint("\nesi: 0x");
-    kprint(tostring(state->esi, 16, tmp));
-
-    kprint("\nedi: 0x");
-    kprint(tostring(state->edi, 16, tmp));
-
-    kprint("\nebp: 0x");
-    kprint(tostring(state->ebp, 16, tmp));
-
-    kprint("\nesp: 0x");
-    kprint(tostring(state->esp, 16, tmp));
-
-    kprint("\neip: 0x");
-    kprint(tostring((uint32_t)state->eip, 16, tmp));
-
-    kprint("\neflags: 0x");
-    kprint(tostring(state->eflags, 16, tmp));
-    kprint("\n");
+    printf("eax: %x\n", state->eax);
+    printf("ebx: %x\n", state->ebx);
+    printf("ecx: %x\n", state->ecx);
+    printf("edx: %x\n", state->edx);
+    printf("esi: %x\n", state->esi);
+    printf("edi: %x\n", state->edi);
+    printf("ebp: %x\n", state->ebp);
+    printf("esp: %x\n", state->esp);
+    printf("eip: %x\n", (uint32_t) state->eip);
+    printf("eflags: %x\n", state->eflags);
 }
 
 void populate_task_noargs(state_t* state, void* code){
@@ -69,6 +45,10 @@ uint32_t max_pid = 0;
 
 bool scheduler_active = false;
 
+FILE *stdin = NULL;
+FILE *stderr = NULL;
+FILE *stdout = NULL;
+
 void init_scheduler() {
     processes = kmalloc(sizeof(process_t *) * MAX_PROCESSES);
 }
@@ -76,30 +56,29 @@ void init_scheduler() {
 void scheduler_daemon () {
 
     if (scheduler_active) {
-        printf("Telling current process to shut up... ");
+        kprint("Telling current process to shut up... ");
         process_t *cur_proc = processes[cur_pid];
 
         // check if no process running
         if (cur_proc == NULL){
-            printf(" ...No process currently running\n");
+            kprint(" ...No process currently running\n");
             return;
         }
 
-        printf(" ... Process 0x%x notified", cur_pid);
+        kprint(" ... Process 0x"); kprint(tostring_inplace(cur_pid, 16)); kprint(" notified");
         //kprint(tostring_inplace(cur_pid, 16));
         //kprint(" notified\n");
 
         // save_task_state(cur_proc -> state, cur_proc -> state -> eip);
-        cur_proc ->must_relinquish = true;
+        cur_proc->must_relinquish = true;
     }
-    return;
 }
 
 void begin_execution() {
 
     if (processes[cur_pid] == NULL) return;
 
-    printf("code to be executed: %p\n", processes[cur_pid] -> state -> eip);
+    kprint("code to be executed: 0x"); kprint(tostring_inplace((uint32_t)(processes[cur_pid]->state->eip), 16)); kprint("\n");
     //kprint(tostring_inplace(processes[cur_pid] -> state -> eip, 16));
     //kprint("\n");
 
@@ -189,3 +168,13 @@ process_t* schedule_process(void * code){
     return res;
 }
 
+process_t *get_current_process() {
+    if (!scheduler_active) {
+        return NULL;
+    }
+    return processes[cur_pid];
+}
+
+process_t *get_process_by_pid(uint32_t pid) {
+    return processes[pid];
+}

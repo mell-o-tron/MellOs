@@ -1,0 +1,5 @@
+file(GLOB_RECURSE SYSCALLS_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+add_library(syscalls STATIC ${SYSCALLS_SRCS})
+target_include_directories(syscalls PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(syscalls PRIVATE ${CMAKE_SOURCE_DIR}/global/include)
+target_link_libraries(syscalls processes vesa_objects filesystem shell_objs)

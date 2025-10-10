@@ -3,16 +3,13 @@
 //(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
 
 
-#include "../../utils/typedefs.h"
-#include "idt.h"
+#include "cpu/idt.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../kernel/kernel.h"
-#include "../../syscalls/syscalls.h"
-#include "../../utils/conversions.h"
+#include "mellos/kernel/kernel.h"
+#include "syscalls.h"
 
 
 extern  void _isr0();

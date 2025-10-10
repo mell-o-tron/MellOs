@@ -1,19 +1,19 @@
-#include "shell.h"
-#include "../utils/typedefs.h"
+#include "shell/shell.h"
+#include "stddef.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../misc/colours.h"
-#include "../utils/string.h"
-#include "shell_functions.h"
-#include "../memory/mem.h"
-#include "../utils/conversions.h"
-#include "../drivers/keyboard.h"
-#include "../data_structures/circular_buffer.h"
-#include "../file_system/file_system.h"
-#include "../memory/dynamic_mem.h"
+#include "colours.h"
+#include "string.h"
+#include "shell/shell_functions.h"
+#include "mem.h"
+#include "conversions.h"
+#include "keyboard.h"
+#include "circular_buffer.h"
+#include "file_system.h"
+#include "dynamic_mem.h"
 
 char command_buffer[128];
 

@@ -1,13 +1,8 @@
-#include "../utils/typedefs.h"
+#include "stdint.h"
+#include "stddef.h"
 #include "dynamic_mem.h"
 #include "mem.h"
-#include "../data_structures/allocator.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
-#else
-#include "../drivers/vga_text.h"
-#endif
-#include "../utils/conversions.h"
+#include "allocator.h"
 
 #define MAX_ORDER 23
 #define MIN_ORDER 5

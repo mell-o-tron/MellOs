@@ -1,12 +1,12 @@
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../drivers/disk.h"
-#include "../../memory/dynamic_mem.h"
-#include "../../utils/conversions.h"
-#include "../../disk_interface/diskinterface.h"
+#include "disk.h"
+#include "dynamic_mem.h"
+#include "conversions.h"
+#include "diskinterface.h"
 
 
 #define FDEF(name) void name(const char* s)

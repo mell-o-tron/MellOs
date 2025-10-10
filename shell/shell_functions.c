@@ -1,16 +1,16 @@
-#include "../utils/typedefs.h"
+#include "stdint.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include "../memory/mem.h"
-#include "../utils/string.h"
-#include "../shell/shell.h"
-#include "../cpu/timer/timer.h"
+#include "conversions.h"
+#include "mem.h"
+#include "string.h"
+#include "shell/shell.h"
+#include "timer.h"
 
-#include "shell_functions.h"
+#include "shell/shell_functions.h"
 #include "./functions/functions.h"
 
 extern uint16_t CursorPos;

@@ -1,15 +1,16 @@
 #include "text_editor.h"
-#include "../utils/typedefs.h"
-#include "../drivers/keyboard.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "keyboard.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
-#include "../file_system/file_system.h"
-#include "../utils/string.h"
+#include "colours.h"
+#include "conversions.h"
+#include "file_system.h"
+#include "string.h"
 
 #define VGA_WIDTH			80
 #define VGA_HEIGHT  		25

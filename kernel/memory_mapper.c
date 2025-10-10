@@ -2,13 +2,14 @@
 // Created by matias on 9/25/25.
 //
 
-#include "memory_mapper.h"
-#include "typedefs.h"
+#include "mellos/kernel/memory_mapper.h"
+#include "stdint.h"
+#include "stdbool.h"
 
-#include "format.h"
+#include "stdio.h"
 
 #include "memory_area_spec.h"
-#include "multiboot_tags.h"
+#include "mellos/kernel/multiboot_tags.h"
 
 MultibootTags *multiboot_tags_local = NULL;
 void *framebuffer_addr_local = NULL;
@@ -48,9 +49,11 @@ MemoryArea get_largest_free_block() {
     size_t len_mem = 0L;
 
     if (CHECK_FLAG(multiboot_tags_local->flags, 6)) {
+
         printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
                (unsigned) multiboot_tags_local->mmap_addr,
                (unsigned) multiboot_tags_local->mmap_length);
+
 
         // Add framebuffer area to excluded areas
 #ifdef VGA_VESA
@@ -117,7 +120,7 @@ MemoryArea get_largest_free_block() {
                           names[mmap->type - 1]);
         } // end of for loop
     } else {
-        printf("bit 6 not set");
+        /* debug prints disabled to keep kernel free of libc I/O */
         return (MemoryArea){(intptr_t)NULL, 0};
     }
 

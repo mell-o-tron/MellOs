@@ -1,13 +1,10 @@
 #include "circular_list.h"
-
-#include "vesa_text.h"
-
-#include "../memory/dynamic_mem.h"
+#include "dynamic_mem.h"
 
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 
 void clist_append(CircularList** list, void* data){

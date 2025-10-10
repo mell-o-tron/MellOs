@@ -1,7 +1,10 @@
 #pragma once
 
-#include "../data_structures/bitmap.h"
-#include "../data_structures/allocator.h"
+#include "bitmap.h"
+#include "allocator.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "stddef.h"
 
 void assign_kmallocator(allocator_t* allocator);
 void set_dynamic_mem_loc (void *loc);

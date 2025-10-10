@@ -1,12 +1,9 @@
-#include "../../utils/typedefs.h"
-#include "../../drivers/port_io.h"
+#include "port_io.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../utils/conversions.h"
-#include "idt.h"
+#include "cpu/idt.h"
 
 extern  void irq0();
 extern  void irq1();

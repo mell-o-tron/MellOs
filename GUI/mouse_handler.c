@@ -1,12 +1,13 @@
 #ifdef VGA_VESA
-#include "../utils/typedefs.h"
+#include "stdint.h"
+#include "stdbool.h"
 #include "mouse_handler.h"
-#include "gui.h"
-#include "../misc/colours.h"
+#include "include/gui.h"
+#include "../vesa/include/colours.h"
 // #include "mouse_icon.h"
 #include "../../memory/dynamic_mem.h"
-#include "../../shell/functions/vell.h"
-#include "../utils/math.h"
+#include "../shell/include/shell/vell.h"
+#include "../libc/include/math.h"
 
 static Window* mouse_window = NULL;
 

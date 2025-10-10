@@ -1,5 +1,7 @@
-#include "../utils/typedefs.h"
-#include "../cpu/cpuid.h"
+#include "stdint.h"
+#include "stddef.h"
+#include "cpu/cpuid.h"
+#include "string.h"
 
 void* memset(void* dest, unsigned char val, size_t count){
     /* Indicate failure */
@@ -32,9 +34,9 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
 		count--;
 	}
 
-	const char* restrict final = source + count;
+	const unsigned char* restrict final = source + count;
 	while (source < final) {
-		*(uint32_t*)dest = *(uint32_t*)source;
+		*(uint32_t*)dest = *(const uint32_t*)source;
 		dest += 4;
 		source += 4;
 	}

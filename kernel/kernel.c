@@ -5,36 +5,45 @@
 
 
 #include "memory_area_spec.h"
-#include "../utils/typedefs.h"
-#include "multiboot_tags.h"
-#include "memory_mapper.h"
+#include "stddef.h"
+#include "mellos/kernel/multiboot_tags.h"
+#include "include/mellos/kernel/memory_mapper.h"
 // #include "../utils/error_handling.h"                // read docs!
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
+#include "colours.h"
+#include "conversions.h"
 // #include "../utils/string.h"
-#include "paging_utils.h"
+#include "paging/paging_utils.h"
 
-#include "format.h"
+#include "stdio.h"
 
-#include "../cpu/interrupts/idt.h"
-#include "../cpu/interrupts/isr.h"
-#include "../cpu/interrupts/irq.h"
-#include "../cpu/timer/timer.h"
-#include "../cpu/gdt/gdt.h"
-#include "../drivers/keyboard.h"
-#include "../drivers/port_io.h"
-#include "../memory/paging/paging.h"
-#include "../memory/paging/pat.h"
-#include "../memory/dynamic_mem.h"
-#include "../data_structures/allocator.h"
+#include "cpu/idt.h"
+#include "cpu/isr.h"
+#include "cpu/irq.h"
+#include "timer.h"
+#include "cpu/gdt.h"
+#include "port_io.h"
+#include "paging/paging.h"
+#include "paging/pat.h"
+#include "dynamic_mem.h"
+#include "allocator.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#include "../drivers/mouse.h"
-#include "vell.h"
-#include "format.h"
+#include "vesa.h"
+#include "vesa_text.h"
+#include "mouse.h"
+#include "keyboard.h"
+#include "init.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
+#endif
+
+// Provide a weak default for tests when not linked
+int __attribute__((weak)) run_all_mem_tests(void) { return 0; }
+
+// TEXT-mode clear-screen shim to match VESA kclear_screen signature
+#ifndef VGA_VESA
+static void vga_kclear_screen(void) {
+    clear_screen_col(DEFAULT_COLOUR);
+}
 #endif
 // #include "../utils/assert.h"
 
@@ -47,13 +56,13 @@
 
 // DISK
 // #include "../drivers/disk.h"
-#include "../disk_interface/diskinterface.h"
+#include "../disk_interface/include/diskinterface.h"
 
 // SHELL
-#include "../shell/shell.h"
+#include "../shell/include/shell/shell.h"
 
 // FILE SYSTEM
-#include "../file_system/file_system.h"
+#include "../file_system/include/file_system.h"
 
 // TEXT_EDITOR
 #include "../text_editor/text_editor.h"
@@ -115,11 +124,9 @@ extern  void kpanic(struct regs *r) {
     };
 
 #if VGA_VESA
-    char buf[256];
-    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", r->int_no, ")");
-
     fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, *vga_fb);
+    fb_draw_string(16, 16, "Exception message:", VESA_DARK_GREY, 3, 3, *vga_fb);
+    fb_draw_string(16, 40, exception_messages[r->int_no], VESA_DARK_GREY, 3, 3, *vga_fb);
 #else
     #define ERRCOL 0x47 // Lightgrey on Lightred
     #define VGAMEM (unsigned char*)0xB8000;
@@ -205,15 +212,20 @@ allocator_t allocator;
 
 extern void main(uint32_t multiboot_tags_addr){
 #ifdef VGA_VESA
+    init_assertions(&clear_screen_col, &set_cursor_pos_raw, &kprint, &kclear_screen);
+#else
+    init_assertions(&clear_screen_col, &set_cursor_pos_raw, &kprint, &vga_kclear_screen);
+#endif
+#ifdef VGA_VESA
 
     uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
     const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_DIRECTORIES); // Addr of the next page that will be added
 #endif
     MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
-    printf("lower: %i\n", multiboot_tags->mem_upper);
-    printf("upper: %i\n", multiboot_tags->mem_lower);
+    kprint("lower: "); kprint(tostring_inplace(multiboot_tags->mem_upper, 10)); kprint("\n");
+    kprint("upper: "); kprint(tostring_inplace(multiboot_tags->mem_lower, 10)); kprint("\n");
 
-    printf("map:\n");
+    kprint("map:\n");
 
 
 
@@ -233,8 +245,6 @@ extern void main(uint32_t multiboot_tags_addr){
     init_memory_mapper(multiboot_tags, NULL, BPP);
 #endif
     MemoryArea memory_area = get_largest_free_block();
-
-
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
@@ -277,7 +287,7 @@ extern void main(uint32_t multiboot_tags_addr){
     //assign_kmallocator(&allocator);
     set_dynamic_mem_loc ((void*)memory_area.start);
     if (!buddy_init(memory_area.start, memory_area.length)) {
-        printf("Buddy allocator fault.\n");
+        kprint("Buddy allocator fault.\n");
         // todo: error handling
         //asm volatile ("hlt");
     }
@@ -296,7 +306,11 @@ extern void main(uint32_t multiboot_tags_addr){
     mouse_install();
     #endif
 
-    
+
+    if (init_file_descriptors() != 0) {
+        kprint("File descriptor init failed.\n");
+        for (;;){}
+    }
     kb_install();
 
     // kprint("Running fs tests... ");
@@ -304,12 +318,12 @@ extern void main(uint32_t multiboot_tags_addr){
     // kprint(tostring_inplace(failed_fs_tests, 10));
     // kprint(" failed\n");
 
-    printf("Running mem tests... ");
+    kprint("Running mem tests... ");
     int failed_mem_tests = run_all_mem_tests();
-    printf("%016x", failed_mem_tests);
-    printf(" failed\n");
+    kprint("0x"); kprint(tostring_inplace(failed_mem_tests, 16));
+    kprint(" failed\n");
 
-    printf("\n\n ENTERING COMMAND MODE...\n");
+    kprint("\n\n ENTERING COMMAND MODE...\n");
 
 
     sleep(30);

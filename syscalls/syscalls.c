@@ -1,15 +1,16 @@
-#include "../cpu/interrupts/idt.h"
+#include <processes.h>
+
+#include "cpu/idt.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include "../file_system/file_system.h"
-#include "../utils/conversions.h"
-#include "../memory/dynamic_mem.h"
-#include "../shell/shell.h"
-#include "../utils/string.h"
+#include "conversions.h"
+#include "file_system.h"
+#include "dynamic_mem.h"
+#include "../shell/include/shell/shell.h"
+#include "string.h"
 #include "syscalls.h"
 
 int syscall_stub (regs *r){
@@ -59,13 +60,46 @@ int sys_write (regs *r){
     char* msg = (char*) (r -> ecx);
     
     uint32_t len = r -> edx;
-    
+
+    // NULL if kernel executing code
+    process_t *current_process = get_current_process();
+    if (current_process != NULL) {
+        pipe_t *stdout_local = NULL;
+        switch (LBA) {
+            case 1:
+                stdout_local = current_process->stdout;
+                break;
+            case 2:
+                stdout_local = current_process->stderr;
+                break;
+            default:
+                break;
+        }
+
+        if (stdout_local != NULL) {
+            if (stdout_local->fd.permissions & FD_PERM_WRITE) {
+
+            }
+        }
+        write_to_pipe(stdout_local, msg, len);
+        stdout_local->buffer;
+    }
+
+
     // If the file descriptor is 1, we write to "stdout"
     // Which for now does not exist lol, we just print.
-    if(LBA == 1){
-        if(strlen(msg) > len) msg[len - 1] = 0;
-        kprint(msg);
-        return 0;
+    switch (LBA) {
+        case 1: // stdout
+            if (strlen(msg) > len) msg[len - 1] = 0;
+            // For now, write to the screen directly regardless of process context
+            kprint(msg);
+            return 0;
+        case 2: //stderr
+            if (strlen(msg) > len) msg[len - 1] = 0;
+            print_error(msg);
+            return 0;
+        default:
+            break;
     }
 
     char* tmp = kmalloc((len / 512 + 1) * 512);

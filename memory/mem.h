@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/typedefs.h"
+#include "stddef.h"
 
 void* memset(void* dest, unsigned char val, size_t count);
 

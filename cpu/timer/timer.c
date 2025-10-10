@@ -1,15 +1,16 @@
-#include "../../utils/typedefs.h"
-#include "../../drivers/port_io.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "port_io.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../utils/conversions.h"
-#include "../interrupts/irq.h"
-#include "../interrupts/idt.h"
-#include "../../processes/processes.h"
-#include "../../drivers/keyboard.h"
+#include "conversions.h"
+#include "cpu/irq.h"
+#include "cpu/idt.h"
+#include "processes.h"
+#include "keyboard.h"
 
 volatile int timer_ticks = 0;
 int seconds = 0;

@@ -1,9 +1,10 @@
-#include "../utils/typedefs.h"
-#include "../memory/dynamic_mem.h"
-#include "../drivers/disk.h"
-#include "./file_system.h"
-#include "../utils/string.h"
-#include "../disk_interface/diskinterface.h"
+#include "dynamic_mem.h"
+#include "disk.h"
+#include "file_system.h"
+#include "string.h"
+#include "diskinterface.h"
+#include "bitmap.h"
+#include "allocator.h"
 
 void prepare_disk_for_fs (uint32_t n_sectors){
     if(n_sectors < 3){
@@ -39,7 +40,7 @@ int allocate_file(uint32_t req_sectors){
     allocator.granularity = 1;
     
     int res = (int)allocate(&allocator, req_sectors);
-    if (res != NULL)
+    if (res >= 0)
         write_string_to_disk(tmp, 0xA0, 2, 1);
     else
         return -1;
@@ -151,8 +152,7 @@ void new_file (char* name, uint32_t n_sectors){
 
     int new_file_pos = -1;
     for (uint32_t i = 0; i < 32; i++){
-        if(strcmp(name, files[i].name) == 0){
-            // TODO deallocate that
+        if(strcmp(name, files[i].name) == 0) {
             kprint("File with this name already exists.\n");
             goto cleanup;
         }

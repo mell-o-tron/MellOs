@@ -1,14 +1,15 @@
-#include "../utils/typedefs.h"
-#include "../utils/conversions.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "conversions.h"
 #ifdef VGA_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
 #include "port_io.h"
-#include "../cpu/interrupts/irq.h"
-#include "../memory/dynamic_mem.h"
-#include "../data_structures/circular_buffer.h"
+#include "cpu/irq.h"
+#include "dynamic_mem.h"
+#include "circular_buffer.h"
 
 /********************FUNCTIONS*********************
 * kb_install: installs keyboard IRQ handler       *

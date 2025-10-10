@@ -9,7 +9,14 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
 #set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
-project(MellOs C ASM_NASM)
+# Toolchain (can be overridden by -D on configure)
+set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
+set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
+# We let the gcc driver do the link but still pass linker script via link options
+set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
+set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
+
+project(MellOs LANGUAGES C ASM_NASM)
 
 
 # Options matching Makefile defaults
@@ -20,20 +27,6 @@ set(BPP  "32"   CACHE STRING "Bits per pixel")
 set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
 set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
 
-#if (VGA STREQUAL "VESA")
-#    add_compile_definitions(VGA_VESA)
-#endif ()
-
-#if (WINDOW_DRAG STREQUAL "BOX")
-#    add_compile_definitions(BOX_WINDOW_DRAG)
-#endif ()
-
-# Toolchain (can be overridden by -D on configure)
-set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
-set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
-# We let the gcc driver do the link but still pass linker script via link options
-set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
-set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
 # Output directory compatible with Makefile
 set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
@@ -49,28 +42,24 @@ foreach (def ${COMMON_DEFS})
 endforeach ()
 list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
+# Do not set global include directories to avoid cross-polluting libc includes
 
-#add_compile_definitions(${COMMON_DEFS})
-
-
-
-# Keep includes behavior close to the original Makefile: include all dirs that have C files
-file(GLOB_RECURSE KERNEL_C_SRCS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.c)
-list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
-
-set(INC_DIRS)
-foreach(src ${KERNEL_C_SRCS})
-    get_filename_component(dir ${src} DIRECTORY)
-    list(APPEND INC_DIRS ${dir})
-endforeach()
-list(REMOVE_DUPLICATES INC_DIRS)
-include_directories(${INC_DIRS})
-# Source lists (replicate Makefile selection)
-# C sources: all .c files
-
-set(C_SOURCES ${KERNEL_C_SRCS})
-# NASM setup (32-bit; pass flags as a LIST, not a concatenated string)
-
+add_subdirectory(memory_management_unit)
+add_subdirectory(vesa)
+add_subdirectory(GUI)
+add_subdirectory(shell)
+add_subdirectory(text_editor)
+add_subdirectory(kernel)
+add_subdirectory(memory)
+add_subdirectory(libc)
+add_subdirectory(utils)
+add_subdirectory(data_structures)
+add_subdirectory(drivers)
+add_subdirectory(cpu)
+add_subdirectory(syscalls)
+add_subdirectory(processes)
+add_subdirectory(file_system)
+add_subdirectory(disk_interface)
 
 set(NASM_DEFS
         -D${VGA}
@@ -90,13 +79,52 @@ endforeach()
 # ASM sources
 set(ASM_SOURCES
         ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
-        ${CMAKE_SOURCE_DIR}/kernel/kernel_entry.asm
         ${CMAKE_SOURCE_DIR}/processes/processes_asm.asm
 )
 
 add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
 set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
 
+#target_include_directories(kernel.elf PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
+target_link_libraries(kernel.elf
+        kernel
+        drivers
+        gui_objs
+        shell_objs
+        text_editor_objs
+        vesa_objects
+        memory
+        cpu_api
+        processes
+        filesystem
+        disk_interface
+        utils
+        memory_management_unit
+        syscalls
+        mellos_libc
+        data_structures
+)
+
+
+# Add module object libraries
+if (TARGET gui_objs)
+    target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:mellos_libc>)
+    #target_include_directories(gui_objs PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
+endif()
+
+#if (TARGET shell_objs)
+#    target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:shell_objs>)
+#    target_include_directories(shell_objs PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
+#endif()
+
+#if (TARGET text_editor_objs)
+#    target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:text_editor_objs>)
+#    target_include_directories(text_editor_objs PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
+#endif()
+
+#target_link_libraries(kernel.elf memory_management_unit)
+# Link libc for formatting functions used by non-kernel modules
+#target_link_libraries(kernel.elf mellos_libc)
 # Apply NASM flags correctly as a list (each arg stays its own token)
 foreach(asm ${ASM_SOURCES})
     set_source_files_properties(${asm} PROPERTIES
@@ -119,6 +147,8 @@ target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
+        $<$<COMPILE_LANGUAGE:C>:-nostdlib>
+        $<$<COMPILE_LANGUAGE:C>:-nostdinc>
         $<$<COMPILE_LANGUAGE:C>:-m32>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
@@ -126,6 +156,26 @@ target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-Wno-error>
         $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
 )
+
+foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory memory_management_unit data_structures utils
+syscalls processes)
+    if (TARGET ${mod_t})
+        target_compile_options(${mod_t} PRIVATE
+                $<$<COMPILE_LANGUAGE:C>:-g>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
+                $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
+                $<$<COMPILE_LANGUAGE:C>:-nostdlib>
+                $<$<COMPILE_LANGUAGE:C>:-nostdinc>
+                $<$<COMPILE_LANGUAGE:C>:-m32>
+                $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
+                $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
+                $<$<COMPILE_LANGUAGE:C>:-fno-pic>
+                $<$<COMPILE_LANGUAGE:C>:-Wno-error>
+                $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
+        )
+    endif ()
+endforeach()
 
 # Create the ISO using grub-mkrescue
 set(ISO_NAME "mellos.iso")

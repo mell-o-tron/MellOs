@@ -1,9 +1,9 @@
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../utils/conversions.h"
+#include "conversions.h"
 #define FDEF(name) void name(const char* s)
 
 #define SCALE 16

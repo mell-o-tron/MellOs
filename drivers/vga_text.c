@@ -1,18 +1,19 @@
 #ifndef VGA_VESA
 #include "vga_text.h"
-#include "../utils/typedefs.h"
-#include "../drivers/port_io.h"
-#include "../utils/conversions.h"
-#include "../utils/assert.h"
-#include "../misc/colours.h"
-#include "../memory/mem.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "port_io.h"
+#include "conversions.h"
+#include "colours.h"
+#include "mem.h"
+
+#include "memory_area_spec.h"
 
 /*********************
 * TEXT MODE: 0xB8000 *
 * GR.  MODE: 0xA000  *
 *********************/
 
-#define VIDEO_MEMORY		(char*)0xB8000
 #define VGA_WIDTH			80
 #define VGA_HEIGHT  		25
 #define BYTES_PER_CHAR		2
@@ -54,9 +55,9 @@ void clear_line_col(uint32_t line, Colour col){
 	}
 }
 
-void scroll_up(size_t lines){ // Copying memory from VGA to VGA is not the most efficient way to scroll (and relies on memcp being linear), but it's the easiest
+void scroll_up(int lines){ // Copying memory from VGA to VGA is not the most efficient way to scroll (and relies on memcp being linear), but it's the easiest
 	memcp(VIDEO_MEMORY + BYTES_PER_CHAR * VGA_WIDTH * lines, VIDEO_MEMORY, VGA_WIDTH * BYTES_PER_CHAR * (VGA_HEIGHT - lines));
-	for (size_t i = VGA_HEIGHT - lines; i < VGA_HEIGHT; i++){
+	for (int i = VGA_HEIGHT - lines; i < VGA_HEIGHT; i++){
 		clear_line_col(i, DEFAULT_COLOUR);
 	}
 }
@@ -80,7 +81,7 @@ void kprint_col(const char* s, Colour col){		//Print: with colours!
 			} else {
 				i += VGA_WIDTH;
 			}
-			i -= i%VGA_WIDTH;
+			i -= i % VGA_WIDTH;
 
 			if (i > 2000)
 				i = 0;
@@ -89,17 +90,17 @@ void kprint_col(const char* s, Colour col){		//Print: with colours!
 		case 0x0d:
 			break;
 		default:
-		*(VIDEO_MEMORY + i*2) = *char_ptr;
-		*(VIDEO_MEMORY + i*2 + 1) = col;
-		i++;
+			*(VIDEO_MEMORY + i*2) = *char_ptr;
+			*(VIDEO_MEMORY + i*2 + 1) = col;
+			i++;
 		}
 
 		char_ptr++;
 	}
 	set_cursor_pos_raw(i);
-  return;
 }
 
+// todo: kernel log buffer
 void kprint(const char* s){
 	kprint_col(s, DEFAULT_COLOUR);
 }

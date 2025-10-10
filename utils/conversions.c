@@ -9,13 +9,22 @@
 
 #include "string.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../memory/dynamic_mem.h"
+#include "dynamic_mem.h"
 #include "conversions.h"
-#include "math.h"
+
+#ifndef EOVERFLOW
+#define EOVERFLOW 75
+#endif
+#ifndef EINVAL
+#define EINVAL 22
+#endif
+#ifndef ERANGE
+#define ERANGE 34
+#endif
 
 
 const char* tostring(int n, int base, char* dest) {
@@ -74,7 +83,7 @@ const char* tostring_unsigned(uint32_t n, int base, char* dest) {
     return buffer;
 }
 
-
+__attribute__((deprecated("tostring_inplace is deprecated, use stdio string formatting functions instead")))
 const char* tostring_inplace(int n, int base) {
     // int size = ceil_log(n, base);
     char* res = kmalloc(20); // Using bad approx, doubling just to be sure
@@ -90,7 +99,7 @@ int num_len (int base){ // TODO
     // return (int)((ceil(log(base, num))+1)*sizeof(char))
 }
 
-int oct2bin(unsigned char *str, int size) {
+int oct2bin(uint8_t *str, int size) {
     int n = 0;
     unsigned char *c = str;
     while (size-- > 0) {
@@ -143,7 +152,7 @@ int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize)
     if (dsize == 1)
         return -EOVERFLOW;
     const char* digits = "0123456789abcdef";
-    if (base < 2 || base > __builtin_strlen(digits))
+    if (base < 2 || base > 16)
         return -EINVAL;
 
     /* 64 bit integers require libgcc */
