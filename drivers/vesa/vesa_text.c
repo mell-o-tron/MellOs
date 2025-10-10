@@ -1,10 +1,10 @@
 #ifdef VGA_VESA
 #include "vesa_text.h"
-#include "../utils/typedefs.h"
-#include "../drivers/port_io.h"
-#include "../utils/conversions.h"
-#include "../utils/assert.h"
-#include "../misc/colours.h"
+#include "utils/typedefs.h"
+#include "drivers/port_io.h"
+#include "utils/conversions.h"
+#include "utils/assert.h"
+#include "misc/colours.h"
 #include "drivers/vesa/vesa.h"
 #include "memory/dynamic_mem.h"
 

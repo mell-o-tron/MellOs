@@ -7,12 +7,12 @@
 
 #include "vesa.h"
 #include "test_font.h"
-#include "../utils/typedefs.h"
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
-#include "../memory/dynamic_mem.h"
-#include "../utils/math.h"
-#include "../memory/mem.h"
+#include "utils/typedefs.h"
+#include "misc/colours.h"
+#include "utils/conversions.h"
+#include "memory/dynamic_mem.h"
+#include "utils/math.h"
+#include "memory/mem.h"
 
 uint32_t Hres;
 uint32_t Vres;
