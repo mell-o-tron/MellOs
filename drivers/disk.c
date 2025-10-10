@@ -5,9 +5,9 @@
 #include "../utils/format.h"
 #include "port_io.h"
 #ifdef VGA_VESA
-#include "vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "vga_text.h"
+#include "drivers/vga_text.h"
 #endif
 #include "../memory/dynamic_mem.h"
 

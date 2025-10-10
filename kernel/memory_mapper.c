@@ -3,12 +3,12 @@
 //
 
 #include "memory_mapper.h"
-#include "typedefs.h"
+#include "utils/typedefs.h"
 
-#include "format.h"
+#include "utils/format.h"
 
-#include "memory_area_spec.h"
-#include "multiboot_tags.h"
+#include "utils/memory_area_spec.h"
+#include "kernel/multiboot_tags.h"
 
 MultibootTags *multiboot_tags_local = NULL;
 void *framebuffer_addr_local = NULL;

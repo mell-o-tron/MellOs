@@ -1,9 +1,9 @@
 #ifdef VGA_VESA
 #include "gui.h"
-#include "../drivers/vesa/vesa.h"
-#include "../functions/vell.h"
-#include "../memory/dynamic_mem.h"
-#include "../utils/assert.h"
+#include "drivers/vesa/vesa.h"
+#include "shell/functions/vell.h"
+#include "memory/dynamic_mem.h"
+#include "utils/assert.h"
 
 Window* create_window(const char* title){
     Framebuffer* fb = allocate_full_screen_framebuffer();

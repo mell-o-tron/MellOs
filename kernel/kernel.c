@@ -4,22 +4,22 @@
 *********************/
 
 
-#include "memory_area_spec.h"
-#include "../utils/typedefs.h"
+#include "utils/memory_area_spec.h"
+#include "utils/typedefs.h"
 #include "multiboot_tags.h"
 #include "memory_mapper.h"
 // #include "../utils/error_handling.h"                // read docs!
-#include "../misc/colours.h"
-#include "../utils/conversions.h"
+#include "misc/colours.h"
+#include "utils/conversions.h"
 // #include "../utils/string.h"
-#include "paging_utils.h"
+#include "memory/paging/paging_utils.h"
 
-#include "format.h"
+#include "utils/format.h"
 
-#include "../cpu/interrupts/idt.h"
-#include "../cpu/interrupts/isr.h"
-#include "../cpu/interrupts/irq.h"
-#include "../cpu/timer/timer.h"
+#include "cpu/interrupts/idt.h"
+#include "cpu/interrupts/isr.h"
+#include "cpu/interrupts/irq.h"
+#include "cpu/timer/timer.h"
 #include "../cpu/gdt/gdt.h"
 #include "../drivers/keyboard.h"
 #include "../drivers/port_io.h"
@@ -31,8 +31,8 @@
 #include "../drivers/vesa/vesa.h"
 #include "../drivers/vesa/vesa_text.h"
 #include "../drivers/mouse.h"
-#include "vell.h"
-#include "format.h"
+#include "shell/functions/vell.h"
+#include "utils/format.h"
 #else
 #include "../drivers/vga_text.h"
 #endif

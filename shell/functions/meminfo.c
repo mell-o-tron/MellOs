@@ -2,8 +2,8 @@
 // Created by matias on 9/25/25.
 //
 
-#include "format.h"
-#include "memory_mapper.h"
+#include "utils/format.h"
+#include "kernel/memory_mapper.h"
 
 #define FDEF(name) void name(const char* s)
 

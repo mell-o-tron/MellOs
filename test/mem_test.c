@@ -1,12 +1,12 @@
-#include "../file_system/file_system.h"
-#include "../utils/string.h"
-#include "dynamic_mem.h"
+#include "file_system/file_system.h"
+#include "utils/string.h"
+#include "memory/dynamic_mem.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#include "../drivers/mouse.h"
+#include "drivers/vesa/vesa.h"
+#include "drivers/vesa/vesa_text.h"
+#include "drivers/mouse.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
 
 #define TEST_SIZE 10

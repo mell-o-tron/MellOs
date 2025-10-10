@@ -1,13 +1,13 @@
-#include "format.h"
-#include "conversions.h"
-#include "string.h"
-#include "typedefs.h"
+#include "utils/format.h"
+#include "utils/conversions.h"
+#include "utils/string.h"
+#include "utils/typedefs.h"
 #ifdef VGA_VESA
-#include "vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../memory/mem.h"
+#include "memory/mem.h"
 
 union arg {
     long long ll;

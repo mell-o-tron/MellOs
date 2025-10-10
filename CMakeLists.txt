@@ -55,15 +55,15 @@ list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
 
 
-# Keep includes behavior close to the original Makefile: include all dirs that have C files
+# Kernel source files
 file(GLOB_RECURSE KERNEL_C_SRCS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.c)
 list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
 
 set(INC_DIRS)
-foreach(src ${KERNEL_C_SRCS})
-    get_filename_component(dir ${src} DIRECTORY)
-    list(APPEND INC_DIRS ${dir})
-endforeach()
+# Header files are in same dirs as C files
+list(APPEND INC_DIRS ${CMAKE_SOURCE_DIR})
+# We will move to a "lib" dir for common code
+list(APPEND INC_DIRS ${CMAKE_SOURCE_DIR}/lib)
 list(REMOVE_DUPLICATES INC_DIRS)
 include_directories(${INC_DIRS})
 # Source lists (replicate Makefile selection)
@@ -82,7 +82,7 @@ set(NASM_DEFS
 
 set(NASM_INCS)
 foreach(d ${INC_DIRS})
-    list(APPEND NASM_INCS -i${d}/)
+    list(APPEND NASM_INCS -I${d}/)
 endforeach()
 
 # Do NOT set CMAKE_ASM_NASM_FLAGS with a big string; it causes shell splitting

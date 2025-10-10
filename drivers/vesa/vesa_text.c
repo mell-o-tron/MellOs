@@ -5,8 +5,8 @@
 #include "../utils/conversions.h"
 #include "../utils/assert.h"
 #include "../misc/colours.h"
-#include "vesa.h"
-#include "dynamic_mem.h"
+#include "drivers/vesa/vesa.h"
+#include "memory/dynamic_mem.h"
 
 struct VbeInfoBlock {
 	char signature[4];
