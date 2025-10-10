@@ -309,20 +309,31 @@ extern void main(uint32_t multiboot_tags_addr){
     
     kb_install();
 
-    // kprint("Running fs tests... ");
-    // int failed_fs_tests = run_all_fs_tests();
-    // kprint(tostring_inplace(failed_fs_tests, 10));
-    // kprint(" failed\n");
+#ifdef MELLOS_DEBUG
+    kprint("MellOS Debug mode:\n\n");
 
-    // printf("Running mem tests... ");
-    // int failed_mem_tests = run_all_mem_tests();
-    // printf("%016x", failed_mem_tests);
-    // printf(" failed\n");
+    kprint("Running fs tests... ");
+    int failed_fs_tests = run_all_fs_tests();
+    kprint(tostring_inplace(failed_fs_tests, 10));
+    kprint(" failed\n");
 
-    // printf("\n\n ENTERING COMMAND MODE...\n");
+    printf("Running mem tests... ");
+    int failed_mem_tests = run_all_mem_tests();
+    printf("%016x", failed_mem_tests);
+    printf(" failed\n");
 
+    if (failed_fs_tests != 0 || failed_mem_tests != 0){
+        kprint_col("TESTS FAILED!!", DEFAULT_COLOUR);
 
-    // sleep(30);
+        for (;;){;}
+    } else {
+        kprint_col("All tests passed!", DEFAULT_COLOUR);
+    }
+
+    printf("\n\n ENTERING COMMAND MODE...\n");
+
+    sleep(100);
+#endif
 
     void *code_loc2 = kmalloc(10);
     if (code_loc2 == NULL){
@@ -330,7 +341,7 @@ extern void main(uint32_t multiboot_tags_addr){
 
         for (;;){;}
     } else {
-        kfree(code_loc2, 10);
+        kfree(code_loc2);
     }
     
     #ifdef VGA_VESA

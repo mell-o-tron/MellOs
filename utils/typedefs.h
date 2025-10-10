@@ -77,4 +77,9 @@ typedef __builtin_va_list va_list;
 #define va_arg(v, t) __builtin_va_arg(v, t)
 #define va_copy(d, s) __builtin_va_copy(d, s)
 
+#define UINT8_MAX  0xffU
+#define UINT16_MAX 0xffffU
+#define UINT32_MAX 0xffffffffU
+#define UINT64_MAX 0xffffffffffffffffULL
+
 #endif

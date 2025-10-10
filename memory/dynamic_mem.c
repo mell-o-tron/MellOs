@@ -1,14 +1,15 @@
-#include "../utils/typedefs.h"
+#include "utils/typedefs.h"
 #include "dynamic_mem.h"
 #include "mem.h"
-#include "../data_structures/allocator.h"
+#include "data_structures/allocator.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include "../utils/assert.h"
+#include "utils/conversions.h"
+#include "utils/assert.h"
+#include "utils/math.h"
 
 #define MAX_ORDER 24
 #define MIN_ORDER 5
@@ -41,10 +42,15 @@ void set_kmalloc_bitmap (bitmap_t loc, uint32_t length){
 
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
 
+/** The padding in this struct is used to signal that the
+ * block is being allocated with the buddy allocator:
+ * if it's != 0, kfree will assume it is a slab allocation.
+ */
 typedef struct Block {
     struct Block* next;
     size_t order;
     bool free;      // 1 = free, 0 = full
+    uint8_t padding; // IMPORTANT: Last byte should be 0
 } Block;
 
 Block* free_list[MAX_ORDER + 1];
@@ -72,6 +78,7 @@ bool buddy_init(const uintptr_t base, const size_t size) {
 
     block->free = true;
     block->next = NULL;
+    block->padding = 0;
 
     free_list[order] = block;
     buddy_inited = true;
@@ -117,6 +124,7 @@ void* buddy_alloc(size_t size) {
         buddy->order = current_order;
         buddy->free = true;
         buddy->next = free_list[current_order];
+        buddy->padding = 0;
         free_list[current_order] = buddy;
         block->order = current_order;
     }
@@ -163,8 +171,9 @@ void buddy_free(void* loc) {
     free_list[block->order] = block;
 }
 
-#define SLAB_OBJ_SIZES 6
-const size_t slab_sizes[SLAB_OBJ_SIZES] = {8, 16, 32, 64, 128, 256};
+#define SLAB_OBJ_SIZES_COUNT 6
+#define SLAB_MAX_OBJ_SIZE 256
+const size_t slab_sizes[SLAB_OBJ_SIZES_COUNT] = {8, 16, 32, 64, 128, SLAB_MAX_OBJ_SIZE};
 
 typedef struct LilSlab {
     uint8_t* bitmap;
@@ -174,11 +183,15 @@ typedef struct LilSlab {
     struct LilSlab* next;
 } LilSlab;
 
-LilSlab* slab_heads[SLAB_OBJ_SIZES] = { NULL };
+typedef struct SlabObjHeader {
+    uint8_t size;
+} SlabObjHeader;
+
+LilSlab* slab_heads[SLAB_OBJ_SIZES_COUNT] = { NULL };
 
 void* slab_alloc(const size_t size) {
     int idx = -1;
-    for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
+    for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
         if (size <= slab_sizes[i]) {
             idx = i;
             break;
@@ -233,7 +246,7 @@ void* slab_alloc(const size_t size) {
 void slab_free(void* loc, size_t size) {
     uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
     int idx = -1;
-    for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
+    for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
         if (size <= slab_sizes[i]) {
             idx = i;
             break;
@@ -260,8 +273,11 @@ void* kmalloc(size_t size) {
     if (!buddy_inited)
         return NULL;
     long unsigned int offset;
-    if (size <= 256) {
-        offset = (long unsigned int) slab_alloc(size);
+    if (size <= SLAB_MAX_OBJ_SIZE - sizeof(SlabObjHeader)) {
+        void* obj = slab_alloc(size + sizeof(SlabObjHeader));
+        SlabObjHeader* header = (SlabObjHeader*)obj + (uint32_t)dynamic_mem_loc;
+        header->size = (uint8_t)(size);
+        offset = obj + sizeof(SlabObjHeader);
     } else {
         offset = (long unsigned int) buddy_alloc(size);
     }
@@ -270,9 +286,14 @@ void* kmalloc(size_t size) {
     return (void*)((long unsigned int)dynamic_mem_loc + offset);
 }
 
-void kfree(void* loc, size_t size) {
-    if (size <= 256) {
-        slab_free(loc, size);
+void kfree(void* loc) {
+    // To free a location, we need to check if it was allocated with slab or buddy
+    SlabObjHeader* header = (SlabObjHeader*)loc - (sizeof(SlabObjHeader));
+    // If the padding byte is non-zero, it was allocated with slab
+    // and the size is stored in the header
+    uint8_t size = header->size;
+    if (size > 0) {
+        slab_free(header, size + sizeof(SlabObjHeader));
     } else {
         buddy_free(loc);
     }
@@ -289,7 +310,7 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
     memcp(oldloc, newloc, min);
     return newloc;
 #else
-    kfree(oldloc, oldsize);                                 // less fragmentation this way, but if no memory there is risk to lose a reference.
+    kfree(oldloc);                                 // less fragmentation this way, but if no memory there is risk to lose a reference.
     void* newloc = kmalloc(newsize);
     if (newloc == NULL) return NULL;
     
