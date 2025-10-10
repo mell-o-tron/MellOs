@@ -1,9 +1,9 @@
 #pragma once
 #ifdef VGA_VESA
 
-#include "../../utils/math.h"
-#include "../../GUI/gui.h"
-#include "../../GUI/mouse_handler.h"
+#include "utils/math.h"
+#include "GUI/gui.h"
+#include "GUI/mouse_handler.h"
 
 bool _vell_is_active();
 void _vell_draw();

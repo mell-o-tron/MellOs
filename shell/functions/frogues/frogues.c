@@ -1,14 +1,14 @@
-#include "typedefs.h"
-#include "vesa.h"
+#include "utils/typedefs.h"
+#include "drivers/vesa/vesa.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #define FDEF(name) void name(const char* s)
 
-#include "../vell.h"
-#include "../../GUI/gui.h"
-#include "../../memory/dynamic_mem.h"
-#include "frogues_img.h"
-#include "../../misc/colours.h"
+#include "shell/functions/vell.h"
+#include "GUI/gui.h"
+#include "memory/dynamic_mem.h"
+#include "shell/functions/frogues/frogues_img.h"
+#include "misc/colours.h"
 
 #define SCALE 1
 

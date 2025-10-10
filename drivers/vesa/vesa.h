@@ -1,8 +1,8 @@
 #pragma once
 #ifdef VGA_VESA
 
-#include "../../utils/typedefs.h"
-#include "../../utils/math.h"
+#include "utils/typedefs.h"
+#include "utils/math.h"
 
 #define PIXEL 				uint32_t
 #define BYTES_PER_PIXEL (BPP / 8)

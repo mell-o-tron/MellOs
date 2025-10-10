@@ -1,18 +1,18 @@
 #include "processes.h"
 
-#include <format.h>
+#include "utils/format.h"
 
-#include "../memory/dynamic_mem.h"
-#include "../memory/mem.h"
-#include "../utils/typedefs.h"
+#include "memory/dynamic_mem.h"
+#include "memory/mem.h"
+#include "utils/typedefs.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include "../utils/assert.h"
-#include "../../drivers/port_io.h"
+#include "utils/conversions.h"
+#include "utils/assert.h"
+#include "drivers/port_io.h"
 
 
 /******* Tasks *******/

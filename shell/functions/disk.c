@@ -130,7 +130,7 @@ FDEF(diskread){
 
     uint8_t* res = read_string_from_disk(0xA0, LBA, sectors);
     kprint((const char*) res);
-    kfree(res, 512 * sectors + 1);
+    kfree(res);
     kprint("\n");
 
 }

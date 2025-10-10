@@ -1,8 +1,8 @@
 #pragma once
 #ifdef VGA_VESA
 
-#include "../utils/typedefs.h"
-#include "../drivers/vesa/vesa.h"
+#include "utils/typedefs.h"
+#include "drivers/vesa/vesa.h"
 void _vesa_text_init();
 void _vesa_text_set_framebuffer(Framebuffer* f);
 Framebuffer* _vesa_text_get_framebuffer();
