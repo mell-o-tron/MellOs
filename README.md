@@ -1,6 +1,10 @@
 # Mellotron Kernel (MellOS)
 *A minimal, collaboratively written kernel* 
 
+<div align="center">
+  <img src="imgs/mellos.png" alt="the most  v a p o r w a v e  OS" width="500"/>
+</div>
+
 ## Why MellOS
 Some ten years ago I was gifted a 1994 Compaq Presario, and I figured I could use it to learn how to write a simple operating system. In 2020 I started experimenting with some real mode programs, and eventually I moved on to writing a simple 32 bit kernel. 
 

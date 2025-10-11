@@ -4,7 +4,9 @@
 
 1. Thou shalt bestow onto others this here sacred image whenever thou art able and to whomever thou wisheth, unless they are Richard M. Stallman (guy who GNU'd and the rest, Riccardo Stalluomo il Pazzuomo).
 
-![Alessandro, PhD Student @ University of Edinperk](imgs/fit_1280.jpg) 
+<div align="center">
+<img src="imgs/fit_1280.jpg" alt="Alessandro, PhD Student @ University of Edinperk" width="250"/>
+</div>
 
 2. Remember and observe the day of $\pi$, unless thou art Steve Mould; in such case remember the day of $\tau$. In any case, and with no exception, remember the 21st night of September.
 
@@ -25,4 +27,6 @@
 The tablets with the rest of the commandments have fallen down and shattered. I am coming down the holy mountain, await further instruction. 
 
 
-![Lorenzotron, on a journey of meaning](imgs/lapsicosi.jpg)
+<div align="center">
+  <img src="imgs/lapsicosi.jpg" alt="Lorenzotron, on a journey of meaning" width="300"/>
+</div>
