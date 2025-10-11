@@ -1,15 +1,16 @@
-#include "../../utils/typedefs.h"
-#include "../../drivers/port_io.h"
+#include "utils/typedefs.h"
+#include "drivers/port_io.h"
 #ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../../utils/conversions.h"
-#include "../interrupts/irq.h"
-#include "../interrupts/idt.h"
-#include "../../processes/processes.h"
-#include "../../drivers/keyboard.h"
+#include "utils/conversions.h"
+#include "cpu/interrupts/irq.h"
+#include "cpu/interrupts/idt.h"
+#include "processes/processes.h"
+#include "drivers/keyboard.h"
+#include "utils/format.h"
 
 volatile int timer_ticks = 0;
 int seconds = 0;
@@ -32,7 +33,7 @@ void timer_handler(regs *r)
 	if (timer_ticks % 18 == 0)
 	{
 		seconds++;
-		// kprint(tostring_inplace(seconds, 10));
+        // printf("%d seconds have passed\n", seconds);
 	}
 
 	if (keyboard_enabled) {
