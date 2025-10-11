@@ -13,30 +13,32 @@
 #include "../../processes/processes.h"
 #include "../../drivers/keyboard.h"
 
-volatile int timer_ticks = 0;
+volatile uint32_t timer_ticks = 0;
 int seconds = 0;
+volatile uint16_t current_hz = 0;
 
 extern bool keyboard_enabled;
 
-void timer_phase(int hz)
+void timer_phase(uint16_t hz)
 {
 	irqflags_t irqf = local_irq_save();
 	local_irq_disable();
+	current_hz = hz;
 	uint32_t div32 = 1193180u / (hz ? hz : 1u);
     uint16_t divisor = (uint16_t)div32;
-	
+
     outb(0x43, 0x36);
     outb(0x40, divisor & 0xFF);
     outb(0x40, (divisor >> 8) & 0xFF);
-	local_irq_restore(irqf);	
+	local_irq_restore(irqf);
 }
 
 void timer_handler(regs *r)
-{	
+{
 	/* Increment our 'tick count' */
 	timer_ticks++;
 
-	if (timer_ticks % 18 == 0)
+	if (timer_ticks % current_hz == 0)
 	{
 		seconds++;
 		// kprint(tostring_inplace(seconds, 10));

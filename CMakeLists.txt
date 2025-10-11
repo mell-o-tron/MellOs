@@ -16,9 +16,9 @@ set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler
 set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
-project(MellOs 
-	LANGUAGES C ASM_NASM
-	HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
+project(MellOs
+ LANGUAGES C ASM_NASM
+ HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
 )
 enable_language(ASM_NASM)
 set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
@@ -129,7 +129,7 @@ target_link_options(kernel.elf PRIVATE
 target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O2>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-m32>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
