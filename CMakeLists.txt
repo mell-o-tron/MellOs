@@ -122,6 +122,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-m32>
+        $<$<COMPILE_LANGUAGE:C>:-msse2>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
@@ -174,14 +175,14 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu pentium2 -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu pentium2 -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
