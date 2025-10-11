@@ -16,7 +16,11 @@ set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler
 set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
-project(MellOs C ASM_NASM)
+project(MellOs 
+	LANGUAGES C ASM_NASM
+	HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
+)
+enable_language(ASM_NASM)
 set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
 set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
 set(HRES "600" CACHE STRING "Horizontal resolution")
