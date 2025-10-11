@@ -1,8 +1,10 @@
 /// MellOS - mem.c (32-bit port)
 /// Ported from 64-bit version by assembler-0
 /// Public domain as of 05-10-25 (dd-mm-yy)
-#include "../utils/typedefs.h"
-#include "../cpu/cpuid.h"
+#include "mem.h"
+#include "utils/typedefs.h"
+#include "cpu/cpuid.h"
+#include "cpu/interrupts/irq.h"
 
 
 #define _full_mem_prot_start() {\
@@ -20,7 +22,7 @@ void* memset(void* dest, unsigned char value, size_t size){
     uint8_t* d = (uint8_t*)dest;
     uint8_t val = (uint8_t)value;
     
-    if (cpuid_have_sse() && size >= 16) {
+    if (cpuid_has_sse() && size >= 16) {
         uint32_t val32 = 0x01010101UL * val;
 
         __asm__ volatile(
@@ -65,7 +67,8 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
     unsigned char *dst = dest;
 
     if (count < 16){
-        return memcpy(dest, source, count);
+        memcpy(dest, source, count);
+        return;
     }
     
     size_t head = ((unsigned long)dst) & 15UL;
@@ -157,10 +160,10 @@ void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
 
-    if (cpuid_have_sse() && size >= 16) {
+    if (cpuid_has_sse() && size >= 16) {
         // SSE2 copy using unaligned load/store. Disable IRQs to avoid ISR clobber.
-        irq_flags_t irqf = save_irq_flags();
-        cli();
+        irqflags_t irqf = local_irq_save();
+        local_irq_disable();
         while (size >= 16) {
             __asm__ volatile(
                 "movdqu (%1), %%xmm7\n"
@@ -174,7 +177,7 @@ void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
             size -= 16;
         }
         __asm__ volatile("sfence" ::: "memory");
-        restore_irq_flags(irqf);
+        local_irq_restore(irqf);
     }
 
     if (size >= 4) {
