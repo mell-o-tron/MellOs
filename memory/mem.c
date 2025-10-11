@@ -21,7 +21,7 @@ void* memset(void* dest, unsigned char value, size_t size){
     if (size == 0) return dest;
     uint8_t* d = (uint8_t*)dest;
     uint8_t val = (uint8_t)value;
-    
+
     if (cpuid_has_sse() && size >= 16) {
         uint32_t val32 = 0x01010101UL * val;
 
@@ -60,97 +60,85 @@ static inline int __attribute__((always_inline)) is_aligned16(const void* p){
 }
 
 /* Copy blocks of memory */
-void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count){
-    if (!source || !dest || count == 0) return;
-    
-    unsigned char *src = source;
-    unsigned char *dst = dest;
-
-    if (count < 16){
-        memcpy(dest, source, count);
+void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count)
+{
+    if (!source || !dest || count == 0)
         return;
-    }
-    
-    size_t head = ((unsigned long)dst) & 15UL;
-    if (head != 0){
-        head = 16 - head;
-        if (head > count) head = count;
-        count -= head;
-        while (head--) *dst++ = *src++;
-        if (count == 0) return;
-    }
-    
-    int src_aligned = is_aligned16(src);
-    int dst_aligned = is_aligned16(dst);
-    
-    /* Use non-temporal stores when destination is aligned to reduce cache pollution for big copies.
-     * We'll copy 128 bytes per loop iteration using XMM0..XMM7.
-     * 32-bit uses esi/edi/ecx instead of rsi/rdi/rcx
+
+    /*
+     * This implementation is a lot faster than the old one as it uses SSE2 instructions to copy 16 bytes at a time.
+     * It first aligns the destination to 16 bytes, then it checks if the source is also aligned.
+     * If both are aligned, it uses aligned moves, otherwise it uses unaligned moves.
+     * After the SSE2 copy, it copies the remaining bytes that are not a multiple of 16.
+     * If SSE2 is not available, it falls back to a 4-byte copy implementation.
      */
-    if (count >= 128){
-        size_t chunks = count / 128;
-        _full_mem_prot_start();
-        asm volatile(
-            "1:\n\t"
-            "movdqu (%%esi), %%xmm0\n\t"
-            "movdqu 16(%%esi), %%xmm1\n\t"
-            "movdqu 32(%%esi), %%xmm2\n\t"
-            "movdqu 48(%%esi), %%xmm3\n\t"
-            "movdqu 64(%%esi), %%xmm4\n\t"
-            "movdqu 80(%%esi), %%xmm5\n\t"
-            "movdqu 96(%%esi), %%xmm6\n\t"
-            "movdqu 112(%%esi), %%xmm7\n\t"
-            "movntdq %%xmm0, (%%edi)\n\t"
-            "movntdq %%xmm1, 16(%%edi)\n\t"
-            "movntdq %%xmm2, 32(%%edi)\n\t"
-            "movntdq %%xmm3, 48(%%edi)\n\t"
-            "movntdq %%xmm4, 64(%%edi)\n\t"
-            "movntdq %%xmm5, 80(%%edi)\n\t"
-            "movntdq %%xmm6, 96(%%edi)\n\t"
-            "movntdq %%xmm7, 112(%%edi)\n\t"
-            "add $128, %%esi\n\t"
-            "add $128, %%edi\n\t"
-            "dec %%ecx\n\t"
-            "jnz 1b\n\t"
-            : /* outputs */
-            : /* inputs */ "S"(src), "D"(dst), "c"(chunks)
-            : "memory", "xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"
-        );
-        
-        _full_mem_prot_end();
-        
-        size_t moved = (count / 128) * 128;
-        src += moved;
-        dst += moved;
-        count -= moved;
-    }
-    
-    while (count >= 16){
-        if (is_aligned16(src)){
-            /* aligned load + aligned store */
-            asm volatile(
-                "movdqa (%%esi), %%xmm0\n\t"
-                "movdqa %%xmm0, (%%edi)\n\t"
-                :
-                : "S"(src), "D"(dst)
-                : "memory", "xmm0"
-            );
-        } else {
-            /* unaligned load, aligned store */
-            asm volatile(
-                "movdqu (%%esi), %%xmm0\n\t"
-                "movdqa %%xmm0, (%%edi)\n\t"
-                :
-                : "S"(src), "D"(dst)
-                : "memory", "xmm0"
-            );
+
+    // SSE2 implementation
+    if (cpuid_has_sse() && count >= 16)
+    {
+        irqflags_t irqf = local_irq_save();
+        local_irq_disable();
+
+        // Align dest to 16 bytes
+        while (((uintptr_t)dest & 15) != 0 && count > 0)
+        {
+            *dest++ = *source++;
+            count--;
         }
-        src += 16;
-        dst += 16;
-        count -= 16;
+
+        // If source is also aligned, use aligned moves
+        if (((uintptr_t)source & 15) == 0)
+        {
+            while (count >= 16)
+            {
+                __asm__ __volatile__ (
+                    "movaps (%%esi), %%xmm0\n"
+                    "movaps %%xmm0, (%%edi)\n"
+                    :
+                    : "S"(source), "D"(dest)
+                    : "xmm0", "memory"
+                );
+                source += 16;
+                dest += 16;
+                count -= 16;
+            }
+        }
+        else // Unaligned source
+        {
+            while (count >= 16)
+            {
+                __asm__ __volatile__ (
+                    "movups (%%esi), %%xmm0\n"
+                    "movaps %%xmm0, (%%edi)\n"
+                    :
+                    : "S"(source), "D"(dest)
+                    : "xmm0", "memory"
+                );
+                source += 16;
+                dest += 16;
+                count -= 16;
+            }
+        }
+        __asm__ volatile("sfence" ::: "memory");
+        local_irq_restore(irqf);
     }
 
-    while (count--) *dst++ = *src++;
+
+    // 4-byte alignment
+    while (count >= 4)
+    {
+        *(uint32_t*)dest = *(uint32_t*)source;
+        dest += 4;
+        source += 4;
+        count -= 4;
+    }
+
+    // Copy remaining bytes
+    while (count > 0)
+    {
+        *dest++ = *source++;
+        count--;
+    }
 }
 
 void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
