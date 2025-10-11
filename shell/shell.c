@@ -57,7 +57,7 @@ void load_shell(){
     uint32_t i = 0;
     while (true){
         char c = get_from_kb_buffer();
-        if(c == 0) {c = read_serial_non_blocking();}
+        if(c == 0) {c = read_any_serial_non_blocking();}
 		switch (c) {
 			case 0: break; // buffer is empty
             case '\n':

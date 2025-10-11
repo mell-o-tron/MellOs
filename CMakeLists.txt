@@ -196,7 +196,7 @@ add_custom_target(debug
 
 add_custom_target(novga_telnet
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu pentium2 -drive file=${TEST_IMG_BINARY},format=raw -serial telnet:127.0.0.1:4444,server -nographic
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw -serial telnet:127.0.0.1:4444,server -nographic
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet")

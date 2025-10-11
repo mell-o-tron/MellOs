@@ -161,7 +161,7 @@ void kclear_screen(){
 
 void kprint_col(const char* s, Colour col){
 	const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
-    uart_print(s);
+    uart_print_all(s);
 	while (*s) {
 		if (*s == '\n') {
 			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
