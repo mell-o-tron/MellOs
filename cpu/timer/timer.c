@@ -1,3 +1,5 @@
+/// MellOS - cpu/timer/timer.c
+/// Edited by assembler-0 on 11/10/25 - Fix timer_phase()
 #include "../../utils/typedefs.h"
 #include "../../drivers/port_io.h"
 #ifdef VGA_VESA
@@ -18,10 +20,15 @@ extern bool keyboard_enabled;
 
 void timer_phase(int hz)
 {
-	int divisor = 1193182 / hz;	 /* Calculate our divisor */
-	outb(0x43, 0x36);			 /* Set our command byte 0x36 */
-	outb(0x40, divisor & 0xFF);  /* Set low byte of divisor */
-	outb(0x40, divisor >> 8);	 /* Set high byte of divisor */
+	irqflags_t irqf = local_irq_save();
+	local_irq_disable();
+	uint32_t div32 = 1193180u / (hz ? hz : 1u);
+    uint16_t divisor = (uint16_t)div32;
+	
+    outb(0x43, 0x36);
+    outb(0x40, divisor & 0xFF);
+    outb(0x40, (divisor >> 8) & 0xFF);
+	local_irq_restore(irqf);	
 }
 
 void timer_handler(regs *r)
