@@ -70,6 +70,7 @@ static void vga_kclear_screen(void) {
 // TESTS
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
+#include "uart.h"
 
 
 #ifdef VGA_VESA
@@ -115,24 +116,33 @@ void khang(){
 #pragma GCC optimize ("O0")
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-extern  void kpanic(struct regs *r) {
+void _kpanic(const char* msg, unsigned int int_no);
+void kpanic_message(const char* msg) {
+    _kpanic(msg, 0);
+}
 
+extern  void kpanic(struct regs *r) {
+    _kpanic(exception_messages[r->int_no], r->int_no);
+}
+
+void _kpanic(const char* msg, unsigned int int_no) {
     const char* components[] = {
         KPArt,
-        "Exception message: ",
-        exception_messages[r->int_no],
+        "Kernel panic: ",
+        msg,
     };
-
 #if VGA_VESA
+    char buf[256];
+    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
+
     fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-    fb_draw_string(16, 16, "Exception message:", VESA_DARK_GREY, 3, 3, *vga_fb);
-    fb_draw_string(16, 40, exception_messages[r->int_no], VESA_DARK_GREY, 3, 3, *vga_fb);
+    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
 #else
     #define ERRCOL 0x47 // Lightgrey on Lightred
     #define VGAMEM (unsigned char*)0xB8000;
 
     char panicscreen[4000];
-    
+
     int psidx = 0; //Index to access panicscreen
     int idx = 0;
 
@@ -158,7 +168,7 @@ extern  void kpanic(struct regs *r) {
     }
 #endif
 
-    
+
 
     // Disables the flashing cursor because that's annoying imo
     outb(0x3D4, 0x0A);
@@ -194,16 +204,20 @@ void test_task(){
 }
 
 void task_1(){
-    kprint("Hello there!\n");
+    int i = 0;
     for (;;){
-        try_to_terminate();
+        printf("Hello there! %d\n", i);
+        i++;
+        sleep(1);
     }
 }
 
 void task_2(){
-    kprint("BOIA DE\n");
+    int i = 0;
     for (;;){
-        try_to_relinquish();
+        printf("BOIA DE %d\n", i);
+        i++;
+        sleep(1);
     }
 }
 
@@ -249,16 +263,16 @@ extern void main(uint32_t multiboot_tags_addr){
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
-    
+
     // Sets up the Page Attribute Table
     setup_pat();
-    
+
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
         uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
         add_page_directory(page_directory, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
     }
-    
+
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
@@ -271,32 +285,23 @@ extern void main(uint32_t multiboot_tags_addr){
             framebuffer_page_tflags, framebuffer_page_dflags);
     }
     #endif
-    
+
     gdt_init();
     idt_install();
     isrs_install();
     irq_install();
     // asm volatile("hlt");
-    
-    
+
+
     asm volatile ("sti");
+    timer_phase(60);
     timer_install();
     set_cursor_pos_raw(0);
 
-    //allocator.granularity = 512;
-    //assign_kmallocator(&allocator);
-    set_dynamic_mem_loc ((void*)memory_area.start);
-    if (!buddy_init(memory_area.start, memory_area.length)) {
-        kprint("Buddy allocator fault.\n");
-        // todo: error handling
-        //asm volatile ("hlt");
-    }
-    // allocates space for the process data
-    //init_scheduler();
-    //set_kmalloc_bitmap((bitmap_t) 0x800000, 100000000);   // dynamic memory allocation setup test. Starting position is at 0x800000 as we avoid interfering with the kernel at 0x400000
-    #ifdef VGA_VESA
-    // set_dynamic_mem_loc ((void*)framebuffer_end);
+    // Initialize dynamic memory allocation
+    init_allocators(memory_area.start, memory_area.length);
 
+    #ifdef VGA_VESA
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
     Vres = multiboot_tags->framebuffer_height;
@@ -313,10 +318,14 @@ extern void main(uint32_t multiboot_tags_addr){
     }
     kb_install();
 
-    // kprint("Running fs tests... ");
-    // int failed_fs_tests = run_all_fs_tests();
-    // kprint(tostring_inplace(failed_fs_tests, 10));
-    // kprint(" failed\n");
+    uart_init();
+#ifdef MELLOS_DEBUG
+    kprint("MellOS Debug mode:\n\n");
+
+    kprint("Running fs tests... ");
+    int failed_fs_tests = run_all_fs_tests();
+    kprint(tostring_inplace(failed_fs_tests, 10));
+    kprint(" failed\n");
 
     kprint("Running mem tests... ");
     int failed_mem_tests = run_all_mem_tests();
@@ -324,9 +333,18 @@ extern void main(uint32_t multiboot_tags_addr){
     kprint(" failed\n");
 
     kprint("\n\n ENTERING COMMAND MODE...\n");
+    if (failed_fs_tests != 0 || failed_mem_tests != 0){
+        kprint_col("TESTS FAILED!!", DEFAULT_COLOUR);
 
+        for (;;){;}
+    } else {
+        kprint_col("All tests passed!", DEFAULT_COLOUR);
+    }
 
-    sleep(30);
+    printf("\n\n ENTERING COMMAND MODE...\n");
+
+    sleep(100);
+#endif
 
     void *code_loc2 = kmalloc(10);
     if (code_loc2 == NULL){
@@ -334,9 +352,9 @@ extern void main(uint32_t multiboot_tags_addr){
 
         for (;;){;}
     } else {
-        kfree(code_loc2, 10);
+        kfree(code_loc2);
     }
-    
+
     #ifdef VGA_VESA
     kclear_screen();
     #else
@@ -346,15 +364,12 @@ extern void main(uint32_t multiboot_tags_addr){
     set_cursor_pos_raw(0);
 
     kprint(Fool);
-    
+
+    // Initialize the process scheduler and set this as the first process
+    init_scheduler();
+
     load_shell();
     // init_text_editor("test_file");
-
-    /*
-    schedule_process(task_1);
-    schedule_process(task_2);
-
-    begin_execution();*/
 
 
     return;

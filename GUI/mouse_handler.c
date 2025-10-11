@@ -1,13 +1,11 @@
 #ifdef VGA_VESA
-#include "stdint.h"
-#include "stdbool.h"
 #include "mouse_handler.h"
-#include "include/gui.h"
-#include "../vesa/include/colours.h"
+#include "gui.h"
+#include "colours.h"
 // #include "mouse_icon.h"
-#include "../../memory/dynamic_mem.h"
-#include "../shell/include/shell/vell.h"
-#include "../libc/include/math.h"
+#include "dynamic_mem.h"
+#include "shell/vell.h"
+#include "math.h"
 
 static Window* mouse_window = NULL;
 
@@ -26,7 +24,6 @@ static MouseState mouse_state;
 
 void _init_mouse_handler(){
     Framebuffer* fb = allocate_framebuffer(16, 16);
-    fb->fb = kmalloc(fb->width*fb->height*4);
     mouse_window = create_window_with_fb(fb, "mouse");
     _vell_deregister_window(mouse_window);
     _vell_register_mouse(mouse_window);
@@ -34,8 +31,8 @@ void _init_mouse_handler(){
     set_window_transparent(mouse_window, true);
     mouse_window->x = vga_fb->width / 2;
     mouse_window->y = vga_fb->height / 2;
-    fb_fill_circle(fb->width / 2, fb->height / 2, 6, VESA_BLACK, *mouse_window->fb);
-    fb_fill_circle(fb->width / 2, fb->height / 2, 4, VESA_WHITE, *mouse_window->fb);
+    fb_fill_circle(fb->width / 2, fb->height / 2, 6, VESA_BLACK, mouse_window->fb);
+    fb_fill_circle(fb->width / 2, fb->height / 2, 4, VESA_WHITE, mouse_window->fb);
     // draw_mouse();
     return;
 }

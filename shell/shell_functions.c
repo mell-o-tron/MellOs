@@ -42,6 +42,8 @@ shellfunction CMDs[] = {
     #ifdef VGA_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
     CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues"),
+    CMDENTRY(&jb_juggle_balls, "jb", "Ball juggling program", "juggle_balls"),
+    CMDENTRY(&sperkaster, "sp", "Perk raycasting engine", "sperkaster"),
     #endif
     CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo"),
     CMDENTRY(&meminfo, "meminfo", "Displays memory info", "meminfo")

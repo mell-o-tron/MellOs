@@ -3,42 +3,26 @@
 #include "dynamic_mem.h"
 #include "mem.h"
 #include "allocator.h"
+#include "assert.h"
+#include "mellos/kernel/kernel.h"
 
-#define MAX_ORDER 23
+#define MAX_ORDER 24
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
-// ----- OLD ALLOCATOR -----
-
-// A bitmap is used to keep track of the memory usage. 
-
-allocator_t* kmallocator = NULL;
-
 volatile void *dynamic_mem_loc = NULL;
-
-void assign_kmallocator(allocator_t* allocator){
-    kmallocator = allocator;
-}
-
-void set_dynamic_mem_loc (void *loc){
-    dynamic_mem_loc = loc;
-}
-
-bitmap_t get_kmallocator_bitmap (){
-    return get_allocator_bitmap(kmallocator);
-}
-
-void set_kmalloc_bitmap (bitmap_t loc, uint32_t length){
-    set_alloc_bitmap(kmallocator, loc, length);
-}
-
 
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
 
+/** The padding in this struct is used to signal that the
+ * block is being allocated with the buddy allocator:
+ * if it's != 0, kfree will assume it is a slab allocation.
+ */
 typedef struct Block {
     struct Block* next;
-    int order;
-    int free;      // 1 = free, 0 = full
+    size_t order;
+    bool free;      // 1 = free, 0 = full
+    uint8_t padding; // IMPORTANT: Last byte should be 0
 } Block;
 
 Block* free_list[MAX_ORDER + 1];
@@ -53,10 +37,10 @@ bool buddy_init(const uintptr_t base, const size_t size) {
     allocator_base = (void *) base;
     allocator_size = size; 
 
-    for (int i = MIN_ORDER; i <= MAX_ORDER; ++i) {
+    for (size_t i = MIN_ORDER; i <= MAX_ORDER; ++i) {
         free_list[i] = NULL;
     }
-    int order = MAX_ORDER;
+    size_t order = MAX_ORDER;
     while (1UL << order > size){
         order--;
     }
@@ -66,6 +50,7 @@ bool buddy_init(const uintptr_t base, const size_t size) {
 
     block->free = true;
     block->next = NULL;
+    block->padding = 0;
 
     free_list[order] = block;
     buddy_inited = true;
@@ -84,8 +69,8 @@ void* buddy_alloc(size_t size) {
         return NULL;
     }
 
-    uint16_t order = MIN_ORDER;
-    while (1 << order < size + sizeof(Block)) {
+    size_t order = MIN_ORDER;
+    while (((size_t)1) << order < size + sizeof(Block)) {
         order++;
     }
 
@@ -93,7 +78,7 @@ void* buddy_alloc(size_t size) {
         return NULL;
     }
 
-    int current_order = order;
+    size_t current_order = order;
     while (current_order <= MAX_ORDER && free_list[current_order] == NULL) {
         current_order++;
     }
@@ -109,13 +94,14 @@ void* buddy_alloc(size_t size) {
         current_order--;
         Block* buddy = (Block*)((char*)block + (1 << current_order));
         buddy->order = current_order;
-        buddy->free = 1;
+        buddy->free = true;
         buddy->next = free_list[current_order];
+        buddy->padding = 0;
         free_list[current_order] = buddy;
         block->order = current_order;
     }
 
-    block->free = 0;
+    block->free = false;
     block->next = NULL;
 
     return (char*)block + sizeof(Block);
@@ -126,8 +112,8 @@ void buddy_free(void* loc) {
     const uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
 
     Block* block = (Block*)((char*)off - sizeof(Block));
-    int order = block->order;
-    block->free = 1;
+    size_t order = block->order;
+    block->free = true;
 
     while (order < MAX_ORDER) {
         Block* buddy = get_buddy(block);
@@ -157,8 +143,9 @@ void buddy_free(void* loc) {
     free_list[block->order] = block;
 }
 
-#define SLAB_OBJ_SIZES 6
-const size_t slab_sizes[SLAB_OBJ_SIZES] = {8, 16, 32, 64, 128, 256};
+#define SLAB_OBJ_SIZES_COUNT 6
+#define SLAB_MAX_OBJ_SIZE 256
+const size_t slab_sizes[SLAB_OBJ_SIZES_COUNT] = {8, 16, 32, 64, 128, SLAB_MAX_OBJ_SIZE};
 
 typedef struct LilSlab {
     uint8_t* bitmap;
@@ -168,11 +155,15 @@ typedef struct LilSlab {
     struct LilSlab* next;
 } LilSlab;
 
-LilSlab* slab_heads[SLAB_OBJ_SIZES] = { NULL };
+typedef struct SlabObjHeader {
+    uint8_t size;
+} SlabObjHeader;
+
+LilSlab* slab_heads[SLAB_OBJ_SIZES_COUNT] = { NULL };
 
 void* slab_alloc(const size_t size) {
     int idx = -1;
-    for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
+    for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
         if (size <= slab_sizes[i]) {
             idx = i;
             break;
@@ -227,7 +218,7 @@ void* slab_alloc(const size_t size) {
 void slab_free(void* loc, size_t size) {
     uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
     int idx = -1;
-    for (int i = 0; i < SLAB_OBJ_SIZES; i++) {
+    for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
         if (size <= slab_sizes[i]) {
             idx = i;
             break;
@@ -253,18 +244,28 @@ void slab_free(void* loc, size_t size) {
 void* kmalloc(size_t size) {
     if (!buddy_inited)
         return NULL;
-    if (size <= 256) {
-        long unsigned int offset = (long unsigned int) slab_alloc(size);
-        return (void*)((long unsigned int)dynamic_mem_loc + offset);
+    long unsigned int offset;
+    if (size <= SLAB_MAX_OBJ_SIZE - sizeof(SlabObjHeader)) {
+        void* obj = slab_alloc(size + sizeof(SlabObjHeader));
+        SlabObjHeader* header = (SlabObjHeader*)obj + (uint32_t)dynamic_mem_loc;
+        header->size = (uint8_t)(size);
+        offset = obj + sizeof(SlabObjHeader);
     } else {
-        long unsigned int offset = (long unsigned int) buddy_alloc(size);
-        return (void*)((long unsigned int)dynamic_mem_loc + offset);
+        offset = (long unsigned int) buddy_alloc(size);
     }
+    assert(offset != NULL);
+    if (offset == NULL) return NULL;
+    return (void*)((long unsigned int)dynamic_mem_loc + offset);
 }
 
-void kfree(void* loc, size_t size) {
-    if (size <= 256) {
-        slab_free(loc, size);
+void kfree(void* loc) {
+    // To free a location, we need to check if it was allocated with slab or buddy
+    SlabObjHeader* header = (SlabObjHeader*)loc - (sizeof(SlabObjHeader));
+    // If the padding byte is non-zero, it was allocated with slab
+    // and the size is stored in the header
+    uint8_t size = header->size;
+    if (size > 0) {
+        slab_free(header, size + sizeof(SlabObjHeader));
     } else {
         buddy_free(loc);
     }
@@ -281,7 +282,7 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
     memcp(oldloc, newloc, min);
     return newloc;
 #else
-    kfree(oldloc, oldsize);                                 // less fragmentation this way, but if no memory there is risk to lose a reference.
+    kfree(oldloc);                                 // less fragmentation this way, but if no memory there is risk to lose a reference.
     void* newloc = kmalloc(newsize);
     if (newloc == NULL) return NULL;
     
@@ -290,4 +291,13 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
     return newloc;    
     
 #endif
+}
+
+void init_allocators(void* loc, size_t size) {
+    dynamic_mem_loc = loc;
+    if (!buddy_init(loc, size)) {
+        // TODO: This is not ok: if in graphics mode, the
+        // fb has not been initialized yet, so we can't print.
+        kpanic_message("Buddy allocator fault");
+    }
 }

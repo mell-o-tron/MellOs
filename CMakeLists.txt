@@ -17,12 +17,10 @@ set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
 project(MellOs LANGUAGES C ASM_NASM)
-
-
-# Options matching Makefile defaults
-set(VGA "TEXT" CACHE STRING "Video mode macro VESA or TEXT")
-set(HRES "1920" CACHE STRING "Horizontal resolution")
-set(VRES "1080" CACHE STRING "Vertical resolution")
+set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
+set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
+set(HRES "600" CACHE STRING "Horizontal resolution")
+set(VRES "400" CACHE STRING "Vertical resolution")
 set(BPP  "32"   CACHE STRING "Bits per pixel")
 set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
 set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
@@ -40,6 +38,14 @@ set(COMMON_DEFS_WITH_D)
 foreach (def ${COMMON_DEFS})
     list(APPEND COMMON_DEFS_WITH_D "-D${def}")
 endforeach ()
+if (MACHINE STREQUAL "PRESARIO")
+    list(APPEND COMMON_DEFS_WITH_D "-DDISABLE_SSE")
+    set(DISABLE_SSE 1)
+    set(TARGET_CPU "486")
+else ()
+    set(DISABLE_SSE 0)
+    set(TARGET_CPU "qemu32")
+endif()
 list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
 # Do not set global include directories to avoid cross-polluting libc includes
@@ -70,7 +76,7 @@ set(NASM_DEFS
 
 set(NASM_INCS)
 foreach(d ${INC_DIRS})
-    list(APPEND NASM_INCS -i${d}/)
+    list(APPEND NASM_INCS -I${d}/)
 endforeach()
 
 # Do NOT set CMAKE_ASM_NASM_FLAGS with a big string; it causes shell splitting
@@ -142,37 +148,36 @@ target_link_options(kernel.elf PRIVATE
 )
 # Freestanding kernel style build
 # add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
-target_compile_options(kernel.elf PRIVATE
-        $<$<COMPILE_LANGUAGE:C>:-g>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
+set(MELLOS_COMPILE_OPTIONS
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-nostdlib>
         $<$<COMPILE_LANGUAGE:C>:-nostdinc>
         $<$<COMPILE_LANGUAGE:C>:-m32>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
-        $<$<COMPILE_LANGUAGE:C>:-Wno-error>
+        $<$<COMPILE_LANGUAGE:C>:-Wall>
+        $<$<COMPILE_LANGUAGE:C>:-Wno-parentheses>
+        $<$<COMPILE_LANGUAGE:C>:-Wno-missing-braces>
+        $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
+        $<$<COMPILE_LANGUAGE:C>:-Werror=return-type>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
         $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
+)
+
+target_compile_options(kernel.elf PRIVATE
+        ${MELLOS_COMPILE_OPTIONS}
 )
 
 foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory memory_management_unit data_structures utils
 syscalls processes)
     if (TARGET ${mod_t})
         target_compile_options(${mod_t} PRIVATE
-                $<$<COMPILE_LANGUAGE:C>:-g>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
-                $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
-                $<$<COMPILE_LANGUAGE:C>:-nostdlib>
-                $<$<COMPILE_LANGUAGE:C>:-nostdinc>
-                $<$<COMPILE_LANGUAGE:C>:-m32>
-                $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
-                $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
-                $<$<COMPILE_LANGUAGE:C>:-fno-pic>
-                $<$<COMPILE_LANGUAGE:C>:-Wno-error>
-                $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
+                ${MELLOS_COMPILE_OPTIONS}
         )
     endif ()
 endforeach()
@@ -182,10 +187,20 @@ set(ISO_NAME "mellos.iso")
 set(ISO_PATH "${CMAKE_BINARY_DIR}/${ISO_NAME}")
 set(KERNEL_DEST "${CMAKE_BINARY_DIR}/iso/boot/kernel.elf")
 set(GRUB_DIR "${CMAKE_BINARY_DIR}/iso/boot/grub")
+set(TEST_IMG_SOURCE "${CMAKE_SOURCE_DIR}/test_disk.img")
+set(TEST_IMG_BINARY "${CMAKE_BINARY_DIR}/test_disk.img")
 
 add_custom_target(prepare_grub_dir
         COMMAND ${CMAKE_COMMAND} -E make_directory ${GRUB_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/grub.cfg ${GRUB_DIR}/grub.cfg
+)
+
+# Copy test_disk.img to build dir. Doing this to avoid situations where
+# it is accidentally committed. This behaviour will change in the future
+add_custom_command(
+        OUTPUT ${TEST_IMG_BINARY}
+        COMMAND ${CMAKE_COMMAND} -E copy ${TEST_IMG_SOURCE} ${TEST_IMG_BINARY}
+        COMMENT "Copying test_disk.img to build directory"
 )
 
 add_custom_command(
@@ -198,6 +213,7 @@ add_custom_command(
         COMMENT "Creating bootable ISO with grub-mkrescue"
 )
 add_custom_target(iso ALL DEPENDS ${ISO_PATH})
+add_custom_target(hda ALL DEPENDS ${TEST_IMG_BINARY})
 
 # Debug symbol file equivalent to Makefile's kernel.sym
 add_custom_target(debug_symbols
@@ -207,30 +223,24 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu pentium2 -hda ${CMAKE_SOURCE_DIR}/test_disk.img
-        DEPENDS iso
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu pentium2 -hda ${CMAKE_SOURCE_DIR}/test_disk.img
-        DEPENDS iso
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
 
-# Convenience clean for wee_bins artifacts
-add_custom_target(distclean
-        COMMAND ${CMAKE_COMMAND} -E rm -rf
-        ${CMAKE_BINARY_DIR}/CMakeFiles
-        ${CMAKE_BINARY_DIR}/cmake_install.cmake
-        ${CMAKE_BINARY_DIR}/serial.log
-        ${CMAKE_BINARY_DIR}/CMakeCache.txt
-        ${CMAKE_BINARY_DIR}/wee_bins
-        ${CMAKE_BINARY_DIR}/iso/boot/kernel.elf
-        ${CMAKE_BINARY_DIR}/mellos.iso
-        COMMENT "Remove generated binaries and ISO"
-)
+add_custom_target(novga_telnet
+        COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw -serial telnet:127.0.0.1:4444,server -nographic
+        DEPENDS iso hda
+        USES_TERMINAL
+        COMMENT "Run QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet")
 
 # Helpful: export compile commands (a compile_commands.json will be in build dir)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

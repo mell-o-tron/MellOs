@@ -17,7 +17,7 @@ void prepare_disk_for_fs (uint32_t n_sectors){
         tmp[i] = 0;
     }
     LBA28_write_sector(0xA0, 1, n_sectors, tmp);
-    kfree(tmp, sizeof(uint16_t) * 256 * n_sectors);
+    kfree(tmp);
     
     bitmap_t bitmap = kmalloc(512);
     for(uint32_t i = 0; i < 512; i++){
@@ -39,13 +39,13 @@ int allocate_file(uint32_t req_sectors){
     allocator.size = 512;
     allocator.granularity = 1;
     
-    int res = (int)allocate(&allocator, req_sectors);
-    if (res >= 0)
+    void* res = allocate(&allocator, req_sectors);
+    if (res != NULL)
         write_string_to_disk(tmp, 0xA0, 2, 1);
     else
         return -1;
     
-    return res;
+    return (int)res;
 }
 
 int deallocate_file(uint32_t LBA, uint32_t num_sectors){
@@ -113,7 +113,7 @@ file_t* get_file_list (uint32_t disk, uint32_t LBA, uint32_t sectors){
         res[i].n_sectors = n_sectors_read;
     }
 
-    kfree(tmp, sizeof(uint16_t) * 256 * sectors);
+    kfree(tmp);
 
     return res;
 }
@@ -137,7 +137,7 @@ void write_file_list (file_t * list, uint32_t disk, uint32_t LBA, uint32_t secto
     }
 
     LBA28_write_sector(disk, LBA, sectors, tmp);
-    kfree(tmp, sizeof(uint16_t) * 256 * sectors);
+    kfree(tmp);
 }
 
 void new_file (char* name, uint32_t n_sectors){
@@ -188,7 +188,7 @@ void new_file (char* name, uint32_t n_sectors){
     write_file_list(files, 0xA0, 1, 1);
 
 cleanup:
-    kfree(files, sizeof(file_t) * 32);
+    kfree(files);
 }
 
 void remove_file(char* name){

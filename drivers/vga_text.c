@@ -64,6 +64,7 @@ void scroll_up(int lines){ // Copying memory from VGA to VGA is not the most eff
 
 void kprint_col(const char* s, Colour col){		//Print: with colours!
 	if (!s) return;
+    uart_print_all(s);
 	uint8_t* char_ptr = (uint8_t*)s;
 
 	uint16_t cursor_pos = get_cursor_pos_raw();

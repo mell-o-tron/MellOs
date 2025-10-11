@@ -10,34 +10,71 @@ TMP_MEM  equ 0x60000            ; Tmp location to store the multiboot tags
 ; kernel_entry.asm
 bits 32
 global _kernel_start
-extern main    
+extern main
 extern kpanic
 
 section .entry
 _kernel_start:
     cli
+    cld
 
     mov [TMP_MEM], ebx
 
     lgdt [GDT_descriptor]
-    
+
     mov ax, DATA_SEG
 	mov ds, ax
 	mov ss, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	
+
 	mov ebp, 0x90000		; 32 bit stack base pointer
 	mov esp, ebp
-        
-    xor ebp, ebp
-    
-    push dword [TMP_MEM]
 
+    xor ebp, ebp
+
+    push dword [TMP_MEM]
+    call check_and_enable_features
     call main
     jmp $
-    
+
+check_and_enable_features:
+    ; Test for CPUID capability (ID bit in EFLAGS)
+    pushfd
+    pop eax
+    mov ecx, eax
+    xor eax, 1 << 21 ; Flip the ID bit
+    push eax
+    popfd
+    pushfd
+    pop eax
+    xor eax, ecx
+    jz .fault ; If ID bit couldn't be flipped, CPUID not supported.
+
+    OUT_SERIAL 'C' ; CPUID detected
+
+    ; Get basic CPU features (CPUID Leaf 1)
+    mov eax, 1
+    cpuid
+
+    ; Check for SSE support (EDX bit 25)
+    test edx, 1 << 25   ; SSE
+    jz .fault
+
+    mov eax, cr0
+    and eax, ~(1 << 2)  ; Clear EM (Emulation)
+    or eax, 1 << 1      ; Set MP (Monitor Coprocessor)
+    mov cr0, eax
+
+    mov eax, cr4
+    or eax, 1 << 9      ; Set OSFXSR (Operating System FXSAVE/FXRSTOR Support)
+    or eax, 1 << 10     ; Set OSXMMEXCPT (Operating System Unmasked SIMD Floating-Point Exception Support)
+    mov cr4, eax
+    OUT_SERIAL 'S' ; SSE Enabled
+.fault:
+    ret
+
 GDT_start:
     GDT_null:
         dd 0x0
@@ -88,14 +125,14 @@ init_serial:
     mov al, 0x0b
     out dx, al         ; IRQs enabled, RTS/DSR set
     ret
-    
+
 section .text
     
-%include "../cpu/interrupts/interrupt.asm"
-%include "../memory/paging/paging.asm"
+%include "cpu/interrupts/interrupt.asm"
+%include "memory/paging/paging.asm"
 
 section .data
 
 section .rodata		    ; read only data
 
-%include "IncBins.asm"	; including binaries
+%include "kernel/IncBins.asm"	; including binaries

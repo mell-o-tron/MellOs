@@ -215,3 +215,83 @@ int klltostr(char* dest, long long x, unsigned int base, size_t dsize) {
 
     return kulltostr(dest, (unsigned long long)x, base, dsize);
 }
+
+int dtostr(char* dest, double value, int precision, size_t dsize) {
+    if (dsize < 2) return -EOVERFLOW;
+
+    char *p = dest;
+
+    // Handle special cases
+    if (value != value) { // NaN
+        if (dsize < 4) return -EOVERFLOW;
+        strcpy(dest, "nan");
+        return 0;
+    }
+
+    if (value == 1.0/0.0 || value == -1.0/0.0) { // Infinity
+        if (dsize < 4) return -EOVERFLOW;
+        if (value < 0) {
+            strcpy(dest, "-inf");
+        } else {
+            strcpy(dest, "inf");
+        }
+        return 0;
+    }
+
+    // Validate precision
+    if (precision < 0) precision = 6;
+    if (precision > 20) return -EINVAL; // Reasonable limit
+
+    // Handle negative
+    if (value < 0) {
+        if (dsize < 2) return -EOVERFLOW;
+        *p++ = '-';
+        value = -value;
+        dsize--;
+    }
+
+    // Get integer part
+    unsigned long integer_part = (unsigned long)value;
+
+    // Convert integer part
+    if (integer_part == 0) {
+        if (dsize < 2) return -EOVERFLOW;
+        *p++ = '0';
+        dsize--;
+    } else {
+        char temp[32];
+        int len = 0;
+        unsigned long temp_int = integer_part;
+        while (temp_int > 0) {
+            temp[len++] = '0' + (temp_int % 10);
+            temp_int /= 10;
+        }
+
+        if (dsize < len + 1) return -EOVERFLOW;
+
+        for (int i = len - 1; i >= 0; i--) {
+            *p++ = temp[i];
+            dsize--;
+        }
+    }
+
+    // Add decimal point and fractional part
+    if (precision > 0) {
+        if (dsize < precision + 2) return -EOVERFLOW; // +1 for dot, +1 for null terminator
+
+        *p++ = '.';
+        dsize--;
+
+        double fractional = value - integer_part;
+        for (int i = 0; i < precision; i++) {
+            fractional *= 10.0;
+            int digit = (int)fractional;
+            *p++ = '0' + digit;
+            fractional -= digit;
+            dsize--;
+        }
+    }
+
+    *p = '\0';
+    return 0; // Success
+}

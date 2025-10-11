@@ -3,7 +3,7 @@
 #include "vterm.h"
 #include "vesa.h"
 #include "vesa_text.h"
-#include "include/gui.h"
+#include "gui.h"
 #include "shell/vell.h"
 
 static Window* w;

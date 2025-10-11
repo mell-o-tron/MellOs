@@ -1,5 +1,5 @@
 #include "pat.h"
-#include "../../cpu/include/cpu/msr.h"
+#include "cpu/msr.h"
 
 // https://wiki.osdev.org/Paging#PAT
 

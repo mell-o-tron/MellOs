@@ -55,9 +55,9 @@ void __vell_draw(int from_x, int from_y, int to_x, int to_y){
         do{
             Window* w = (Window*)current->data;
             if (w->draw_frame){
-                fb_fill_rect_at_only(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, *fb, bounds);
+                fb_fill_rect_at_only(w->x, w->y, w->width + BORDER_WIDTH * 2, TITLEBAR_HEIGHT, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, fb, bounds);
                 fb_draw_rect_at_only(w->x, w->y + TITLEBAR_HEIGHT, w->width + BORDER_WIDTH, w->height + BORDER_WIDTH, BORDER_WIDTH, w->focused ? FOCUSED_COLOUR : UNFOCUSED_COLOUR, fb, bounds);
-                fb_draw_string(w->x + BORDER_WIDTH * 2, w->y + BORDER_WIDTH, w->title, VESA_BLACK, 1.8, 1.8, *fb);
+                fb_draw_string(w->x + BORDER_WIDTH * 2, w->y + BORDER_WIDTH, w->title, VESA_BLACK, 1.8, 1.8, fb);
                 blit_all_at_only(w->fb, fb, w->x+BORDER_WIDTH, w->y + BORDER_WIDTH + TITLEBAR_HEIGHT, from_x, from_y, to_x, to_y);
             }else{
                 blit_all_at_only(w->fb, fb, w->x, w->y, from_x, from_y, to_x, to_y);
@@ -80,9 +80,7 @@ void _vell_draw(){
 FDEF(vell){
     if (fb == NULL) {
         fb = allocate_full_screen_framebuffer();
-        fb->fb = kmalloc(fb->width * fb->height * 4);
         fb2 = allocate_full_screen_framebuffer();
-        fb2->fb = kmalloc(fb2->width * fb2->height * 4);
         _init_vterm();
         ((Window*)windows->data)->focused = true;
         _init_mouse_handler();

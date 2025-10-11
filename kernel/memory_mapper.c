@@ -120,7 +120,7 @@ MemoryArea get_largest_free_block() {
                           names[mmap->type - 1]);
         } // end of for loop
     } else {
-        /* debug prints disabled to keep kernel free of libc I/O */
+        printf("bit 6 not set");
         return (MemoryArea){(intptr_t)NULL, 0};
     }
 

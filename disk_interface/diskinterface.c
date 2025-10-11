@@ -13,7 +13,7 @@ uint8_t* read_string_from_disk (uint8_t disk, uint32_t LBA, uint32_t num_sectors
         res[2 * i+1]    = (uint8_t)(buf[i]);
     }
 
-    kfree(buf, sizeof(uint16_t) * 256 * num_sectors);
+    kfree(buf);
 
     return res;
 }
@@ -27,5 +27,5 @@ void write_string_to_disk(char* str, uint8_t disk, uint32_t LBA, uint32_t num_se
     }
     LBA28_write_sector(0xA0, LBA, num_sectors, buf);
 
-    kfree(buf, sizeof(uint16_t) * 256 * num_sectors);
+    kfree(buf);
 }

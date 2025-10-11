@@ -2,10 +2,9 @@
 // Created by matias on 9/25/25.
 //
 
-#ifndef MELLOS_MEMORY_MAPPER_H
-#define MELLOS_MEMORY_MAPPER_H
+#pragma once
 #include "stdint.h"
-#include "mellos/kernel/multiboot_tags.h"
+#include "multiboot_tags.h"
 static char* names[5] = {
     "Available",
     "Reserved",
@@ -31,6 +30,3 @@ uintptr_t get_multiboot_framebuffer_addr(const MultibootTags* mb);
 void init_memory_mapper(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp);
 
 MemoryArea get_largest_free_block();
-
-#endif //MELLOS_MEMORY_MAPPER_H
-

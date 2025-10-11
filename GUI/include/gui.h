@@ -2,7 +2,6 @@
 #ifdef VGA_VESA
 
 #include "stdint.h"
-#include "stdbool.h"
 #include "vesa.h"
 #include "math.h"
 

@@ -6,6 +6,7 @@
 #include "limits.h"
 #include "stdio.h"
 #include "errno.h"
+#include "mem.h"
 
 union arg {
     long long ll;
@@ -13,6 +14,7 @@ union arg {
     const char *s;
     const int32_t *ws;
     void *p;
+    double d;  // Added for float support
 };
 
 struct va_wrap {
@@ -34,7 +36,9 @@ enum fmt_flags {
     FMT_INT_B16 = (1 << 9),
 
     FMT_INT_SIGNED = (1 << 10),
-    FMT_INT_UPPER = (1 << 11)
+    FMT_INT_UPPER = (1 << 11),
+
+    FMT_TYPE_FLOAT = (1 << 12)
 };
 
 struct fmt {
@@ -145,6 +149,11 @@ static int get_arg(struct fmt *spec, struct va_wrap* va, char c, union arg *arg)
         spec->precision = sizeof(void *) * 2;
         spec->qualifier = 'z'; /* Make sure do_int doesn't cast the pointer to a lower size */
         break;
+    case 'f':
+    case 'F':
+        arg->d = va_arg(va->va, double);
+        spec->flags |= FMT_TYPE_FLOAT;
+        break;
     case 'd':
     case 'i':
         spec->flags |= FMT_INT_SIGNED;
@@ -199,7 +208,7 @@ static int get_arg(struct fmt *spec, struct va_wrap* va, char c, union arg *arg)
 
 /* Write one character to a buffer, dest and dsize are adjusted after the
  * operation */
-static void write_one(char **dest, char c, size_t *dsize) {
+static inline void write_one(char **dest, char c, size_t *dsize) {
     if (*dsize <= 1)
         return;
 
@@ -210,7 +219,7 @@ static void write_one(char **dest, char c, size_t *dsize) {
 
 /* Write several characters to a buffer, dest and dsize are adjusted after the
  * operation */
-static void write_many(char **dest, const char *str, size_t count, size_t *dsize) {
+static inline void write_many(char **dest, const char *str, size_t count, size_t *dsize) {
     while (count--)
         write_one(dest, *str++, dsize);
 }
@@ -304,6 +313,53 @@ static long long do_str_output(struct fmt *spec, char **dest, size_t *dsize, uni
     }
 
     return len + spaces;
+}
+
+/* Handle outputting a float to a buffer */
+static long long do_float_output(struct fmt *spec, char **dest, size_t *dsize, union arg *arg) {
+    char conversion[64];
+
+    // Initialize buffer
+    memset(conversion, 0, sizeof(conversion));
+
+    // Call dtostr
+    int result = dtostr(conversion, arg->d, (spec->precision < 0 ? 6 : spec->precision), sizeof(conversion));
+    if (result < 0) {
+        return -1;
+    }
+
+    int conversion_len = strlen(conversion);
+    if (conversion_len == 0) {
+        return -1;
+    }
+
+    /* Handle field width and padding */
+    int spaces = 0;
+    if (conversion_len >= spec->field_width) {
+        spec->field_width = 0;
+    } else {
+        spec->field_width -= conversion_len;
+        spaces = spec->field_width;
+    }
+
+    /* Right pad first (unless left-aligned) */
+    if (!(spec->flags & FMT_LEFT)) {
+        while (spec->field_width) {
+            write_one(dest, ' ', dsize);
+            spec->field_width--;
+        }
+    }
+
+    /* Write the conversion */
+    write_many(dest, conversion, conversion_len, dsize);
+
+    /* Left pad if needed */
+    while (spec->field_width) {
+        write_one(dest, ' ', dsize);
+        spec->field_width--;
+    }
+
+    return conversion_len + spaces;
 }
 
 static int do_int(char *dest, char qualifier, unsigned long long x, unsigned int base, size_t dsize) {
@@ -459,6 +515,8 @@ static inline long long do_output(struct fmt *spec, char **dest, size_t *dsize, 
         return do_char_output(spec, dest, dsize, arg);
     else if (spec->flags & FMT_TYPE_STR)
         return do_str_output(spec, dest, dsize, arg);
+    else if (spec->flags & FMT_TYPE_FLOAT)
+        return do_float_output(spec, dest, dsize, arg);
     return do_int_output(spec, dest, dsize, arg);
 }
 
@@ -525,4 +583,3 @@ int printf(const char* s, ...) {
     //kprint(buf);
     return rval;
 }
-
