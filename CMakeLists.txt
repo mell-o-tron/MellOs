@@ -17,9 +17,7 @@ set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
 project(MellOs C ASM_NASM)
-
-
-# Options matching Makefile defaults
+set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
 set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
 set(HRES "600" CACHE STRING "Horizontal resolution")
 set(VRES "400" CACHE STRING "Vertical resolution")
@@ -48,6 +46,14 @@ set(COMMON_DEFS_WITH_D)
 foreach (def ${COMMON_DEFS})
     list(APPEND COMMON_DEFS_WITH_D "-D${def}")
 endforeach ()
+if (MACHINE STREQUAL "PRESARIO")
+    list(APPEND COMMON_DEFS_WITH_D "-DDISABLE_SSE")
+    set(DISABLE_SSE 1)
+    set(TARGET_CPU "486")
+else ()
+    set(DISABLE_SSE 0)
+    set(TARGET_CPU "qemu32")
+endif()
 list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
 
@@ -58,6 +64,7 @@ list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 # Kernel source files
 file(GLOB_RECURSE KERNEL_C_SRCS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.c)
 list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
+list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/external_modules/.*")
 
 set(INC_DIRS)
 # Header files are in same dirs as C files
@@ -118,11 +125,10 @@ target_link_options(kernel.elf PRIVATE
 target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-m32>
-        $<$<COMPILE_LANGUAGE:C>:-msse2>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
@@ -131,6 +137,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-Wno-missing-braces>
         $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
         $<$<COMPILE_LANGUAGE:C>:-Werror=return-type>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
         $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
 )
 
@@ -175,14 +182,14 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
