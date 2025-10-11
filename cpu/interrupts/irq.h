@@ -20,8 +20,8 @@ extern  void irq13();
 extern  void irq14();
 extern  void irq15();
 
-void irq_install_handler(int irq, void (*handler)(regs *r));
-void irq_uninstall_handler(int irq);
+void irq_install_handler(uint8_t irq, void (*handler)(regs *r));
+void irq_uninstall_handler(uint8_t irq);
 void irq_remap(void);
 void irq_install();
 extern  void _irq_handler(regs *r);
