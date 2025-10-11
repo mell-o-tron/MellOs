@@ -1,9 +1,9 @@
-#include "../file_system/file_system.h"
+#include "file_system.h"
 #include "string.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/include/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#include "../drivers/mouse.h"
+#include "vesa.h"
+#include "vesa_text.h"
+#include "mouse.h"
 #else
 #include "../drivers/vga_text.h"
 #endif

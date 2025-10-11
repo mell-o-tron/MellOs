@@ -10,7 +10,7 @@ CircularQueue* cqueue_init(uint32_t capacity) {
     if (!q) return NULL;
     q->buffer = (void**)kmalloc(sizeof(void*) * capacity);
     if (!q->buffer) {
-        kfree(q, sizeof(CircularQueue));
+        kfree(q);
         return NULL;
     }
     q->capacity = capacity;
@@ -24,10 +24,10 @@ CircularQueue* cqueue_init(uint32_t capacity) {
 void cqueue_destroy(CircularQueue* q) {
     if (!q) return;
     if (q->buffer) {
-        kfree(q->buffer, sizeof(void*) * q->capacity);
+        kfree(q->buffer);
         q->buffer = NULL;
     }
-    kfree(q, sizeof(CircularQueue));
+    kfree(q);
 }
 
 int cqueue_get_queue_size(CircularQueue* q) {

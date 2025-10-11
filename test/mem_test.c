@@ -8,7 +8,7 @@
 #else
 #include "vga_text.h"
 #endif
-#include "format.h"
+#include "stdio.h"
 
 #define TEST_SIZE 10
 

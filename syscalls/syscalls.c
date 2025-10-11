@@ -61,9 +61,8 @@ int sys_write (regs *r){
     
     uint32_t len = r -> edx;
 
-    // NULL if kernel executing code
-    process_t *current_process = get_current_process();
-    if (current_process != NULL) {
+    const process_t *current_process = get_current_process();
+    if (current_process->pid == 0) {
         pipe_t *stdout_local = NULL;
         switch (LBA) {
             case 1:
@@ -81,8 +80,8 @@ int sys_write (regs *r){
 
             }
         }
-        write_to_pipe(stdout_local, msg, len);
-        stdout_local->buffer;
+        write_to_pipe(stdout_local, msg, len, 0);
+        return 0;
     }
 
 

@@ -26,6 +26,12 @@ void __assert_fail(const char* expr, const char* file, int line) { // NOLINT(*-r
     // todo: set errno to something
 }
 
+void __assert_fail_msg(const char* expr, const char* message, const char* file, int line) { // NOLINT(*-reserved-identifier)
+    fprintf(stderr, "Message: %s", message);
+    fprintf(stderr, "Assertion failed: %s, file %s, line %d\n", expr, file, line);
+    // todo: set errno to something
+}
+
 void assert(uint8_t condition){
     if(!condition){
         #ifdef VGA_VESA

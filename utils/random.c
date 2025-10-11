@@ -1,5 +1,5 @@
-#include "random.h"
-#include "typedefs.h"
+#include "include/random.h"
+#include "stdint.h"
 
 static uint32_t seed = 123456789;
 

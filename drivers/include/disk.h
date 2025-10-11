@@ -3,9 +3,9 @@
 #include "port_io.h"
 #include "timer.h"
 #ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 #include "conversions.h"
 #include "colours.h"

@@ -1,4 +1,4 @@
 #pragma once
-#include "typedefs.h"
+#include "stdint.h"
 uint32_t rand();
 float frand();

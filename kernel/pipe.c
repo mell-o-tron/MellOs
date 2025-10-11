@@ -22,23 +22,23 @@ pipe_t *open_pipe(int fd1, int fd2, int buffer_size) {
     return pipe;
 }
 
-int write_string_to_pipe(pipe_t *pipe, char* str) {
+int write_string_to_pipe(pipe_t *pipe, char* str, const uint32_t from_pid) {
     int i = 0;
     while (str[i] != '\0') {
-        write_to_pipe(pipe, str + i, 1);
+        write_to_pipe(pipe, str + i, 1, from_pid);
         i++;
     }
     return i;
 }
 
-int write_to_pipe(pipe_t *pipe, const char *data, const int size) {
+int write_to_pipe(pipe_t *pipe, const char *data, const uint32_t size, const uint32_t from_pid) {
     if (IS_PIPE_BROKEN(pipe)) {
         // todo: send SIGPIPE to proc
         cqueue_destroy(pipe->buffer);
         return -EPIPE;
     }
     if (!IS_PIPE_OPEN(pipe)) {
-        kfree(pipe, sizeof(pipe_t));
+        kfree(pipe);
         return -EBADF;
     }
     for (int i = 0; i < size; i++) {

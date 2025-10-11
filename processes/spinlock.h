@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../utils/typedefs.h"
-#include "../cpu/interrupts/irq.h"
+#include "stdbool.h"
+#include "cpu/irq.h"
 
 typedef bool spinlock_t;
 

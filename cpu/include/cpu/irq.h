@@ -1,7 +1,7 @@
 #pragma once
 
 #include "idt.h"
-#include "../../utils/typedefs.h"
+#include "stdbool.h"
 
 extern  void irq0();
 extern  void irq1();

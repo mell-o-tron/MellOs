@@ -40,6 +40,6 @@ int open_file_descriptor(short type, int flags, int permissions) {
 
 void close_file_descriptor(int fd) {
     if (fd < 0 || fd >= FD_MAX_TOTAL || fd_table[fd] == NULL) return;
-    kfree(fd_table[fd], sizeof(fd_t));
+    kfree(fd_table[fd]);
     fd_count--;
 }

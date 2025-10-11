@@ -25,6 +25,6 @@ typedef struct {
 
 pipe_t *open_pipe(int fd, int other_fd, int buffer_size);
 // return how much was actually written
-int write_to_pipe(pipe_t *pipe, const char *data, int size);
-int write_string_to_pipe(pipe_t *pipe, char* str);
+int write_to_pipe(pipe_t *pipe, const char *data, uint32_t size, uint32_t from_pid);
+int write_string_to_pipe(pipe_t *pipe, char* str, uint32_t from_pid);
 char* read_from_pipe(pipe_t *pipe, int size);

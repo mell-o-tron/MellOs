@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/typedefs.h"
+#include "stdint.h"
 
 typedef uint16_t COM_PORT;
 

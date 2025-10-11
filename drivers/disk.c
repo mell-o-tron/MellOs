@@ -4,9 +4,9 @@
 #include "disk.h"
 #include "port_io.h"
 #ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 #include "dynamic_mem.h"
 

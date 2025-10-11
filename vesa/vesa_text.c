@@ -1,5 +1,6 @@
 #ifdef VGA_VESA
 #include "vesa_text.h"
+#include "uart.h"
 #include "stddef.h"
 #include "conversions.h"
 #include "colours.h"

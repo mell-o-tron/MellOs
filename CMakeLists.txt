@@ -66,6 +66,7 @@ add_subdirectory(syscalls)
 add_subdirectory(processes)
 add_subdirectory(file_system)
 add_subdirectory(disk_interface)
+add_subdirectory(test)
 
 set(NASM_DEFS
         -D${VGA}
@@ -109,6 +110,7 @@ target_link_libraries(kernel.elf
         syscalls
         mellos_libc
         data_structures
+        testing
 )
 
 
@@ -174,7 +176,7 @@ target_compile_options(kernel.elf PRIVATE
 )
 
 foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory memory_management_unit data_structures utils
-syscalls processes)
+syscalls processes testing)
     if (TARGET ${mod_t})
         target_compile_options(${mod_t} PRIVATE
                 ${MELLOS_COMPILE_OPTIONS}

@@ -3,10 +3,10 @@
  **/
 
 #include "uart.h"
-#include "utils/typedefs.h"
-#include "drivers/port_io.h"
-#include "kernel/kernel.h"
-#include "utils/string.h"
+#include "stdbool.h"
+#include "stdint.h"
+#include "port_io.h"
+#include "string.h"
 
 struct port_map {
     bool com1: 1;
