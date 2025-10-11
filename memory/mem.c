@@ -22,6 +22,7 @@ void* memset(void* dest, unsigned char value, size_t size){
     uint8_t* d = (uint8_t*)dest;
     uint8_t val = (uint8_t)value;
 
+    #ifndef DISABLE_SSE
     if (cpuid_has_sse() && size >= 16) {
         uint32_t val32 = 0x01010101UL * val;
 
@@ -39,7 +40,9 @@ void* memset(void* dest, unsigned char value, size_t size){
             size -= 16;
         }
     }
-    else if (size >= 4) {
+    else
+    #endif
+    if (size >= 4) {
         uint32_t val32 = 0x01010101UL * val;
 
         while (size >= 4 && ((uintptr_t)d & 3) == 0) {
@@ -74,6 +77,7 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
      */
 
     // SSE2 implementation
+    #ifndef DISABLE_SSE
     if (cpuid_has_sse() && count >= 16)
     {
         irqflags_t irqf = local_irq_save();
@@ -122,6 +126,7 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
         __asm__ volatile("sfence" ::: "memory");
         local_irq_restore(irqf);
     }
+    #endif
 
 
     // 4-byte alignment
@@ -148,6 +153,7 @@ void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
     uint8_t* d = (uint8_t*)dest;
     const uint8_t* s = (const uint8_t*)src;
 
+    #ifndef DISABLE_SSE
     if (cpuid_has_sse() && size >= 16) {
         // SSE2 copy using unaligned load/store. Disable IRQs to avoid ISR clobber.
         irqflags_t irqf = local_irq_save();
@@ -167,6 +173,7 @@ void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
         __asm__ volatile("sfence" ::: "memory");
         local_irq_restore(irqf);
     }
+    #endif
 
     if (size >= 4) {
         // Byte-align destination to 4-byte boundary
