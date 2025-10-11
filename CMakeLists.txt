@@ -181,7 +181,7 @@ add_custom_target(run
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu pentium2 -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu pentium2 -drive file=${TEST_IMG_BINARY},format=raw -serial mon:stdio
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")

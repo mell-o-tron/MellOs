@@ -7,6 +7,7 @@
 #include "misc/colours.h"
 #include "drivers/vesa/vesa.h"
 #include "memory/dynamic_mem.h"
+#include "drivers/uart.h"
 
 struct VbeInfoBlock {
 	char signature[4];
@@ -160,6 +161,7 @@ void kclear_screen(){
 
 void kprint_col(const char* s, Colour col){
 	const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
+    uart_print(s);
 	while (*s) {
 		if (*s == '\n') {
 			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
@@ -200,6 +202,7 @@ void kprint_char (char c, bool caps){
 	// Blank out the slot for the next character. Needed to implement backspace as going back and printing a space
 	fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), fb);
 	fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
+
 	if (autoblit){
 		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
 	}

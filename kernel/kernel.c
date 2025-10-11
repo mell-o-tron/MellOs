@@ -61,6 +61,7 @@
 // TESTS
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
+#include "drivers/uart.h"
 
 
 #ifdef VGA_VESA
@@ -301,6 +302,7 @@ extern void main(uint32_t multiboot_tags_addr){
     
     kb_install();
 
+    uart_init();
 #ifdef MELLOS_DEBUG
     kprint("MellOS Debug mode:\n\n");
 
