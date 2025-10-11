@@ -1,19 +1,20 @@
 #include "shell.h"
-#include "../utils/typedefs.h"
+#include "utils/typedefs.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../misc/colours.h"
-#include "../utils/string.h"
+#include "misc/colours.h"
+#include "utils/string.h"
 #include "shell_functions.h"
-#include "../memory/mem.h"
-#include "../utils/conversions.h"
-#include "../drivers/keyboard.h"
-#include "../data_structures/circular_buffer.h"
-#include "../file_system/file_system.h"
-#include "../memory/dynamic_mem.h"
+#include "memory/mem.h"
+#include "utils/conversions.h"
+#include "drivers/keyboard.h"
+#include "data_structures/circular_buffer.h"
+#include "file_system/file_system.h"
+#include "memory/dynamic_mem.h"
+#include "drivers/uart.h"
 
 char command_buffer[128];
 
@@ -56,6 +57,7 @@ void load_shell(){
     uint32_t i = 0;
     while (true){
         char c = get_from_kb_buffer();
+        if(c == 0) {c = read_any_serial_non_blocking();}
 		switch (c) {
 			case 0: break; // buffer is empty
             case '\n':
