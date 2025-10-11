@@ -3,3 +3,4 @@
 void uart_init();
 void uart_print(const char *str);
 char read_serial();
+char read_serial_non_blocking();
