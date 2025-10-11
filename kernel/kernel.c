@@ -132,7 +132,7 @@ void _kpanic(const char* msg, unsigned int int_no) {
     #define VGAMEM (unsigned char*)0xB8000;
 
     char panicscreen[4000];
-    
+
     int psidx = 0; //Index to access panicscreen
     int idx = 0;
 
@@ -158,7 +158,7 @@ void _kpanic(const char* msg, unsigned int int_no) {
     }
 #endif
 
-    
+
 
     // Disables the flashing cursor because that's annoying imo
     outb(0x3D4, 0x0A);
@@ -250,16 +250,16 @@ extern void main(uint32_t multiboot_tags_addr){
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
-    
+
     // Sets up the Page Attribute Table
     setup_pat();
-    
+
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
     for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
         uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
         add_page_directory(page_directory, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
     }
-    
+
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
@@ -272,14 +272,14 @@ extern void main(uint32_t multiboot_tags_addr){
             framebuffer_page_tflags, framebuffer_page_dflags);
     }
     #endif
-    
+
     gdt_init();
     idt_install();
     isrs_install();
     irq_install();
     // asm volatile("hlt");
-    
-    
+
+
     asm volatile ("sti");
     timer_phase(60);
     timer_install();
@@ -298,7 +298,7 @@ extern void main(uint32_t multiboot_tags_addr){
     mouse_install();
     #endif
 
-    
+
     kb_install();
 
 #ifdef MELLOS_DEBUG
@@ -335,7 +335,7 @@ extern void main(uint32_t multiboot_tags_addr){
     } else {
         kfree(code_loc2);
     }
-    
+
     #ifdef VGA_VESA
     kclear_screen();
     #else
@@ -348,7 +348,7 @@ extern void main(uint32_t multiboot_tags_addr){
 
     // Initialize the process scheduler and set this as the first process
     init_scheduler();
-    
+
     load_shell();
     // init_text_editor("test_file");
 
