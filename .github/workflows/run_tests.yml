@@ -1,0 +1,52 @@
+name: Run Tests
+
+on:
+    push:
+        branches: main
+    pull_request:
+        branches: main
+
+jobs:
+    run-tests:
+        runs-on: ubuntu-latest
+        container:
+            image: alex23087/mellos-build-arch:latest
+        
+        steps:
+            - name: Checkout source repository
+              uses: actions/checkout@v4
+
+            - name: Patch CMakeFile to disable kvm
+              run: |
+                sed -i 's/-enable-kvm //g' CMakeLists.txt
+
+            - name: Patch CMakeFile to redirect serial to a file
+              run: |
+                sed -i 's/-serial telnet:127.0.0.1:4444,server/-serial file:mellos_output.log/g' CMakeLists.txt
+
+            - name: Patch CMakeFile to make qemu run in the background
+              run: |
+                sed -i '/COMMAND qemu/ s/$/\&/g' CMakeLists.txt
+
+            - name: Build MellOS
+              run: |
+                mkdir build
+                cd build
+                cmake -DCMAKE_BUILD_TYPE=Debug ..
+                make    
+            
+            - name: Run
+              run: |
+                cd build
+                make novga_telnet
+                sleep 0.1
+                tail -f mellos_output.log | while read line; do
+                    if [[ "$line" == *"All tests passed!"* ]]; then
+                        pkill qemu
+                        exit 0
+                    elif [[ "$line" == *"TESTS FAILED!!"* ]]; then
+                        pkill qemu
+                        cat mellos_output.log
+                        exit 1
+                    fi
+                done
