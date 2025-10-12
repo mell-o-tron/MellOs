@@ -5,7 +5,7 @@
 
 #include "../utils/typedefs.h"
 #include "../cpu/interrupts/irq.h"
- 
+
 #define DEADLOCK_TIMEOUT_CYCLES 100000000ULL
 #define MAX_BACKOFF_CYCLES 1024
 // move this somewhere else
@@ -70,7 +70,7 @@ static inline void MCSLock(volatile mcs_node_t** lock, mcs_node_t* node) {
     node->next = NULL;
     node->locked = 1;
 
-    mcs_node_t* prev = (mcs_node_t*)__sync_lock_test_and_set(lock, node);
+    mcs_node_t* prev = __atomic_exchange_n(lock, node, __ATOMIC_ACQUIRE);
     if (prev) {
         prev->next = node;
         while (node->locked) __builtin_ia32_pause();
@@ -79,7 +79,8 @@ static inline void MCSLock(volatile mcs_node_t** lock, mcs_node_t* node) {
 
 static inline void MCSUnlock(volatile mcs_node_t** lock, mcs_node_t* node) {
     if (!node->next) {
-        if (__sync_bool_compare_and_swap(lock, node, NULL)) {
+        mcs_node_t* expected = node;
+        if (__atomic_compare_exchange_n(lock, &expected, NULL, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED)) {
             return;
         }
         while (!node->next) __builtin_ia32_pause();
@@ -104,9 +105,9 @@ static inline void ReadLock(rwlock_t* lock, uint32_t owner_id) {
     }
     while (1) {
         while (lock->writer) __builtin_ia32_pause();
-        __sync_fetch_and_add(&lock->readers, 1);
+        __atomic_fetch_add(&lock->readers, 1, __ATOMIC_ACQUIRE);
         if (!lock->writer) break;
-        __sync_fetch_and_sub(&lock->readers, 1);
+        __atomic_fetch_sub(&lock->readers, 1, __ATOMIC_RELAXED);
     }
 }
 
@@ -115,7 +116,7 @@ static inline void ReadUnlock(rwlock_t* lock, uint32_t owner_id) {
         __atomic_thread_fence(__ATOMIC_RELEASE);
         return;
     }
-    __sync_fetch_and_sub(&lock->readers, 1);
+    __atomic_fetch_sub(&lock->readers, 1, __ATOMIC_RELEASE);
 }
 
 static inline void WriteLock(rwlock_t* lock, uint32_t owner_id) {
@@ -124,7 +125,7 @@ static inline void WriteLock(rwlock_t* lock, uint32_t owner_id) {
         return;
     }
 
-    while (__sync_lock_test_and_set(&lock->writer, 1)) {
+    while (__atomic_test_and_set(&lock->writer, __ATOMIC_ACQUIRE)) {
         while (lock->writer) __builtin_ia32_pause();
     }
     while (lock->readers) __builtin_ia32_pause();
@@ -137,12 +138,12 @@ static inline void WriteUnlock(rwlock_t* lock) {
     if (lock->recursion <= 0) {
         lock->recursion = 0;
         lock->owner = 0;
-        __sync_lock_release(&lock->writer);
+        __atomic_clear(&lock->writer, __ATOMIC_RELEASE);
         return;
     }
     if (--lock->recursion == 0) {
         lock->owner = 0;
-        __sync_lock_release(&lock->writer);
+        __atomic_clear(&lock->writer, __ATOMIC_RELEASE);
     }
 }
 
@@ -150,14 +151,14 @@ static inline void SpinUnlock(volatile int* lock) {
     __atomic_clear(lock, __ATOMIC_RELEASE);
 }
 
-static inline irq_flags_t SpinLockIrqSave(volatile int* lock) {
+static inline irqflags_t SpinLockIrqSave(volatile int* lock) {
     irqflags_t flags = local_irq_save();
     local_irq_disable();
     SpinLock(lock);  // Uses the advanced version above
     return flags;
 }
 
-static inline void SpinUnlockIrqRestore(volatile int* lock, irq_flags_t flags) {
+static inline void SpinUnlockIrqRestore(volatile int* lock, irqflags_t flags) {
     __atomic_clear(lock, __ATOMIC_RELEASE);
     local_irq_restore(flags);
 }
