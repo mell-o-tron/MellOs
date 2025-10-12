@@ -1,7 +1,9 @@
+:warning: THIS IS OUTDATED AND WILL BE RENDERED IRRELEVANT ONCE WE PERKIFY :warning:
+
 ## Typedefs
 ### Maybe
 The types `maybe_int` and `maybe_void` (which is an alias of the first) are used as return types for those functions that may either succeed or fail.
-
+ [← Main README](../README.md)
 ```c
 typedef struct {
     bool is_some;

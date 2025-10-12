@@ -15,7 +15,8 @@ If you have issues with those issues, or want to contribute in a different way, 
 We don't have a strict pull request process, but here are some guidelines to follow:
 1. Fork the repository and create your branch from `main`.
 2. :warning: Ensure that your code with all the available options (machine targets, VESA vs TEXT mode, compiler optimizations)
-3. Issue that pull request!
+3. :warning: Ensure that your code passes all tests, see details below.
+4. Issue that pull request!
 
 :warning: **If you open a pull request to change a big part of the operating system, please get in touch with us first, either by opening an issue or reaching out on Discord. This will help us ensure that your changes align with the project's goals and avoid unnecessary work.** :warning:
 
@@ -23,4 +24,11 @@ We don't have a strict pull request process, but here are some guidelines to fol
 
 ## Tests
 
-We are currently working on introducing a testing environment for MellOS. When ready, you will find info on it here.
+We have a series of tests that you can execute by running MellOS in debug mode, as follows.
+
+```
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TARGET=Debug ..
+make debug
+```
