@@ -38,6 +38,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]"),
     CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]"),
     CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]"),
+    CMDENTRY(&kill, "kill", "Kills a process", "kill [PID]"),
+    CMDENTRY(&ps, "ps", "Lists running processes", "ps"),
     CMDENTRY(&erase_files, "erasefiles", "Erases the file bitmap", "erasefiles"),
     #ifdef VGA_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
