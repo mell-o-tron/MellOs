@@ -117,6 +117,7 @@ process_t* create_task(void* code){
     const stack_size = 0x1000; // 4KB stack
 
     uint32_t* stack = kmalloc(stack_size);
+    res->state->stack_base = stack;
     assert_msg(stack != NULL, "Failed to allocate stack");
     
     // Set up the initial stack frame for the new task
@@ -233,4 +234,73 @@ process_t* schedule_process(void * code){
     max_pid += 1;
 
     return new_process;
+}
+
+void kill_task(uint32_t pid) {
+    // Check whether the PID is valid
+    if (pid >= allocated_processes || processes[pid] == NULL) {
+        kprint("Invalid PID: ");
+        kprint(tostring_inplace(pid, 10));
+        kprint("\n");
+        return;
+    }
+    
+    // Do not allow killing the main process (PID 0)
+    if (pid == 0) {
+        kprint("Cannot kill the main process (PID 0)\n");
+        return;
+    }
+    
+    process_t* task_to_kill = processes[pid];
+    
+    // If it is the currently running process, force it to relinquish the CPU
+    if (pid == cur_pid) {
+        task_to_kill->must_relinquish = true;
+        // TODO: This is problematic: if you relinquish here, the rest of this
+        // function will not execute. The task should probably be scheduled to
+        // be killed by another task
+        try_to_relinquish();
+    }
+    
+    if (task_to_kill->state) {
+        // Free the stack memory
+        if(task_to_kill->state->stack_base) {
+            kfree(task_to_kill->state->stack_base);
+        }
+        // Free the memory of the process state
+        kfree(task_to_kill->state);
+    }
+    
+    // Free the memory of the process itself
+    kfree(task_to_kill);
+    
+    // Remove the entry from the process array
+    processes[pid] = NULL;
+    
+    kprint("Task ");
+    kprint(tostring_inplace(pid, 10));
+    kprint(" killed successfully\n");
+}
+
+void list_processes() {
+    kprint("Running processes:\n");
+    kprint("PID\tStatus\n");
+    kprint("---\t------\n");
+    
+    for (uint32_t i = 0; i < max_pid; i++) {
+        if (processes[i] != NULL) {
+            kprint(tostring_inplace(i, 10));
+            kprint("\t");
+            if (i == cur_pid) {
+                kprint("RUNNING");
+            } else {
+                kprint("READY");
+            }
+            kprint("\n");
+        }
+    }
+    
+    if (max_pid == 0 || (max_pid == 1 && processes[0] != NULL)) {
+        kprint("No additional processes running\n");
+    }
 }
