@@ -3,6 +3,7 @@
 
 typedef struct task_state {
     void* stack;
+    void* stack_base;
 } state_t;
 
 typedef struct process {
@@ -25,3 +26,5 @@ void scheduler_daemon ();
 void try_to_relinquish();
 void try_to_terminate();
 process_t* schedule_process(void * code);
+void kill_task(uint32_t pid);
+void list_processes();
