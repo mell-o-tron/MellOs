@@ -234,3 +234,72 @@ process_t* schedule_process(void * code){
 
     return new_process;
 }
+
+void kill_task(uint32_t pid) {
+    // Check whether the PID is valid
+    if (pid >= allocated_processes || processes[pid] == NULL) {
+        kprint("Invalid PID: ");
+        kprint(tostring_inplace(pid, 10));
+        kprint("\n");
+        return;
+    }
+    
+    // Do not allow killing the main process (PID 0)
+    if (pid == 0) {
+        kprint("Cannot kill the main process (PID 0)\n");
+        return;
+    }
+    
+    process_t* task_to_kill = processes[pid];
+    
+    // If it is the currently running process, force it to relinquish the CPU
+    if (pid == cur_pid) {
+        task_to_kill->must_relinquish = true;
+        try_to_relinquish();
+    }
+    
+    // Free the stack memory (calculated in create_task)
+    if (task_to_kill->state && task_to_kill->state->stack) {
+        // The stack is 4KB (0x1000 bytes) as defined in create_task
+        uint32_t* stack_base = (uint32_t*)((uint32_t)task_to_kill->state->stack - 0x1000 + 4);
+        kfree(stack_base);
+    }
+    
+    // Free the memory of the process state
+    if (task_to_kill->state) {
+        kfree(task_to_kill->state);
+    }
+    
+        // Free the memory of the process itself
+    kfree(task_to_kill);
+    
+    // Remove the entry from the process array
+    processes[pid] = NULL;
+    
+    kprint("Task ");
+    kprint(tostring_inplace(pid, 10));
+    kprint(" killed successfully\n");
+}
+
+void list_processes() {
+    kprint("Running processes:\n");
+    kprint("PID\tStatus\n");
+    kprint("---\t------\n");
+    
+    for (uint32_t i = 0; i < max_pid; i++) {
+        if (processes[i] != NULL) {
+            kprint(tostring_inplace(i, 10));
+            kprint("\t");
+            if (i == cur_pid) {
+                kprint("RUNNING");
+            } else {
+                kprint("READY");
+            }
+            kprint("\n");
+        }
+    }
+    
+    if (max_pid == 0 || (max_pid == 1 && processes[0] != NULL)) {
+        kprint("No additional processes running\n");
+    }
+}

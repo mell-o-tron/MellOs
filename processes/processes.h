@@ -25,3 +25,5 @@ void scheduler_daemon ();
 void try_to_relinquish();
 void try_to_terminate();
 process_t* schedule_process(void * code);
+void kill_task(uint32_t pid);
+void list_processes();
