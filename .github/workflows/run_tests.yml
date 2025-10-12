@@ -11,6 +11,10 @@ jobs:
         runs-on: ubuntu-latest
         container:
             image: alex23087/mellos-build-arch:latest
+        strategy:
+            matrix:
+                machine: ['PRESARIO', 'OTHER']
+                vga_mode: ['TEXT', 'VESA']
         
         steps:
             - name: Checkout source repository
@@ -18,7 +22,11 @@ jobs:
 
             - name: Patch CMakeFile to disable kvm
               run: |
-                sed -i 's/-enable-kvm //g' CMakeLists.txt
+                sed -i '/COMMAND qemu/ s/-enable-kvm //g' CMakeLists.txt
+
+            - name: Patch CMakeFile to disable gdb stub
+              run: |
+                sed -i '/COMMAND qemu/ s/-s //g' CMakeLists.txt
 
             - name: Patch CMakeFile to redirect serial to a file
               run: |
@@ -32,7 +40,7 @@ jobs:
               run: |
                 mkdir build
                 cd build
-                cmake -DCMAKE_BUILD_TYPE=Debug ..
+                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug ..
                 make    
             
             - name: Run
