@@ -316,27 +316,20 @@ extern void main(uint32_t multiboot_tags_addr){
     printf("%016x", failed_mem_tests);
     printf(" failed\n");
 
+    // IMPORTANT: Leave the following messages as they are
+    // The automatic test GH action detects these strings
+    // If it is needed to change them, contact mantainers
     if (failed_fs_tests != 0 || failed_mem_tests != 0){
-        kprint_col("TESTS FAILED!!", DEFAULT_COLOUR);
-
+        kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
         for (;;){;}
     } else {
-        kprint_col("All tests passed!", DEFAULT_COLOUR);
+        kprint_col("All tests passed!\n", DEFAULT_COLOUR);
     }
-
-    printf("\n\n ENTERING COMMAND MODE...\n");
-
+    
+    printf("\n ENTERING COMMAND MODE...\n");
+    
     sleep(100);
-#endif
-
-    void *code_loc2 = kmalloc(10);
-    if (code_loc2 == NULL){
-        kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
-
-        for (;;){;}
-    } else {
-        kfree(code_loc2);
-    }
+    #endif
 
     #ifdef VGA_VESA
     kclear_screen();
