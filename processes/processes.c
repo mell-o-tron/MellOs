@@ -117,6 +117,7 @@ process_t* create_task(void* code){
     const stack_size = 0x1000; // 4KB stack
 
     uint32_t* stack = kmalloc(stack_size);
+    res->state->stack_base = stack;
     assert_msg(stack != NULL, "Failed to allocate stack");
     
     // Set up the initial stack frame for the new task
@@ -258,19 +259,16 @@ void kill_task(uint32_t pid) {
         try_to_relinquish();
     }
     
-    // Free the stack memory (calculated in create_task)
-    if (task_to_kill->state && task_to_kill->state->stack) {
-        // The stack is 4KB (0x1000 bytes) as defined in create_task
-        uint32_t* stack_base = (uint32_t*)((uint32_t)task_to_kill->state->stack - 0x1000 + 4);
-        kfree(stack_base);
-    }
-    
-    // Free the memory of the process state
     if (task_to_kill->state) {
+        // Free the stack memory
+        if(task_to_kill->state->stack_base) {
+            kfree(task_to_kill->state->stack_base);
+        }
+        // Free the memory of the process state
         kfree(task_to_kill->state);
     }
     
-        // Free the memory of the process itself
+    // Free the memory of the process itself
     kfree(task_to_kill);
     
     // Remove the entry from the process array
