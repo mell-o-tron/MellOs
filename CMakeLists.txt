@@ -129,7 +129,7 @@ target_link_options(kernel.elf PRIVATE
 target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O2>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-m32>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
