@@ -256,6 +256,9 @@ void kill_task(uint32_t pid) {
     // If it is the currently running process, force it to relinquish the CPU
     if (pid == cur_pid) {
         task_to_kill->must_relinquish = true;
+        // TODO: This is problematic: if you relinquish here, the rest of this
+        // function will not execute. The task should probably be scheduled to
+        // be killed by another task
         try_to_relinquish();
     }
     
