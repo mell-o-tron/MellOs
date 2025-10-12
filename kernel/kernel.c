@@ -319,7 +319,7 @@ extern void main(uint32_t multiboot_tags_addr){
     kb_install();
 
     uart_init();
-#ifdef MELLOS_DEBUG
+#ifdef MELLOS_ENABLE_TESTS
     kprint("MellOS Debug mode:\n\n");
 
     kprint("Running fs tests... ");

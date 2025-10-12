@@ -15,16 +15,7 @@
 #endif
 #include "dynamic_mem.h"
 #include "conversions.h"
-
-#ifndef EOVERFLOW
-#define EOVERFLOW 75
-#endif
-#ifndef EINVAL
-#define EINVAL 22
-#endif
-#ifndef ERANGE
-#define ERANGE 34
-#endif
+#include "errno.h"
 
 
 const char* tostring(int n, int base, char* dest) {
