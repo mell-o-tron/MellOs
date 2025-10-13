@@ -3,7 +3,7 @@
 #define MELLOS_ERRNO
 
 // Current error value
-extern __thread int errno;
+extern int errno;
 
 #define EPERM 1
 #define ENOENT 2

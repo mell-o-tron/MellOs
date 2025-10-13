@@ -36,6 +36,7 @@ extern  void _isr28();
 extern  void _isr29();
 extern  void _isr30();
 extern  void _isr31();
+extern  void _syscall();
 
 const char* exception_messages[] = 
 {

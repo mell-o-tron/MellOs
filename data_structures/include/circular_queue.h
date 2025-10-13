@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdbool.h>
 
 // Instance-based circular queue of void* pointers.
 // Non-blocking, not thread-safe.
@@ -31,7 +30,7 @@ int cqueue_get_write_index(CircularQueue* q);
 
 // Operations on a given queue instance.
 // enqueue returns 0 on success, -1 if full or invalid.
-int cqueue_enqueue(CircularQueue* q, void* data);
+int cqueue_enqueue(CircularQueue* q, void* data, size_t);
 // dequeue returns element pointer or NULL if empty.
 void* cqueue_dequeue(CircularQueue* q);
 // peek returns the next element without removing it, or NULL if empty.

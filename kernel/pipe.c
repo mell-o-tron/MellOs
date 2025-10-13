@@ -1,11 +1,10 @@
 #include "mellos/pipe.h"
 
 #include <dynamic_mem.h>
-#include "circular_queue.h"
 
-#include "../global/include/errno.h"
+#include "errno.h"
 
-pipe_t *open_pipe(int fd1, int fd2, int buffer_size) {
+pipe_t *open_pipe(fd_t *read_fd, fd_t *write_fd, int buffer_size) {
     pipe_t *pipe = kmalloc(sizeof(pipe_t));
 
     if (pipe == NULL) {
@@ -13,44 +12,75 @@ pipe_t *open_pipe(int fd1, int fd2, int buffer_size) {
         return NULL;
     }
 
-    pipe->buffer = cqueue_init(buffer_size);
-    pipe->fd = *get_file_descriptor(fd1);
-    pipe->other_fd = *get_file_descriptor(fd2);
+    pipe->buffer = kmalloc(sizeof(cbuffer_t));
+    pipe->buffer->size = buffer_size;
+    pipe->buffer->array = kmalloc(buffer_size);
     pipe->is_open = true;
     pipe->flags |= O_PIPE_BLOCKING; // pipes block by default
+
+    read_fd->type = FD_TYPE_PIPE;
+    read_fd->resource = pipe;
+    write_fd->type = FD_TYPE_PIPE;
+    write_fd->resource = pipe;
+
+    read_fd->flags |= O_RDONLY;
+    write_fd->flags |= O_WRONLY;
 
     return pipe;
 }
 
-int write_string_to_pipe(pipe_t *pipe, char* str, const uint32_t from_pid) {
-    int i = 0;
-    while (str[i] != '\0') {
-        write_to_pipe(pipe, str + i, 1, from_pid);
-        i++;
+ssize_t pipe_write(fd_t *fd, const void *buf, size_t count) {
+    if (!fd || fd->type != FD_TYPE_PIPE) {
+        return -EINVAL;
     }
-    return i;
+    if (!(fd->flags & O_WRONLY)) {
+        return -EACCES;
+    }
+
+
+
+    pipe_t *pipe = (pipe_t *)fd->resource;
+
+    spinlock_lock(&pipe->lock);
+
+    ssize_t bytes_written = 0;
+    for (size_t i = 0; i < count; i++) {
+        if (&pipe->buffer->top == &pipe->buffer->bot) {
+            break;
+        }
+        add_to_cbuffer(pipe->buffer, ((char*)buf)[i], false);
+        bytes_written++;
+    }
+
+    spinlock_unlock(&pipe->lock);
+
+    return bytes_written;
 }
 
-int write_to_pipe(pipe_t *pipe, const char *data, const uint32_t size, const uint32_t from_pid) {
-    if (IS_PIPE_BROKEN(pipe)) {
-        // todo: send SIGPIPE to proc
-        cqueue_destroy(pipe->buffer);
-        return -EPIPE;
+ssize_t pipe_read(fd_t *fd, void *buf, size_t count) {
+    if (!fd || fd->type != FD_TYPE_PIPE) {
+        return -EINVAL;
     }
-    if (!IS_PIPE_OPEN(pipe)) {
-        kfree(pipe);
-        return -EBADF;
-    }
-    for (int i = 0; i < size; i++) {
-        if (cqueue_get_free_space(pipe->buffer) == 0) {
-            if (IS_PIPE_BLOCKING(pipe)) {
-                // todo: tell scheduler to continue to the next program/thread
-            }
-        }
-        if (IS_PIPE_BLOCKING(pipe)) {
-            cqueue_enqueue(pipe->buffer, (void*)data+i);
-        }
+    if (!(fd->flags & O_RDONLY)) {
+        return -EACCES;
     }
 
-    return 0;
+    pipe_t *pipe = (pipe_t *)fd->resource;
+
+    spinlock_lock(&pipe->lock);
+
+    ssize_t bytes_read = 0;
+    for (size_t i = 0; i < count; i++) {
+        if (&pipe->buffer->top == &pipe->buffer->bot) {
+            goto cleanup;
+        }
+        ((char*)buf)[i] = get_from_cbuffer(pipe->buffer);
+        bytes_read++;
+    }
+
+cleanup:
+
+    spinlock_unlock(&pipe->lock);
+
+    return bytes_read;
 }

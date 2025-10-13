@@ -1,8 +1,8 @@
 #pragma once
 
-#include "mellos/pipe.h"
+#include <linked_list.h>
 
-#include "stdbool.h"
+#include "mellos/pipe.h"
 
 typedef struct task_state {
     void* stack;
@@ -14,11 +14,13 @@ typedef struct process {
     state_t * state;
     uint32_t * page_directory;
     bool must_relinquish;
-    pipe_t *stdin;
-    pipe_t *stdout;
-    pipe_t *stderr;
+    fd_table_t fd_table;
+    struct process *parent;
+    linked_list_t *children_list;
+    fd_t *stdin;
+    fd_t *stdout;
+    fd_t *stderr;
 } process_t;
-
 
 extern void __attribute__((__cdecl__)) switch_task(process_t* current, process_t* new);
 
@@ -34,4 +36,6 @@ void begin_execution();
 
 void try_to_relinquish();
 void try_to_terminate();
-process_t* schedule_process(void * code);
+process_t* schedule_process(void *code, process_t *parent, fd_t *stdin_target, fd_t *stdout_target, fd_t *stderr_target);
+void add_child(process_t *parent, process_t *child);
+void remove_child(process_t *parent, process_t *child);

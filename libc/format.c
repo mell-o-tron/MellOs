@@ -1,3 +1,6 @@
+#include <unistd.h>
+#include <mellos/pipe.h>
+
 #include "stdint.h"
 
 #include "conversions.h"
@@ -582,4 +585,16 @@ int printf(const char* s, ...) {
 //fixme:print to current process's output stream
     //kprint(buf);
     return rval;
+}
+
+int fputs(const char* __restrict s, FILE* __restrict stream) {
+    if (cqueue_enqueue(stream->cqueue, s, strlen(s)) == -1) {
+        return -1;
+    }
+    return (int32_t) strlen(s);
+}
+
+int fprintf(FILE* stream, const char* format, ...) {
+    errno = ENOSYS;
+    return -1;
 }

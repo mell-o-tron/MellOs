@@ -10,7 +10,7 @@ typedef struct {
 } cbuffer_t;
 
 
-void add_to_cbuffer(cbuffer_t * buf, char c, bool is_uppercase);
+int add_to_cbuffer(cbuffer_t * buf, char c, bool is_uppercase);
 
 char get_from_cbuffer(cbuffer_t * buf);
 

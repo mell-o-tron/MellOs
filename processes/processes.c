@@ -10,7 +10,6 @@
 #else
 #include "vga_text.h"
 #endif
-#include "conversions.h"
 #include "assert.h"
 #include "port_io.h"
 
@@ -20,6 +19,7 @@
 extern void save_task_state(struct task_state *state, void* new_eip);
 extern void load_task_state(struct task_state *state);
 
+int errno = 0;
 
 
 // void kprint_task_state(struct task_state *state) {
@@ -114,7 +114,7 @@ void init_process() {
 process_t* create_task(void* code){
     process_t* res = create_empty_task();
 
-    const stack_size = 0x1000; // 4KB stack
+    const int32_t stack_size = 0x1000; // 4KB stack
 
     uint32_t* stack = kmalloc(stack_size);
     assert_msg(stack != NULL, "Failed to allocate stack");
@@ -131,7 +131,7 @@ process_t* create_task(void* code){
     *(--cur_stack) = 2; // esi
     *(--cur_stack) = (uint32_t)stack; // ebp
 
-    res->state->stack = (uint32_t)cur_stack; // Point to top of stack
+    res->state->stack = (void*)cur_stack; // Point to top of stack
 
     return res;
 }
@@ -147,9 +147,6 @@ uint32_t max_pid = 0;
 
 bool scheduler_active = false;
 
-FILE *stdin = NULL;
-FILE *stderr = NULL;
-FILE *stdout = NULL;
 
 void init_scheduler() {
     scheduler_active = true;
@@ -218,15 +215,12 @@ void try_to_terminate(){
     }
 }
 
-process_t* schedule_process(void * code){
+process_t* schedule_process(void *code, process_t *parent, fd_t *stdin_target, fd_t *stdout_target, fd_t *stderr_target){
 
     if(max_pid >= allocated_processes){
         const uint32_t allocated = allocated_processes + 20;
         processes = krealloc(processes, max_pid * sizeof(process_t *), allocated * sizeof(process_t *));
         allocated_processes = allocated;
-    } else if (max_pid > allocated_processes) {
-        kprint("Illegal schedule process number, halting.");
-        for (;;){}
     }
 
     process_t* new_process = create_task(code);
@@ -235,6 +229,21 @@ process_t* schedule_process(void * code){
     assert_msg(processes[max_pid] != NULL, "Failed to schedule new process");
 
     max_pid += 1;
+
+
+
+    new_process->stdin = open_fd_standalone(FD_TYPE_PIPE, O_RDONLY, 0, NULL);
+    new_process->stdout = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, 0, NULL);
+    new_process->stderr = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, 0, NULL);
+
+    open_pipe(new_process->stdin, stdin_target, 128);
+    open_pipe(stdout_target, new_process->stdout, 128);
+    open_pipe(stderr_target, new_process->stderr, 128);
+
+    new_process->parent = parent;
+    
+
+
 
     return new_process;
 }

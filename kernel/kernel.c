@@ -116,8 +116,8 @@ void khang(){
 #pragma GCC optimize ("O0")
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-void _kpanic(const char* msg, unsigned int int_no);
-void kpanic_message(const char* msg) {
+_Noreturn void _kpanic(const char* msg, unsigned int int_no);
+_Noreturn void kpanic_message(const char* msg) {
     _kpanic(msg, 0);
 }
 
@@ -125,7 +125,7 @@ extern  void kpanic(struct regs *r) {
     _kpanic(exception_messages[r->int_no], r->int_no);
 }
 
-void _kpanic(const char* msg, unsigned int int_no) {
+_Noreturn void _kpanic(const char* msg, unsigned int int_no) {
     const char* components[] = {
         KPArt,
         "Kernel panic: ",
@@ -180,14 +180,14 @@ void _kpanic(const char* msg, unsigned int int_no) {
 #pragma GCC pop_options
 
 #define PAGE_LENGTH 4096
-uint32_t page_directory[1024]       __attribute__((aligned(4096)));
+uint32_t base_page_directory[1024]       __attribute__((aligned(4096)));
 uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
 uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
 #define NUM_MANY_DIRECTORIES (uint32_t)512
 uint32_t lots_of_pages[NUM_MANY_DIRECTORIES][1024]  __attribute__((aligned(4096)));
 #ifdef VGA_VESA
-#define NUM_FB_DIRECTORIES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
-unsigned int framebuffer_pages[NUM_FB_DIRECTORIES][1024]     __attribute__((aligned(4096)));
+#define NUM_FB_DIRECTORIES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough __overkill__
+uint32_t framebuffer_pages[NUM_FB_DIRECTORIES][1024]     __attribute__((aligned(4096)));
 PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE;
 PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING;
 #endif
@@ -262,28 +262,21 @@ extern void main(uint32_t multiboot_tags_addr){
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
-    init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
+    init_paging(memory_area);
 
     // Sets up the Page Attribute Table
     setup_pat();
 
     // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
-    for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
-        uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
-        add_page_directory(page_directory, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
-    }
+    // for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
+    //     uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
+    //     put_page_table_to_directory(, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
+    // }
 
 
     #ifdef VGA_VESA
     // Map two pages for the framebuffer
 
-    for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++){
-        uintptr_t phys_base = (fb_addr & ~0x3FFFFF) + (i * 0x400000);
-        add_page_directory(page_directory, framebuffer_pages[i],
-            2 + NUM_MANY_DIRECTORIES + i,
-            phys_base,
-            framebuffer_page_tflags, framebuffer_page_dflags);
-    }
     #endif
 
     gdt_init();
@@ -312,10 +305,6 @@ extern void main(uint32_t multiboot_tags_addr){
     #endif
 
 
-    if (init_file_descriptors() != 0) {
-        kprint("File descriptor init failed.\n");
-        for (;;){}
-    }
     kb_install();
 
     uart_init();

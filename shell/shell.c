@@ -1,4 +1,9 @@
 #include "shell/shell.h"
+
+#include <linked_list.h>
+
+#include "processes.h"
+
 #include "stddef.h"
 #ifdef VGA_VESA
 #include "vesa_text.h"
@@ -81,6 +86,14 @@ void load_shell(){
                 command_buffer[i] = c;
                 if(i < 128) i++;
 		}
+        const pipe_t *pipe = get_current_process()->stdout->resource;
+        if (pipe != NULL && pipe->buffer != NULL && pipe->buffer->top != pipe->buffer->bot) {
+            const process_t *child = list_get(get_current_process()->children_list, 0);
+            while (child->stdout->resource == pipe && ((pipe_t *) child->stdout->resource)->buffer->top != ((pipe_t *) child->stdout->resource)->buffer->bot) {
+                const char read = get_from_cbuffer(((pipe_t *)child->stdout)->buffer);
+                kprint_char(read, 0);
+            }
+        }
 		
 		while (shell_tasks.bot != shell_tasks.top){
             char task = get_from_cbuffer(&shell_tasks);

@@ -1,4 +1,5 @@
 #pragma once
+#include "circular_buffer.h"
 #define FD_MAX_PER_PROCESS 100
 #define FD_MAX_TOTAL 4096
 
@@ -26,11 +27,12 @@
 #define FD_LOCKED   0x2000  // File descriptor is locked (exclusive access)
 
 /// types
-#define FD_TYPE_FILE  0x01  // Regular file
-#define FD_TYPE_DIR   0x02  // Directory
-#define FD_TYPE_PIPE  0x04  // Pipe
-#define FD_TYPE_SOCKET 0x08 // Socket
-#define FD_TYPE_TERM 0x16   // stdin, out, err
+#define FD_TYPE_FILE    0b1  // Regular file
+#define FD_TYPE_DIR     0b10  // Directory
+#define FD_TYPE_PIPE    0b100  // Pipe
+#define FD_TYPE_SOCKET  0b1000 // Socket
+#define FD_TYPE_VIRTUAL 0b10000 // ramdisk stuff
+#define FD_TYPE_NULL    0b100000 // Null device
 
 /// flags
 #define FD_EOF   0x01  // Reached end of file
@@ -38,16 +40,32 @@
 
 
 typedef struct {
-    // this may be -1 if this has not been initialized (added to fd_table) yet
-    int file_descriptor;
-    short sectors;
+    char *name;
     int flags;
-    int permissions;
     int status;
-    short type;
+    int type;
+    void *resource; // ptr to the actual resource we are using this for e.g., pipe_t
 } fd_t;
 
-void close_file_descriptor(int fd);
-int open_file_descriptor(short type, int flags, int permissions);
+typedef struct {
+    uint32_t count;
+    fd_t *fd_array;
+} fd_table_t;
+
+
+typedef struct {
+    char *name;
+    int permissions;
+    int flags;
+    int ref_count;
+    int type;
+} open_file_t;
+
+
+fd_t *open_fd_standalone(int type, int flags, int permissions, char* path);
 fd_t *get_file_descriptor(int fd);
-int init_file_descriptors();
+open_file_t *open_file(char *path, int type);
+int find_first_free_fd_PID(uint32_t process);
+int find_first_free_fd();
+int find_first_free_file_PID(uint32_t process);
+int find_first_free_file();

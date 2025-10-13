@@ -54,7 +54,6 @@ list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
 # Do not set global include directories to avoid cross-polluting libc includes
 
-add_subdirectory(memory_management_unit)
 add_subdirectory(vesa)
 add_subdirectory(GUI)
 add_subdirectory(shell)
@@ -110,7 +109,6 @@ target_link_libraries(kernel.elf
         filesystem
         disk_interface
         utils
-        memory_management_unit
         syscalls
         mellos_libc
         data_structures
@@ -134,7 +132,6 @@ endif()
 #    target_include_directories(text_editor_objs PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
 #endif()
 
-#target_link_libraries(kernel.elf memory_management_unit)
 # Link libc for formatting functions used by non-kernel modules
 #target_link_libraries(kernel.elf mellos_libc)
 # Apply NASM flags correctly as a list (each arg stays its own token)
@@ -179,7 +176,7 @@ target_compile_options(kernel.elf PRIVATE
         ${MELLOS_COMPILE_OPTIONS}
 )
 
-foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory memory_management_unit data_structures utils
+foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory data_structures utils
 syscalls processes testing)
     if (TARGET ${mod_t})
         target_compile_options(${mod_t} PRIVATE

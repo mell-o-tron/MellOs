@@ -1,3 +1,4 @@
+#include "errno.h"
 #include <processes.h>
 
 #include "cpu/idt.h"
@@ -34,6 +35,10 @@ int syscall_stub (regs *r){
         case 6:
             //sys_close
             return sys_close(r);
+        case 7:
+            return get_pid(r);
+        case 8:
+            return sys_memory(r);
     }
     
     return 0;
@@ -41,7 +46,8 @@ int syscall_stub (regs *r){
 
 
 int sys_exit (regs *r){
-     kprint("sys_exit\n");
+    errno = ENOSYS;
+    kprint("sys_exit\n");
     return -1;   
 }
 
@@ -63,25 +69,34 @@ int sys_write (regs *r){
 
     const process_t *current_process = get_current_process();
     if (current_process->pid == 0) {
-        pipe_t *stdout_local = NULL;
+        fd_t *stdout_local = NULL;
         switch (LBA) {
             case 1:
-                stdout_local = current_process->stdout;
+                stdout_local = current_process->stdout->resource;
                 break;
             case 2:
-                stdout_local = current_process->stderr;
+                stdout_local = current_process->stderr->resource;
                 break;
             default:
                 break;
         }
 
         if (stdout_local != NULL) {
-            if (stdout_local->fd.permissions & FD_PERM_WRITE) {
+            char buf[128];
 
+            while (true) {
+                const int ret = pipe_read(stdout_local, buf, 127);
+                if (ret < 0) {
+                    errno = ret;
+                    return -1;
+                } if (ret == 0) {
+                    return 0;
+                }
+                kprint(buf);
             }
         }
-        write_to_pipe(stdout_local, msg, len, 0);
-        return 0;
+
+        return -EINVAL;
     }
 
 
@@ -131,4 +146,25 @@ int sys_open (regs *r){
 int sys_close (regs *r){
     kprint("sys_close\n");
     return -1;   
+}
+
+int sys_memory(regs *r) {
+    switch (r -> ebx) {
+        case 0: //allocate
+            return (int) kmalloc(r->ecx);
+        case 1: //free
+            kfree((void *)r->ecx);
+            break;
+        default:
+            return -1;
+    }
+    return 0;
+}
+
+int get_pid(regs *r) {
+    const process_t *proc = get_current_process();
+    if (proc == NULL) {
+        return -1;
+    }
+    return (int)proc->pid;
 }

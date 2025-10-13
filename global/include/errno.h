@@ -1,6 +1,8 @@
 #ifndef MELLOS_ERRNO
 #define MELLOS_ERRNO
 
+extern int errno;
+
 #define EPERM 1
 #define ENOENT 2
 #define ESRCH 3

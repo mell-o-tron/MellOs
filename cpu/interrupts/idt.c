@@ -1,7 +1,7 @@
 //INTERRUPT DESCRIPTOR TABLE
 //(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
 
-#include "../../memory/mem.h"
+#include "mem.h"
 
 
 

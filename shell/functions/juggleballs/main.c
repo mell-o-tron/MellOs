@@ -351,7 +351,8 @@ void jb_juggle_balls(char* s) {
         printf("You need to run vell\n");
         return;
     }
-    schedule_process(jb_main);
+    //fixme: make a separate shell process, add it here, connect pipes
+    //schedule_process(jb_main);
 }
 
 void jb_main() {

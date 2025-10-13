@@ -2,16 +2,12 @@
 
 #include "stddef.h"
 #include "stdint.h"
-
+#include "circular_queue.h"
 // File structure definition
 typedef struct _FILE { // NOLINT(*-reserved-identifier)
     int fd;                      // File descriptor
     uint32_t flags;              // Status flags (read/write/error/eof)
-    uint32_t position;           // Current position in file
-    char* buffer;                // Internal buffer
-    size_t buffer_size;          // Size of buffer
-    size_t buffer_pos;           // Current position in buffer
-    size_t buffer_len;           // Valid data length in buffer
+    CircularQueue *cqueue;       // use the utilities from circular_queue.h
     int error;                   // Error indicator
     int eof;                     // End-of-file indicator
 } FILE;
@@ -71,7 +67,7 @@ int setvbuf(FILE* __restrict stream, char* __restrict buf, int mode, size_t size
 int fgetc(FILE* stream)
     __attribute__((nonnull(1)));
 
-char* fgets(char* __restrict s, int n, FILE* __restrict stream)
+char* fgets(char* __restrict buf, int length, FILE* __restrict stream)
     __attribute__((nonnull(1, 3)));
 
 int fputc(int c, FILE* stream)

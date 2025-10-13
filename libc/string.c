@@ -8,6 +8,7 @@
 #include "include/assert.h"
 #include "include/stddef.h"
 #include "include/stdint.h"
+#include "stdlib.h"
 #include "../memory/dynamic_mem.h"
 
 uint32_t strlen(const char* s){
@@ -58,7 +59,7 @@ bool string_starts_with(char *s, char *prefix) {
 
 char* str_decapitate(char *s, uint32_t n) {
     size_t len = strlen(s);
-    char* res = kmalloc(len - n + 1);
+    char* res = malloc(len - n + 1);
 
     if (n >= len) res[0] = 0;
     else {
@@ -66,5 +67,12 @@ char* str_decapitate(char *s, uint32_t n) {
             res[i] = s[i + n];
     }
 
+    return res;
+}
+
+char *strdup(const char *s) {
+    if (s == NULL) return NULL;
+    char *res = malloc(strlen(s) + 1);
+    strcpy(res, s);
     return res;
 }
