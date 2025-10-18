@@ -223,7 +223,6 @@ extern void main(uint32_t multiboot_tags_addr){
 #ifdef VGA_VESA
 
     uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
-    //const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_DIRECTORIES); // Addr of the next page that will be added
 #endif
     MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     printf("lower: %i\n", multiboot_tags->mem_upper);
