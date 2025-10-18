@@ -9,12 +9,23 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
 #set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
-# Toolchain (can be overridden by -D on configure)
-set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
-set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
-# We let the gcc driver do the link but still pass linker script via link options
-set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
-set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
+option(USE_CLANG "Use Clang as the compiler" OFF)
+
+if(USE_CLANG)
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_ASM_NASM_COMPILER "nasm")
+    set(OBJCOPY "llvm-objcopy")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=i686-unknown-none-elf")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=i686-unknown-none-elf")
+    set(CMAKE_LINKER "ld.lld" CACHE FILEPATH "Linker")
+else()
+    # Toolchain (can be overridden by -D on configure)
+    set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
+    set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
+    # We let the gcc driver do the link but still pass linker script via link options
+    set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
+    set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
+endif()
 
 project(MellOs
  LANGUAGES C ASM_NASM
@@ -117,13 +128,20 @@ foreach(asm ${ASM_SOURCES})
 endforeach()
 
 get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
-# Linker script and options (similar to: ld -T kernel/kernel.ld ...)
-# Use gcc driver to link with script and without standard libs
-target_link_options(kernel.elf PRIVATE
+
+if(USE_CLANG)
+    target_link_options(kernel.elf PRIVATE
+        -T${LDSCRIPT}
+        -nostdlib
+    )
+else()
+    target_link_options(kernel.elf PRIVATE
         -Wl,-T,${LDSCRIPT}
         -nostdlib -nodefaultlibs -nostartfiles
         -Wl,-m,elf_i386
-)
+    )
+endif()
+
 # Freestanding kernel style build
 # add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
 target_compile_options(kernel.elf PRIVATE
@@ -131,7 +149,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
-        $<$<COMPILE_LANGUAGE:C>:-m32>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<BOOL:${USE_CLANG}>>>:-m32>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
@@ -186,7 +204,7 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")

@@ -103,8 +103,10 @@ void khang(){
     for(;;);
 }
 
+#if !defined(__clang__)
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
+#endif
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
 void _kpanic(const char* msg, unsigned int int_no);
@@ -168,7 +170,9 @@ void _kpanic(const char* msg, unsigned int int_no) {
     for(;;);
 }
 
+#if !defined(__clang__)
 #pragma GCC pop_options
+#endif
 
 #define PAGE_LENGTH 4096
 uint32_t page_directory[1024]       __attribute__((aligned(4096)));
@@ -219,7 +223,7 @@ extern void main(uint32_t multiboot_tags_addr){
 #ifdef VGA_VESA
 
     uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
-    const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_DIRECTORIES); // Addr of the next page that will be added
+    //const uint32_t framebuffer_addr = 0x400000 * (2 + NUM_MANY_DIRECTORIES); // Addr of the next page that will be added
 #endif
     MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     printf("lower: %i\n", multiboot_tags->mem_upper);
@@ -287,7 +291,7 @@ extern void main(uint32_t multiboot_tags_addr){
     set_cursor_pos_raw(0);
 
     // Initialize dynamic memory allocation
-    init_allocators(memory_area.start, memory_area.length);
+    init_allocators((void*)memory_area.start, memory_area.length);
     
     #ifdef VGA_VESA
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;

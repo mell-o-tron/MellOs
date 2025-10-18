@@ -11,6 +11,9 @@
 #endif
 
 extern  void kpanic(struct regs *r);
+#include "cpu/interrupts/idt.h"
+
+void _kpanic(const char* msg, unsigned int int_no);
 void kpanic_message(const char* msg);
 
 #endif
