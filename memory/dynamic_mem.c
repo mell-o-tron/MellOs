@@ -250,18 +250,18 @@ void slab_free(void* loc, size_t size) {
 void* kmalloc(size_t size) {
     if (!buddy_inited)
         return NULL;
-    long unsigned int offset;
+    uintptr_t offset;
     if (size <= SLAB_MAX_OBJ_SIZE - sizeof(SlabObjHeader)) {
         void* obj = slab_alloc(size + sizeof(SlabObjHeader));
         SlabObjHeader* header = (SlabObjHeader*)obj + (uint32_t)dynamic_mem_loc;
         header->size = (uint8_t)(size);
-        offset = obj + sizeof(SlabObjHeader);
+        offset = (uintptr_t)obj + sizeof(SlabObjHeader);
     } else {
-        offset = (long unsigned int) buddy_alloc(size);
+        offset = (uintptr_t) buddy_alloc(size);
     }
-    assert(offset != NULL);
-    if (offset == NULL) return NULL;
-    return (void*)((long unsigned int)dynamic_mem_loc + offset);
+    assert(offset != 0);
+    if (offset == 0) return NULL;
+    return (void*)((uintptr_t)dynamic_mem_loc + offset);
 }
 
 void kfree(void* loc) {
@@ -301,7 +301,7 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
 
 void init_allocators(void* loc, size_t size) {
     dynamic_mem_loc = loc;
-    if (!buddy_init(loc, size)) {
+    if (!buddy_init((uintptr_t)loc, size)) {
         // TODO: This is not ok: if in graphics mode, the
         // fb has not been initialized yet, so we can't print.
         kpanic_message("Buddy allocator fault");

@@ -10,7 +10,7 @@
 
 typedef struct Window {
     Framebuffer* fb;
-    char* title;
+    const char* title;
     uint32_t width;
     uint32_t height;
     int x;

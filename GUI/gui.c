@@ -3,6 +3,7 @@
 #include "drivers/vesa/vesa.h"
 #include "shell/functions/vell.h"
 #include "memory/dynamic_mem.h"
+#include "kernel/kernel.h"
 #include "utils/assert.h"
 
 Window* create_window(const char* title){
