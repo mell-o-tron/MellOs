@@ -341,7 +341,7 @@ irq15:
 	push dword 47
 	jmp irq_common_stub
 
-[extern] _irq_handler
+[extern _irq_handler]
 
 irq_common_stub:
 	pusha
