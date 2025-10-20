@@ -1,6 +1,6 @@
 [bits 32]
 
-; (Shamelessely stolen | Adapted) from http://www.osdever.net/ 
+; (Shamelessely stolen | Adapted) from http://www.osdever.net/
 
 
 global _idt_load
@@ -226,7 +226,7 @@ isr_common_stub:
 	mov fs, ax
 	mov gs, ax
 	mov eax, esp                   ; Push us the stack
-	
+
 	push eax
 	mov eax, _fault_handler		   ; checks if interrupt number < 32 (if it represents an exception)
                                    ; prints exception message and halts system.
@@ -239,7 +239,7 @@ isr_common_stub:
 	popad
 	add esp, 8	                   ; Cleans up the pushed error code and pushed ISR number
 	iret		                   ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
-	
+
 ;;;;;;;;;;;;;;;;;;;;;;;; INTERRUPT REQUESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 global irq0
@@ -281,7 +281,7 @@ irq3:
 	push dword 35
 	jmp irq_common_stub
 irq4:
-	cli	
+	cli
 	push dword 0
 	push dword 36
 	jmp irq_common_stub
