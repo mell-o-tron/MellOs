@@ -62,6 +62,9 @@
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
 #include "drivers/uart.h"
+#ifdef AUDIO_ENABLED
+#include "drivers/pc_speaker.h"
+#endif
 
 
 #ifdef VGA_VESA
@@ -216,6 +219,28 @@ void task_2(){
     }
 }
 
+#ifdef AUDIO_ENABLED
+void play_startup_jingle(){
+    double base = 110;
+    double time = 10;
+    double note_duration = time * 0.75;
+    double pause_duration = time * 0.25;
+
+    beep((uint32_t)base, note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 1.33), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 1.66), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 2), note_duration);
+    sleep(pause_duration + note_duration + pause_duration);
+    beep((uint32_t)(base * 1.66), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
+    sleep(pause_duration);
+}
+#endif
+
 // char test[0xe749] = {1};
 allocator_t allocator;
 
@@ -346,6 +371,11 @@ extern void main(uint32_t multiboot_tags_addr){
 
     // Initialize the process scheduler and set this as the first process
     init_scheduler();
+
+    #ifdef AUDIO_ENABLED
+    // Victory!
+    play_startup_jingle();
+    #endif
 
     load_shell();
     // init_text_editor("test_file");

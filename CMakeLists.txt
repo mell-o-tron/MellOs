@@ -39,7 +39,8 @@ set(VRES "400" CACHE STRING "Vertical resolution")
 set(BPP  "32"   CACHE STRING "Bits per pixel")
 set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
 set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
-
+set(AUDIO_BACKEND "NONE" CACHE STRING "Audio backend to use: NONE or PULSEAUDIO")
+set(ADDITIONAL_QEMU_FLAGS "" CACHE STRING "Additional flags to pass to QEMU when running")
 #if (VGA STREQUAL "VESA")
 #    add_compile_definitions(VGA_VESA)
 #endif ()
@@ -68,6 +69,11 @@ if (MACHINE STREQUAL "PRESARIO")
 else ()
     set(DISABLE_SSE 0)
     set(TARGET_CPU "qemu32")
+endif()
+#Add audio backend flags to qemu
+if (AUDIO_BACKEND STREQUAL "PULSEAUDIO")
+    list(APPEND ADDITIONAL_QEMU_FLAGS "-audiodev" "pa,id=snd0" "-machine" "pcspk-audiodev=snd0")
+    list(APPEND COMMON_DEFS_WITH_D "-DAUDIO_ENABLED")
 endif()
 list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
@@ -204,21 +210,21 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS}
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
 
 add_custom_target(debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS}
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s) and std VGA")
 
 add_custom_target(novga_telnet
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw -serial telnet:127.0.0.1:4444,server -nographic
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -serial telnet:127.0.0.1:4444,server -nographic
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet")
