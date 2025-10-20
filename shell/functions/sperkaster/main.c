@@ -1,8 +1,8 @@
 #ifdef VGA_VESA
 #include "includes.h"
 
+typedef struct tup_Vec3__bool_le tup_Vec3__bool_le;
 typedef float float_16_arr[16];
-typedef void (*l_char_ptr_to_void_r)(char*);
 
 typedef struct Vec3 {
     float x;
@@ -11,7 +11,6 @@ typedef struct Vec3 {
 } Vec3;
 
 typedef Window* Window_ptr;
-typedef size_t (*l_Window_ptr_to_size_t_r)(Window*);
 typedef VESA_Colour* VESA_Colour_ptr;
 typedef VESA_Colour (*l_int__int__int__int_to_VESA_Colour_r)(int, int, int, int);
 
@@ -30,12 +29,13 @@ typedef struct HDColour {
 } HDColour;
 
 typedef Framebuffer* Framebuffer_ptr;
+typedef char* char_ptr;
 typedef Vec3 (*l__to_Vec3_r)();
 typedef VESA_Colour (*l_Vec3_to_VESA_Colour_r)(Vec3);
 typedef Vec3 (*l_Vec3_to_Vec3_r)(Vec3);
 typedef Vec3 (*l_Vec3__Vec3_to_Vec3_r)(Vec3, Vec3);
 typedef Vec3 (*l_Vec3__Vec3__float_to_Vec3_r)(Vec3, Vec3, float);
-typedef struct {Vec3 _0; bool _1;} tup_Vec3__bool_le;
+typedef struct tup_Vec3__bool_le {Vec3 _0; bool _1;} tup_Vec3__bool_le;
 typedef struct Vec3_opt {int is_some; Vec3 contents;} Vec3_opt;
 
 typedef struct PerspectiveCamera {
@@ -53,9 +53,10 @@ typedef struct Ray {
 
 typedef float (*l_Vec3__Vec3_to_float_r)(Vec3, Vec3);
 typedef float (*l_Vec3_to_float_r)(Vec3);
+typedef size_t (*l_Window_ptr_to_size_t_r)(Window*);
 
 typedef struct Material {
-    int type;
+    int mtype;
     HDColour colour;
     float refractive_index;
     float diffusion;
@@ -63,7 +64,6 @@ typedef struct Material {
 
 typedef HDColour (*l_HDColour__HDColour_to_HDColour_r)(HDColour, HDColour);
 typedef HDColour (*l_HDColour__float_to_HDColour_r)(HDColour, float);
-typedef void (*l_size_t__size_t__HDColour__Framebuffer_ptr_to_void_r)(size_t, size_t, HDColour, Framebuffer*);
 typedef VESA_Colour (*l_HDColour_to_VESA_Colour_r)(HDColour);
 typedef HDColour (*l_Vec3_to_HDColour_r)(Vec3);
 
@@ -74,10 +74,10 @@ typedef struct LightSource {
 } LightSource;
 
 typedef Framebuffer* (*l_Window_ptr_to_Framebuffer_ptr_r)(Window*);
+typedef void (*l_size_t__size_t__HDColour__Framebuffer_ptr_to_void_r)(size_t, size_t, HDColour, Framebuffer*);
+typedef void (*l_char_ptr_to_void_r)(char*);
 typedef PerspectiveCamera* PerspectiveCamera_ptr;
-typedef Vec3 (*l_Ray_ptr__float_to_Vec3_r)(Ray*, float);
 typedef Ray* Ray_ptr;
-typedef Ray (*l_PerspectiveCamera_ptr__float__float_to_Ray_r)(PerspectiveCamera*, float, float);
 
 typedef struct Parallelepiped {
     Vec3 min;
@@ -92,17 +92,19 @@ typedef struct Sphere {
     Material material;
 } Sphere;
 
+typedef Ray (*l_PerspectiveCamera_ptr__float__float_to_Ray_r)(PerspectiveCamera*, float, float);
+typedef Vec3 (*l_Ray_ptr__float_to_Vec3_r)(Ray*, float);
 typedef Parallelepiped* Parallelepiped_ptr;
 typedef Parallelepiped Parallelepiped_1_arr[1];
-typedef tup_Vec3__bool_le (*l_Ray_ptr__Vec3__Parallelepiped_ptr_to_tup_Vec3__bool_le_r)(Ray*, Vec3, Parallelepiped*);
-typedef Vec3_opt (*l_Ray_ptr__Parallelepiped_ptr_to_Vec3_opt_r)(Ray*, Parallelepiped*);
 typedef Sphere Sphere_4_arr[4];
 typedef Sphere* Sphere_ptr;
+typedef HDColour (*l_Ray_ptr__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Ray*, Sphere_4_arr, Parallelepiped_1_arr, int);
+typedef HDColour (*l_Material__Vec3__Ray_ptr__tup_Vec3__bool_le__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_4_arr, Parallelepiped_1_arr, int);
+typedef tup_Vec3__bool_le (*l_Ray_ptr__Vec3__Parallelepiped_ptr_to_tup_Vec3__bool_le_r)(Ray*, Vec3, Parallelepiped*);
+typedef Vec3_opt (*l_Ray_ptr__Parallelepiped_ptr_to_Vec3_opt_r)(Ray*, Parallelepiped*);
 typedef void (*l_Sphere_ptr__int_to_void_r)(Sphere*, int);
 typedef tup_Vec3__bool_le (*l_Ray_ptr__Vec3__Sphere_ptr_to_tup_Vec3__bool_le_r)(Ray*, Vec3, Sphere*);
 typedef Vec3_opt (*l_Ray_ptr__Sphere_ptr_to_Vec3_opt_r)(Ray*, Sphere*);
-typedef HDColour (*l_Ray_ptr__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Ray*, Sphere_4_arr, Parallelepiped_1_arr, int);
-typedef HDColour (*l_Material__Vec3__Ray_ptr__tup_Vec3__bool_le__Sphere_4_arr__Parallelepiped_1_arr__int_to_HDColour_r)(Material, Vec3, Ray*, tup_Vec3__bool_le, Sphere_4_arr, Parallelepiped_1_arr, int);
 
 size_t get_height (Window*);
 Framebuffer* get_fb (Window*);
@@ -451,19 +453,19 @@ Vec3 vec3_perturb(Vec3 v, float magnitude) {
 }
 
 
-int pixel_size = 2;
+int pixel_size = 1;
 
-uint32_t hres = ((uint32_t)(((int)(600)) / ((int)(2))));
+uint32_t hres = ((uint32_t)(((int)(640)) / ((int)(1))));
 
-uint32_t vres = ((uint32_t)(((int)(400)) / ((int)(2))));
+uint32_t vres = ((uint32_t)(((int)(480)) / ((int)(1))));
 
 HDColour sky_colour = ((HDColour){144 << 8, 227 << 8, 252 << 8, 255 << 8});
 
 HDColour no_colour = ((HDColour){0, 0, 0, 65535});
 
-int num_rays = 5;
+int num_rays = 1;
 
-int num_bounces = 10;
+int num_bounces = 200;
 
 float scatter_amount = 0.001;
 
@@ -477,7 +479,7 @@ bool animate = true;
 
 bool done = false;
 
-int sleep_time = 1;
+int sleep_time = 0;
 
 Framebuffer* get_fb(Window* w) {
     Framebuffer* fb = ((Framebuffer_ptr)(0));
@@ -506,18 +508,18 @@ size_t get_height(Window* w) {
 HDColour compute_colour(Material mat, Vec3 normal, Ray* ray, tup_Vec3__bool_le hit, Sphere_4_arr spheres, Parallelepiped_1_arr parallelepipeds, int max_bounces) {
     Vec3 reflected_dir = vec3_reflect((*ray).direction, normal);
     Vec3 new_origin = vec3_add(hit._0, vec3_scale(reflected_dir, acne_bias));
-    if (mat.type == 0) {
+    if (mat.mtype == 0) {
         return mat.colour;
     } else {
-        if (mat.type == 1) {
+        if (mat.mtype == 1) {
             Vec3 direction = vec3_add(vec3_random_in_unit_sphere(), normal);
             HDColour sample = HDColour_scale(cast_ray(&(((Ray){new_origin, direction})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1))), mat.diffusion);
             return HDColour_multiply(sample, mat.colour);
         } else {
-            if (mat.type == 2) {
-                    return HDColour_multiply(cast_ray(&(((Ray){new_origin, reflected_dir})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1))), mat.colour);
+            if (mat.mtype == 2) {
+                return HDColour_multiply(cast_ray(&(((Ray){new_origin, reflected_dir})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1))), mat.colour);
             } else {
-                if (mat.type == 3) {
+                if (mat.mtype == 3) {
                     float etai_over_etat = (hit._1 ? mat.refractive_index : ((float)(1.)) / ((float)(mat.refractive_index)));
                     float cos_theta = fmin(vec3_dot(vec3_scale((*ray).direction, -1.), normal), 1.);
                     float sin_theta = fsqrt(((float)(1.)) - ((float)(((float)(cos_theta)) * ((float)(cos_theta)))));
@@ -531,17 +533,17 @@ HDColour compute_colour(Material mat, Vec3 normal, Ray* ray, tup_Vec3__bool_le h
                     Vec3 refracted = vec3_add(r_out_perp, r_out_parallel);
                     return cast_ray(&(((Ray){vec3_add(hit._0, vec3_scale(refracted, acne_bias)), refracted})), spheres, parallelepipeds, ((int)(max_bounces)) - ((int)(1)));
                 } else {
-                    if (mat.type == -1) {
+                    if (mat.mtype == -1) {
                         return HDColour_from_vec3(normal);
                     } else {
-                        if (mat.type == -2) {
+                        if (mat.mtype == -2) {
                             float intensity = fclamp(fabs(vec3_dot(normal, (*ray).direction)), 0., 1.);
                             return HDColour_scale(HDColour_from_vec3(normal), intensity);
                         } else {
-                            if (mat.type == -3) {
+                            if (mat.mtype == -3) {
                                 return HDColour_from_vec3(reflected_dir);
                             } else {
-                                if (mat.type == -4) {
+                                if (mat.mtype == -4) {
                                     return HDColour_from_vec3(hit._0);
                                 } else {
 
@@ -621,37 +623,79 @@ void sperkaster(char* s) {
     ticks = ((int)(ticks)) + ((int)(1));
     while (true) {
         if (!done) {
-        for (size_t y = ((size_t)(0)); y < vres; y = ((size_t)(y)) + ((size_t)(1))) {
-            for (size_t x = ((size_t)(0)); x < hres; x = ((size_t)(x)) + ((size_t)(1))) {
-                float x_norm = ((float)(((float)((((float)(((float)(x)))) / ((float)(((float)(hres))))))) * ((float)(2.)))) - ((float)(1.));
-                float y_norm = ((float)(((float)((((float)(((float)(y)))) / ((float)(((float)(vres))))))) * ((float)(2.)))) - ((float)(1.));
-                float u = -((float)(((float)(x_norm)) * ((float)(aspect_ratio)))) * ((float)(scale));
-                float v = ((float)(y_norm)) * ((float)(scale));
-                Ray ray = camera_get_ray(&camera, u, v);
-                HDColour colour = ((HDColour){0, 0, 0, colour_max});
-                for (int r = 0; r < num_rays; r = ((int)(r)) + ((int)(1))) {
-                    Ray ray_i = ((Ray){ray.origin, vec3_normalized(vec3_perturb(ray.direction, scatter_amount))});
-                    HDColour sample = HDColour_scale(cast_ray(&ray_i, spheres, parallelepipeds, num_bounces), inverse_num_rays);
-                    colour = HDColour_add(colour, sample);
-                }
-                fb_set_pixel(x, y, colour, fb);
-                char c = get_from_kb_buffer();
-                if (c == 'q') {
-                    if (in_vell) {
-                        destroy_window(w);
-                    } else {
-
+            for (size_t y = ((size_t)(0)); y < vres; y = ((size_t)(y)) + ((size_t)(1))) {
+                for (size_t x = ((size_t)(0)); x < hres; x = ((size_t)(x)) + ((size_t)(1))) {
+                    float x_norm = ((float)(((float)((((float)(((float)(x)))) / ((float)(((float)(hres))))))) * ((float)(2.)))) - ((float)(1.));
+                    float y_norm = ((float)(((float)((((float)(((float)(y)))) / ((float)(((float)(vres))))))) * ((float)(2.)))) - ((float)(1.));
+                    float u = -((float)(((float)(x_norm)) * ((float)(aspect_ratio)))) * ((float)(scale));
+                    float v = ((float)(y_norm)) * ((float)(scale));
+                    Ray ray = camera_get_ray(&camera, u, v);
+                    HDColour colour = ((HDColour){0, 0, 0, colour_max});
+                    for (int r = 0; r < num_rays; r = ((int)(r)) + ((int)(1))) {
+                        Ray ray_i = ((Ray){ray.origin, vec3_normalized(vec3_perturb(ray.direction, scatter_amount))});
+                        HDColour sample = HDColour_scale(cast_ray(&ray_i, spheres, parallelepipeds, num_bounces), inverse_num_rays);
+                        colour = HDColour_add(colour, sample);
                     }
-                        printf("%d ticks rendered\n", ticks);
-                        ticks = 0;
-                    return;
-                } else {
+                    fb_set_pixel(x, y, colour, fb);
+                    char c = get_from_kb_buffer();
+                    if (c == 0) {
 
+                    } else {
+                        if (c == 'q') {
+                            if (in_vell) {
+                                destroy_window(w);
+                            } else {
+
+                            }
+                            printf("%d ticks rendered\n", ticks);
+                            ticks = 0;
+                            return;
+                        } else {
+                            if (c == ']') {
+                                num_rays = ((int)(num_rays)) + ((int)(1));
+                                inverse_num_rays = ((float)(1.)) / ((float)(((float)(num_rays))));
+                            } else {
+                                if (c == '[' && num_rays > 1) {
+                                    num_rays = ((int)(num_rays)) - ((int)(1));
+                                    inverse_num_rays = ((float)(1.)) / ((float)(((float)(num_rays))));
+                                } else {
+                                    if (c == '-') {
+                                        pixel_size = ((int)(pixel_size)) + ((int)(2));
+                                        hres = ((uint32_t)(((int)(640)) / ((int)((pixel_size)))));
+                                        vres = ((uint32_t)(((int)(480)) / ((int)((pixel_size)))));
+                                        if (in_vell) {
+                                            destroy_window(w);
+                                            w = create_window_with_size("Sperkaster", ((uint32_t)(hres)) * ((uint32_t)(pixel_size)), ((uint32_t)(vres)) * ((uint32_t)(pixel_size)));
+                                            fb = get_fb(w);
+                                            set_window_dirty(w);
+                                        } else {
+
+                                        }
+                                    } else {
+                                        if (c == '=' && pixel_size > 2) {
+                                            pixel_size = ((int)(pixel_size)) - ((int)(2));
+                                            hres = ((uint32_t)(((int)(640)) / ((int)((pixel_size)))));
+                                            vres = ((uint32_t)(((int)(480)) / ((int)((pixel_size)))));
+                                            if (in_vell) {
+                                                destroy_window(w);
+                                                w = create_window_with_size("Sperkaster", ((uint32_t)(hres)) * ((uint32_t)(pixel_size)), ((uint32_t)(vres)) * ((uint32_t)(pixel_size)));
+                                                fb = get_fb(w);
+                                                set_window_dirty(w);
+                                            } else {
+
+                                            }
+                                        } else {
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
-        if (in_vell) {
-            set_window_dirty(w);
+            if (in_vell) {
+                set_window_dirty(w);
             } else {
 
             }

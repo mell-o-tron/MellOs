@@ -132,7 +132,7 @@ process_t* create_task(void* code){
     *(--cur_stack) = 2; // esi
     *(--cur_stack) = (uint32_t)stack; // ebp
 
-    res->state->stack = (uint32_t*)cur_stack; // Point to top of stack
+    res->state->stack = cur_stack; // Point to top of stack
 
     return res;
 }
