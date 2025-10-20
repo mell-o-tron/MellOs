@@ -1,17 +1,19 @@
-#include "../utils/typedefs.h"
+#include "utils/typedefs.h"
 #ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "drivers/vesa/vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "drivers/vga_text.h"
 #endif
-#include "../utils/conversions.h"
-#include "../memory/mem.h"
-#include "../utils/string.h"
-#include "../shell/shell.h"
-#include "../cpu/timer/timer.h"
+#include "utils/conversions.h"
+#include "memory/mem.h"
+#include "utils/string.h"
+#include "shell/shell.h"
+#include "cpu/timer/timer.h"
 
 #include "shell_functions.h"
-#include "./functions/functions.h"
+#include "shell/functions/functions.h"
+
+#include "drivers/rtc.h"
 
 extern uint16_t CursorPos;
 
@@ -48,7 +50,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&sperkaster, "sp", "Perk raycasting engine", "sperkaster"),
     #endif
     CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo"),
-    CMDENTRY(&meminfo, "meminfo", "Displays memory info", "meminfo")
+    CMDENTRY(&meminfo, "meminfo", "Displays memory info", "meminfo"),
+    CMDENTRY(&print_time, "time", "Displays current time", "time"),
 };
 
 

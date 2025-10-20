@@ -45,3 +45,5 @@ FHDR(sperkaster);
 #endif
 FHDR(displayinfo);
 FHDR(meminfo);
+
+FHDR(print_time);
