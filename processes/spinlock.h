@@ -153,7 +153,6 @@ static inline void SpinUnlock(volatile int* lock) {
 
 static inline irqflags_t SpinLockIrqSave(volatile int* lock) {
     irqflags_t flags = local_irq_save();
-    local_irq_disable();
     SpinLock(lock);  // Uses the advanced version above
     return flags;
 }

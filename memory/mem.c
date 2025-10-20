@@ -81,7 +81,6 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
     if (cpuid_has_sse() && count >= 16)
     {
         irqflags_t irqf = local_irq_save();
-        local_irq_disable();
 
         // Align dest to 16 bytes
         while (((uintptr_t)dest & 15) != 0 && count > 0)
@@ -157,7 +156,6 @@ void *memcpy(void * restrict dest, const void * restrict src, uint32_t size)
     if (cpuid_has_sse() && size >= 16) {
         // SSE2 copy using unaligned load/store. Disable IRQs to avoid ISR clobber.
         irqflags_t irqf = local_irq_save();
-        local_irq_disable();
         while (size >= 16) {
             __asm__ volatile(
                 "movdqu (%1), %%xmm7\n"

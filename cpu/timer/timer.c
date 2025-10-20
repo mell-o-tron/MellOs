@@ -21,7 +21,6 @@ extern bool keyboard_enabled;
 void timer_phase(uint16_t hz)
 {
 	irqflags_t irqf = local_irq_save();
-	local_irq_disable();
 	current_hz = hz;
 	uint32_t div32 = 1193180u / (hz ? hz : 1u);
     uint16_t divisor = (uint16_t)div32;
