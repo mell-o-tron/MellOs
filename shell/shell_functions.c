@@ -52,6 +52,9 @@ shellfunction CMDs[] = {
     CMDENTRY(&displayinfo, "displayinfo", "Display display info", "displayinfo"),
     CMDENTRY(&meminfo, "meminfo", "Displays memory info", "meminfo"),
     CMDENTRY(&print_time, "time", "Displays current time", "time"),
+    #ifdef AUDIO_ENABLED
+    CMDENTRY(&roll, "roll", "Get rolled", "roll"),
+    #endif
 };
 
 

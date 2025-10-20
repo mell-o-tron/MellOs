@@ -47,3 +47,6 @@ FHDR(displayinfo);
 FHDR(meminfo);
 
 FHDR(print_time);
+#ifdef AUDIO_ENABLED
+FHDR(roll);
+#endif
