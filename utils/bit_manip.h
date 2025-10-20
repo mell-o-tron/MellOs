@@ -5,3 +5,4 @@
 
 #define SET_FLAG(x,y) (x | (1 << y))
 #define CLR_FLAG(x,y) (x & ~(1 << y))
+#define CHK_FLAG(x,y) ((x >> y) & 1)
