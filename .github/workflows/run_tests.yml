@@ -10,7 +10,7 @@ jobs:
     run-tests:
         runs-on: ubuntu-latest
         container:
-            image: alex23087/mellos-build-arch:latest
+            image: alex23087/mellos-build-arch-clang:latest
         strategy:
             matrix:
                 machine: ['PRESARIO', 'OTHER']
@@ -36,11 +36,15 @@ jobs:
               run: |
                 sed -i '/COMMAND qemu/ s/$/\&/g' CMakeLists.txt
 
+            - name: Patch CMakeFile to disable generation of debug symbols
+              run: |
+                sed -i '/COMMAND \${CMAKE_COMMAND}/ s/^.*debug_symbols.*$//g' CMakeLists.txt
+
             - name: Build MellOS
               run: |
                 mkdir build
                 cd build
-                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug ..
+                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug -DUSE_CLANG=ON ..
                 make    
             
             - name: Run
