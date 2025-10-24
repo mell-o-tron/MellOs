@@ -1,0 +1,30 @@
+# THIS CONTAINER DOES NOT WORK FOR SOME REASON, USE THE ARCHLINUX ONE INSTEAD
+# Qemu fails to boot from the created ISO with a "No bootable device" error.
+# If you figure out why, please submit a PR.
+
+# Dockerfile alex23087/mellos-build-small:v0.1
+FROM alpine:latest
+
+# Update apk repo cache before trying to install stuff
+# These run commands are clustered together to cause less
+# and smaller layers to be created.
+RUN apk update && \
+    apk add --no-cache cmake make nasm clang grub xorriso qemu-system-i386 && \
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+
+# The following should be run inside the container to build MellOS and run it in QEMU:
+
+# apk add --no-cache git mtools libisoburn
+# git clone https://github.com/mell-o-tron/MellOs
+# cd MellOs
+# sed -i '/COMMAND qemu/ s/-enable-kvm //g' CMakeLists.txt
+# sed -i '/COMMAND qemu/ s/-s //g' CMakeLists.txt
+# sed -i 's/-serial telnet:127.0.0.1:4444,server/-serial file:mellos_output.log/g' CMakeLists.txt
+# sed -i '/COMMAND qemu/ s/$/\&/g' CMakeLists.txt
+# sed -i '/COMMAND \${CMAKE_COMMAND}/ s/^.*debug_symbols.*$//g' CMakeLists.txt
+# mkdir build
+# cd build
+# cmake -DMACHINE=PRESARIO -DVGA=VESA -DCMAKE_BUILD_TYPE=Debug -DUSE_CLANG=ON ..
+# cmake --build .
+# qemu-system-i386 -cdrom mellos.iso -m 128M -s -cpu 486 -drive file=test_disk.img,format=raw -nographic -boot order=d

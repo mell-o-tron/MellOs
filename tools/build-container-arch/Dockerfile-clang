@@ -1,0 +1,11 @@
+# Dockerfile alex23087/mellos-build-arch-clang:v0.1
+FROM archlinux:base-devel-20251005.0.430597
+
+# Update pacman repo cache before trying to install stuff
+# These run commands are clustered together to cause less
+# and smaller layers to be created.
+RUN pacman -Sy && \
+    pacman -S --noconfirm clang cmake nasm grub libisoburn mtools qemu-base && \
+    pacman -Scc --noconfirm && \
+    rm -f setup-gcc-arch.sh && \
+    rm -rf /var/cache/pacman/pkg/* /tmp/* /var/tmp/*
