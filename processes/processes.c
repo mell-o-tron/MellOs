@@ -1,7 +1,7 @@
 #include "processes.h"
 
 #include "utils/format.h"
-
+#include "spinlock.h"
 #include "memory/dynamic_mem.h"
 #include "memory/mem.h"
 #include "utils/typedefs.h"
@@ -20,6 +20,7 @@
 extern void save_task_state(struct task_state *state, void* new_eip);
 extern void load_task_state(struct task_state *state);
 
+volatile int* process_lock = 0;
 
 
 // void kprint_task_state(struct task_state *state) {
@@ -58,6 +59,7 @@ extern void load_task_state(struct task_state *state);
 // }
 
 process_t* create_empty_task(){
+    // SpinLock(process_lock);
     process_t* res = kmalloc(sizeof(process_t));
     assert_msg(res != NULL, "Failed to allocate memory for new process");
     state_t* s = kmalloc(sizeof(state_t));
@@ -67,6 +69,7 @@ process_t* create_empty_task(){
     res -> must_relinquish = false;
 
     memset(s, 0, sizeof(state_t));
+    // SpinUnlock(process_lock);
     return res;
 }
 
