@@ -1,53 +1,57 @@
-//INTERRUPT SERVICE ROUTINES
+#include "autoconf.h"
+// INTERRUPT SERVICE ROUTINES
 
-//(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
-
+//(Shamelessely stolen | Adapted) from http://www.osdever.net/
 
 #include "cpu/idt.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #else
 #include "vga_text.h"
 #endif
+#include "cpu/isr.h"
 #include "mellos/kernel/kernel.h"
 #include "syscalls.h"
 
+#include <port_io.h>
 
-extern  void _isr0();
-extern  void _isr1();
-extern  void _isr2();
-extern  void _isr3();
-extern  void _isr4();
-extern  void _isr5();
-extern  void _isr6();
-extern  void _isr7();
-extern  void _isr8();
-extern  void _isr9();
-extern  void _isr10();
-extern  void _isr11();
-extern  void _isr12();
-extern  void _isr13();
-extern  void _isr14();
-extern  void _isr15();
-extern  void _isr16();
-extern  void _isr17();
-extern  void _isr18();
-extern  void _isr19();
-extern  void _isr20();
-extern  void _isr21();
-extern  void _isr22();
-extern  void _isr23();
-extern  void _isr24();
-extern  void _isr25();
-extern  void _isr26();
-extern  void _isr27();
-extern  void _isr28();
-extern  void _isr29();
-extern  void _isr30();
-extern  void _isr31();
-extern  void _syscall();
+bool probing;
+uint8_t probe_type;
+bool probe_result;
 
-void isrs_install()
-{
+char* exception_messages[32] = {"Division By Zero",
+                                "Debug",
+                                "Non Maskable Interrupt",
+                                "Breakpoint",
+                                "Into Detected Overflow",
+                                "Out of Bounds",
+                                "Invalid Opcode",
+                                "No Coprocessor",
+                                "Double Fault",
+                                "Coprocessor Segment Overrun",
+                                "Bad TSS",
+                                "Segment Not Present",
+                                "Stack Fault",
+                                "General Protection Fault",
+                                "Page Fault",
+                                "Unknown Interrupt",
+                                "Coprocessor Fault",
+                                "Alignment Check",
+                                "Machine Check",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved",
+                                "Reserved"};
+
+__attribute__((section(".low.text"))) void isrs_install() {
 	idt_set_gate(0, (unsigned)_isr0, 0x08, 0x8E);
 	idt_set_gate(1, (unsigned)_isr1, 0x08, 0x8E);
 	idt_set_gate(2, (unsigned)_isr2, 0x08, 0x8E);
@@ -80,21 +84,27 @@ void isrs_install()
 	idt_set_gate(29, (unsigned)_isr29, 0x08, 0x8E);
 	idt_set_gate(30, (unsigned)_isr30, 0x08, 0x8E);
 	idt_set_gate(31, (unsigned)_isr31, 0x08, 0x8E);
-	
+
 	idt_set_gate(0x80, (unsigned)_syscall, 0x08, 0x8E);
-	
 }
 
-extern  void _fault_handler(struct regs *r)
-{
-    if (r -> int_no == 0x80){
+extern void _fault_handler(struct regs* r) {
+	if (r->int_no == 0x80) {
 		syscall_stub(r);
+		outb(0x20, 0x20);
 		return;
-    }
-    
-	
-    if (r->int_no < 32)
-    {
+	}
+
+	if (r->int_no < 32) {
+		if (probing) {
+			if (probe_type == PROBE_TYPE_MMX) {
+				probe_result = true;
+			} else {
+				probe_result = false;
+			}
+
+			probing = false;
+		}
 		// kprint("Received interrupt: ");
 		// kprint_dec(r->int_no);
 		// unsigned int cr2;
@@ -111,5 +121,5 @@ extern  void _fault_handler(struct regs *r)
 		// kprint_hex(return_pointer);
 		// while(1);
 		kpanic(r);
-    }
+	}
 }

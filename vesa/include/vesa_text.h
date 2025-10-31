@@ -1,5 +1,6 @@
 #pragma once
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 
 #include "vesa.h"
 #include "graphics_types.h"
@@ -18,8 +19,8 @@ uint16_t get_cursor_pos_raw();
 void clear_line_col(uint32_t line, Colour col);
 
 void kclear_screen();
-void kprint_col(const char* s, Colour col);
-void kprint(const char* s);
+int kprint_col(const char* s, Colour col);
+int kprint(const char* s);
 void kprint_char (char c, bool caps);
 void kprint_dec(uint32_t n);
 void kprint_hex(uint32_t n);

@@ -1,4 +1,5 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "stdint.h"
 #include "stdbool.h"
@@ -8,7 +9,7 @@
 #include "cpu/idt.h"
 #include "conversions.h"
 #include "timer.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

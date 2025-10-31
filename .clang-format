@@ -1,0 +1,22 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+ColumnLimit: 100
+
+# 'Attach' means opening braces stay on the same line for everything:
+# if ( ) { }, struct Foo { }
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Never
+SpaceBeforeParens: ControlStatements
+
+IndentGotoLabels: false     # labels at column 0
+
+PointerAlignment: Left
+
+SortIncludes: true
+AlignAfterOpenBracket: Align

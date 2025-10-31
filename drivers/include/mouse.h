@@ -1,5 +1,6 @@
 #pragma once
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "../../cpu/include/cpu/irq.h"
 #include "stdint.h"
 #include "stdbool.h"

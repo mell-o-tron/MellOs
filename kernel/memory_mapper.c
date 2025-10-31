@@ -1,3 +1,4 @@
+#include "autoconf.h"
 //
 // Created by matias on 9/25/25.
 //
@@ -10,6 +11,8 @@
 
 #include "memory_area_spec.h"
 #include "mellos/kernel/multiboot_tags.h"
+#include "mellos/kernel/kernel_stdio.h"
+
 
 MultibootTags *multiboot_tags_local = NULL;
 void *framebuffer_addr_local = NULL;
@@ -17,6 +20,7 @@ uint8_t bpp_local = 0;
 
 #define FB_INFO_BIT 12 // bit 12 for framebuffer
 
+__attribute__((section(".low.text")))
 inline uintptr_t get_multiboot_framebuffer_addr(const MultibootTags* mb) {
     if (!mb) {
         return 0;
@@ -50,13 +54,13 @@ MemoryArea get_largest_free_block() {
 
     if (CHECK_FLAG(multiboot_tags_local->flags, 6)) {
 
-        printf("mmap_addr = 0x%x, mmap_length = 0x%x\n",
+        kprintf("mmap_addr = %x, mmap_length = %x\n",
                (unsigned) multiboot_tags_local->mmap_addr,
                (unsigned) multiboot_tags_local->mmap_length);
 
 
         // Add framebuffer area to excluded areas
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
         excluded_areas[num_excluded_areas].start = (intptr_t) framebuffer_addr_local;
         excluded_areas[num_excluded_areas].end = (intptr_t) framebuffer_addr_local +
                                                  (intptr_t) multiboot_tags_local->framebuffer_height *
@@ -114,13 +118,13 @@ MemoryArea get_largest_free_block() {
                 }
             }
 
-            printf("base = 0x%016lx, length = 0x%016lx, type = %s\n",
+            kprintf("base = %016lx, length = %016lx, type = %s\n",
                           (uintptr_t) mmap->addr,
                           (uintptr_t) mmap->len,
                           names[mmap->type - 1]);
         } // end of for loop
     } else {
-        printf("bit 6 not set");
+        kprintf("bit 6 not set");
         return (MemoryArea){(intptr_t)NULL, 0};
     }
 

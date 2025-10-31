@@ -1,5 +1,6 @@
+#include "autoconf.h"
 #include "vesa.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #define FDEF(name) void name(const char* s)
 

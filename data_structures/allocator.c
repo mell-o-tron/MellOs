@@ -1,8 +1,9 @@
+#include "autoconf.h"
 #include "bitmap.h"
 #include "stdint.h"
 #include "allocator.h"
 #include "stddef.h"
-/*#ifdef VGA_VESA
+/*#ifdef CONFIG_GFX_VESA
 #include "../drivers/vesa/include/vesa_text.h"
 #else
 #include "../drivers/vga_text.h"

@@ -1,9 +1,13 @@
+#include "autoconf.h"
 // Simple (P)Ata HDD (Hard Disk Drive) Polling Driver using PIO Mode (instead of the better DMA)
 // Inspirations and Sources: (https://wiki.osdev.org/ATA_PIO_Mode)
 
 #include "disk.h"
+
+#include "stddef.h"
+
 #include "port_io.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

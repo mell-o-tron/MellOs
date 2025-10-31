@@ -2,22 +2,25 @@
 #include "stdint.h"
 #include "stddef.h"
 
-static inline int syscall(int number, ...) {
+static int syscall(int number, ...) {
     int ret;
     va_list args;
     va_start(args, number);
-
-    asm volatile (
-        "movl %1, %%eax\n"
-        "movl %2, %%ebx\n" 
-        "movl %3, %%ecx\n"
-        "int $0x80"
-        : "=a"(ret)
-        : "r"(number), "r"(va_arg(args, int)), "r"(va_arg(args, int))
-        : "%ebx", "%ecx"
-    );
+    int arg1 = va_arg(args, int);
+    int arg2 = va_arg(args, int);
+    int arg3 = va_arg(args, int);
 
     va_end(args);
+
+
+    asm volatile (
+        "int $0x80\n"
+        : "=a"(ret)
+        : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3)
+        : "memory"
+    );
+
+
     return ret;
 }
 

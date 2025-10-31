@@ -1,8 +1,9 @@
+#include "autoconf.h"
 #include "list.h"
 #include "stdint.h"
 #include "dynamic_mem.h"
 #include "conversions.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

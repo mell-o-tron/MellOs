@@ -1,7 +1,8 @@
+#include "autoconf.h"
 #include "stdint.h"
 #include "stdbool.h"
 #include "conversions.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

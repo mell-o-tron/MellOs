@@ -41,6 +41,10 @@ typedef struct _fpos_t {
 #define _FILE_LINEBUF 0x0020 // NOLINT(*-reserved-identifier)
 
 // Standard streams (to be defined in implementation)
+#define FD_STDOUT 1
+#define FD_STDERR 2
+#define FD_STDIN  0
+
 extern FILE* stdin;
 extern FILE* stdout;
 extern FILE* stderr;

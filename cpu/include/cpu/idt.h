@@ -7,10 +7,11 @@ extern void idt_install();
 
 typedef struct regs
 {
+    unsigned int cr2;
     unsigned int gs, fs, es, ds;      /* pushed the segs last */
     unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
     unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
-    unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
+    unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */
 } __attribute__ ((packed)) regs;
 
 

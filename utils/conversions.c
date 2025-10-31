@@ -8,7 +8,7 @@
 ***********************************************************/
 
 #include "string.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -148,6 +148,7 @@ int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize)
 
     /* 64 bit integers require libgcc */
 #ifndef ALLOW_64BIT
+#include "autoconf.h"
     /* gcc should be able to do this operation without libgcc */
     if (x > 0xFFFFFFFF)
         return -ERANGE;

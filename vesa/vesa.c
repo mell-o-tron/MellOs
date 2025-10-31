@@ -1,9 +1,10 @@
+#include "autoconf.h"
 /* Basic Framebuffer graphic library
  * Part of MellOS
  * - Perk
  */
 
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 
 #include "vesa.h"
 #include "test_font.h"
@@ -15,6 +16,8 @@
 // libc includes
 #include "math.h"
 
+#include <mellos/kernel/kernel.h>
+
 uint32_t Hres;
 uint32_t Vres;
 uint32_t Pitch;
@@ -23,6 +26,9 @@ Framebuffer* vga_fb;
 
 void _vesa_framebuffer_init(PIXEL addr){
     vga_fb = kmalloc(sizeof(Framebuffer));
+	if (vga_fb == NULL) {
+		kpanic_message("Failed to allocate memory for framebuffer\n");
+	}
 	vga_fb->fb = (volatile PIXEL*)addr;
     vga_fb->width = Hres;
     vga_fb->height = Vres;

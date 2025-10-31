@@ -1,14 +1,11 @@
-#include <dynamic_mem.h>
-#include <errno.h>
-#include <mem.h>
-#include <processes.h>
-#include <string.h>
-
+#include "dynamic_mem.h"
+#include "errno.h"
+#include "mem.h"
+#include "processes.h"
+#include "string.h"
+#include "mellos/ramfs.h"
 #include "mellos/fd.h"
 
-#define MAX_OPEN_FILES 2048
-#define MAX_OPEN_FILES_PROCESS 64
-#define NULL_FILE "/dev/null"
 
 open_file_t open_files[MAX_OPEN_FILES];
 fd_t open_file_descriptors[FD_MAX_TOTAL];
@@ -24,6 +21,8 @@ fd_t *open_fd_standalone(int type, int flags, int permissions, char* path) {
         errno = EBUSY;
         return NULL;
     }
+
+    char *fd_name;
 
     open_file_descriptors[fdid].type = type;
     open_file_descriptors[fdid].flags = flags;
@@ -45,15 +44,21 @@ fd_t *open_fd_standalone(int type, int flags, int permissions, char* path) {
             }
 
             open_files[fdid].type = FD_TYPE_NULL;
-            open_file_descriptors[fdid].name = "null_fd";
+            fd_name = "null_fd";
+            open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
+            open_file_descriptors[fdid].name = fd_name;
             open_file_descriptors[fdid].resource = null_file;
             break;
         case FD_TYPE_PIPE:
-            open_file_descriptors[fdid].name = "pipe_fd";
+            fd_name = "pipe_fd";
+            open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
+            open_file_descriptors[fdid].name = fd_name;
             open_file_descriptors[fdid].resource = kmalloc(sizeof(pipe_t));
             break;
         case FD_TYPE_FILE:
-            open_file_descriptors[fdid].name = "file_fd";
+            fd_name = "file_fd";
+            open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
+            open_file_descriptors[fdid].name = fd_name;
             open_file_descriptors[fdid].resource = kmalloc(sizeof(open_file_t));
             ((open_file_t *)open_file_descriptors[fdid].resource)->permissions = permissions;
             ((open_file_t *)open_file_descriptors[fdid].resource)->name = path;
@@ -113,49 +118,6 @@ int find_first_free_fd_PID(uint32_t pid) {
     return -EMFILE;
 }
 
-open_file_t *open_file(char *path, int type) {
-    if (path == NULL) {
-        errno = EINVAL;
-        return NULL;
-    }
-    if (type == FD_TYPE_PIPE) {
-        errno = EINVAL;
-        return NULL;
-    }
-    for (int i = 0; i < MAX_OPEN_FILES; i++) {
-        if (open_files[i].name != NULL && !strcmp(open_files[i].name, path)) {
-            open_files[i].ref_count += 1;
-            return &open_files[i];
-        }
-    }
-
-    int file_id = find_first_free_file();
-    if (file_id < 0) {
-        errno = -file_id;
-        return NULL;
-    }
-
-    switch (type) {
-        case FD_TYPE_NULL:
-            open_files[file_id].type = FD_TYPE_NULL;
-            open_files[file_id].name = strdup(path);
-            open_files[file_id].ref_count = 1;
-            return &open_files[file_id];
-
-        case FD_TYPE_VIRTUAL:
-        case FD_TYPE_FILE:
-        case FD_TYPE_DIR:
-        case FD_TYPE_SOCKET:
-            open_files[file_id].type = type;
-            open_files[file_id].name = strdup(path);
-            open_files[file_id].ref_count = 1;
-            return &open_files[file_id];
-
-        default:
-            errno = EINVAL;
-            return NULL;
-    }
-}
 
 int is_file_in_use(open_file_t *file) {
     for (int i = 0; i < FD_MAX_TOTAL; i++) {

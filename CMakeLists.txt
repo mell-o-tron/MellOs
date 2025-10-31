@@ -16,43 +16,149 @@ set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler
 set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
 
-project(MellOs LANGUAGES C ASM_NASM)
-set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
-set(TESTING "YES" CACHE STRING "Do you want to enable testing at runtime?")
-set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
-set(HRES "600" CACHE STRING "Horizontal resolution")
-set(VRES "400" CACHE STRING "Vertical resolution")
-set(BPP  "32"   CACHE STRING "Bits per pixel")
-set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
-set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
-
-
 # Output directory compatible with Makefile
 set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
+# Helpful: export compile commands (a compile_commands.json will be in build dir)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Build flags similar to Makefile
-set(COMMON_DEFS VGA_${VGA} HRES=${HRES} VRES=${VRES} BPP=${BPP} WINDOW_DRAG_${WINDOW_DRAG})
-set(COMMON_DEFS_WITH_D)
-foreach (def ${COMMON_DEFS})
-    list(APPEND COMMON_DEFS_WITH_D "-D${def}")
-endforeach ()
-if (TESTING STREQUAL "YES" OR TESTING STREQUAL "TRUE")
-    list(APPEND COMMON_DEFS_WITH_D "-DMELLOS_ENABLE_TESTS")
-endif ()
-if (MACHINE STREQUAL "PRESARIO")
-    list(APPEND COMMON_DEFS_WITH_D "-DDISABLE_SSE")
-    set(DISABLE_SSE 1)
-    set(TARGET_CPU "486")
-else ()
-    set(DISABLE_SSE 0)
-    set(TARGET_CPU "qemu32")
-endif()
-list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
-# Do not set global include directories to avoid cross-polluting libc includes
+
+project(MellOs LANGUAGES C ASM_NASM)
+#set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
+#set(TESTING "YES" CACHE STRING "Do you want to enable testing at runtime?")
+#set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
+#set(HRES "600" CACHE STRING "Horizontal resolution")
+#set(VRES "400" CACHE STRING "Vertical resolution")
+#set(BPP  "32"   CACHE STRING "Bits per pixel")
+#set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
+set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
+
+set(ASM_SOURCES
+        ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
+        ${CMAKE_SOURCE_DIR}/processes/processes_asm.asm
+)
+
+add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
+
+set(KCONFIG_ROOT      ${CMAKE_SOURCE_DIR}/Kconfig)
+set(KCONFIG_BUILD     ${CMAKE_BINARY_DIR})
+set(KCONFIG_DOTCONFIG ${KCONFIG_BUILD}/.config)
+set(KCONFIG_HEADERDIR ${KCONFIG_BUILD}/include/generated)
+
+set(KCONFIG_AUTOCONF  ${KCONFIG_BUILD}/auto.conf)
+set(KCONFIG_HEADER    ${KCONFIG_HEADERDIR}/autoconf.h)
+set(KCONFIG_NASM ${CMAKE_BINARY_DIR}/include/generated/kconfig.asm)
+set(KCONFIG_CMAKE ${CMAKE_BINARY_DIR}/cmake/kconfig.cmake)
+
+set(SCRIPTS_DIR ${CMAKE_SOURCE_DIR}/scripts)
+set(KCONFIG2CMAKE_EXE "${SCRIPTS_DIR}/kconfig2cmake.py")
+set(OLDDEFCONFIG_EXE "${SCRIPTS_DIR}/kconfig-py/olddefconfig.py")
+set(DEFCONFIG_EXE "${SCRIPTS_DIR}/kconfig-py/defconfig.py")
+set(GENCONFIG_EXE "${SCRIPTS_DIR}/kconfig-py/genconfig.py")
+set(KCONFIGLIB_EXE "${SCRIPTS_DIR}/kconfig-py/kconfiglib.py")
+set(MENUCONFIG_EXE "${SCRIPTS_DIR}/kconfig-py/menuconfig.py")
+
+add_custom_target(menuconfig_gui
+        COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
+        ${MENUCONFIG_EXE} ${KCONFIG_ROOT}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        USES_TERMINAL
+        DEPENDS kconfig_all
+        COMMENT "Launching Kconfig TUI (menuconfig)")
+
+add_custom_command(OUTPUT ${KCONFIG_HEADER} ${KCONFIG_AUTOCONF}
+        COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
+        ${GENCONFIG_EXE} ${KCONFIG_ROOT}
+        --header-path ${KCONFIG_HEADER}
+        --config-out  ${KCONFIG_BUILD}/auto.conf
+        DEPENDS ${KCONFIG_ROOT}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating ${KCONFIG_HEADER} from ${KCONFIG_DOTCONFIG}")
+
+add_custom_target(kconfig_outputs DEPENDS ${KCONFIG_HEADER} ${KCONFIG_AUTOCONF})
+
+
+add_custom_command(OUTPUT ${KCONFIG_CMAKE}
+        COMMAND ${SCRIPTS_DIR}/kconfig2cmake.py
+        ${KCONFIG_AUTOCONF} ${KCONFIG_CMAKE}
+        DEPENDS ${KCONFIG_AUTOCONF} ${SCRIPTS_DIR}/kconfig2cmake.py
+        COMMENT "Translating auto.conf to kconfig.cmake")
+
+add_custom_command(OUTPUT ${KCONFIG_NASM}
+        COMMAND ${SCRIPTS_DIR}/kconfig2nasm.py
+        ${KCONFIG_AUTOCONF} ${KCONFIG_NASM}
+        DEPENDS ${KCONFIG_AUTOCONF} ${SCRIPTS_DIR}/kconfig2nasm.py
+        COMMENT "Translating auto.conf to kconfig.inc")
+
+add_custom_target(kconfig_nasm DEPENDS kconfig_outputs ${KCONFIG_NASM})
+add_custom_target(kconfig_cmake DEPENDS kconfig_outputs ${KCONFIG_CMAKE})
+
+add_custom_target(kconfig_all DEPENDS kconfig_nasm kconfig_cmake)
+add_dependencies(kernel.elf kconfig_all)
+
+add_custom_target(menuconfig
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target menuconfig_gui --config $<CONFIG>
+        COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target kconfig_all --config $<CONFIG>
+)
+
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_BINARY_DIR}/include/generated/autoconf.h")
+
+
+set(CPU_FLAGS "")
+execute_process(
+        COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
+        ${OLDDEFCONFIG_EXE} ${KCONFIG_ROOT}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND_ERROR_IS_FATAL ANY
+)
+
+execute_process(
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include/generated"
+        COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
+        ${GENCONFIG_EXE} ${KCONFIG_ROOT}
+        --header-path ${KCONFIG_HEADER}
+        --config-out  ${KCONFIG_AUTOCONF}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND_ERROR_IS_FATAL ANY
+)
+
+execute_process(
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/cmake"
+        COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
+        ${KCONFIG2CMAKE_EXE} ${KCONFIG_AUTOCONF} ${KCONFIG_CMAKE}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND_ERROR_IS_FATAL ANY
+)
+
+execute_process(
+        COMMAND ${SCRIPTS_DIR}/kconfig2nasm.py ${KCONFIG_AUTOCONF} ${KCONFIG_NASM}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND_ERROR_IS_FATAL ANY
+)
+
+include(${KCONFIG_CMAKE})
+include(${SCRIPTS_DIR}/kconfig_helper.cmake)
+include(${SCRIPTS_DIR}/helpers.cmake)
+
+collect_kconfig_cpu_flags(CPU_FLAGS)
+message(STATUS "cpu flags: ${CPU_FLAGS}")
+
+
+
+include(${SCRIPTS_DIR}/helpers.cmake)
+
+
+
+set(GENERATED_INC "${CMAKE_BINARY_DIR}/include/generated")
+add_library(project_headers INTERFACE)
+target_include_directories(project_headers INTERFACE "${GENERATED_INC}")
+link_libraries(project_headers)
+
+# Do not set global include directories to avoid cross-polluting libc includes (other than config)
 
 add_subdirectory(vesa)
 add_subdirectory(GUI)
@@ -71,28 +177,13 @@ add_subdirectory(file_system)
 add_subdirectory(disk_interface)
 add_subdirectory(test)
 
-set(NASM_DEFS
-        -D${VGA}
-        -DHRES=${HRES}
-        -DVRES=${VRES}
-        -DBPP=${BPP}
-)
-
 set(NASM_INCS)
 foreach(d ${INC_DIRS})
     list(APPEND NASM_INCS -I${d}/)
 endforeach()
 
-# Do NOT set CMAKE_ASM_NASM_FLAGS with a big string; it causes shell splitting
-# set(CMAKE_ASM_NASM_FLAGS "${CMAKE_ASM_NASM_FLAGS} ${NASM_DEFS} ${NASM_INCS}")
+list(APPEND NASM_INCS -I${CMAKE_BINARY_DIR}/include/generated)
 
-# ASM sources
-set(ASM_SOURCES
-        ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
-        ${CMAKE_SOURCE_DIR}/processes/processes_asm.asm
-)
-
-add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
 set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
 
 #target_include_directories(kernel.elf PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
@@ -115,7 +206,6 @@ target_link_libraries(kernel.elf
         testing
 )
 
-
 # Add module object libraries
 if (TARGET gui_objs)
     target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:mellos_libc>)
@@ -135,9 +225,10 @@ endif()
 # Link libc for formatting functions used by non-kernel modules
 #target_link_libraries(kernel.elf mellos_libc)
 # Apply NASM flags correctly as a list (each arg stays its own token)
+message(STATUS "nasm includes: ${NASM_INCS}")
 foreach(asm ${ASM_SOURCES})
     set_source_files_properties(${asm} PROPERTIES
-            COMPILE_OPTIONS "${NASM_DEFS};${NASM_INCS};-w+regsize"
+            COMPILE_OPTIONS "${NASM_INCS};-w+all" # defs no longer needed, settings in autoconf.asm
     )
 endforeach()
 
@@ -146,30 +237,33 @@ get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
 # Use gcc driver to link with script and without standard libs
 target_link_options(kernel.elf PRIVATE
         -Wl,-T,${LDSCRIPT}
+        -no-pie
         -nostdlib -nodefaultlibs -nostartfiles
         -Wl,-m,elf_i386
 )
 # Freestanding kernel style build
 # add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
 set(MELLOS_COMPILE_OPTIONS
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g3>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<COMPILE_LANGUAGE:C>:-nostdlib>
         $<$<COMPILE_LANGUAGE:C>:-nostdinc>
-        $<$<COMPILE_LANGUAGE:C>:-m32>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
         $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
+        $<$<COMPILE_LANGUAGE:C>:-fno-strict-aliasing>
+        $<$<COMPILE_LANGUAGE:C>:-fno-omit-frame-pointer>
+        $<$<COMPILE_LANGUAGE:C>:-fno-optimize-sibling-calls>
+        $<$<COMPILE_LANGUAGE:C>:-fno-delete-null-pointer-checks>
         $<$<COMPILE_LANGUAGE:C>:-Wall>
         $<$<COMPILE_LANGUAGE:C>:-Wno-parentheses>
         $<$<COMPILE_LANGUAGE:C>:-Wno-missing-braces>
         $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
         $<$<COMPILE_LANGUAGE:C>:-Werror=return-type>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
-        $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
+        $<$<COMPILE_LANGUAGE:C>:${CPU_FLAGS}>
 )
 
 target_compile_options(kernel.elf PRIVATE
@@ -245,5 +339,3 @@ add_custom_target(novga_telnet
         USES_TERMINAL
         COMMENT "Run QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet")
 
-# Helpful: export compile commands (a compile_commands.json will be in build dir)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

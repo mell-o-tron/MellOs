@@ -1,7 +1,8 @@
+#include "autoconf.h"
 #include "file_system.h"
 #include "string.h"
 #include "dynamic_mem.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa.h"
 #include "vesa_text.h"
 #include "mouse.h"

@@ -1,4 +1,5 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -16,7 +17,7 @@ FDEF(echo){
 }
 
 FDEF(clear){
-    #ifdef VGA_VESA
+    #ifdef CONFIG_GFX_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);

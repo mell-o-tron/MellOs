@@ -1,3 +1,4 @@
+#include "autoconf.h"
 #include "shell/shell.h"
 
 #include <linked_list.h>
@@ -5,7 +6,7 @@
 #include "processes.h"
 
 #include "stddef.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -28,22 +29,22 @@ cbuffer_t shell_tasks;
 
 void add_filewrite_task(char* str, char* filename, uint32_t len){
     add_to_cbuffer(&shell_tasks, 'W', false);
-    
+
     add_to_cbuffer(&shell_tasks, (uint32_t)filename & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)filename >> 8) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)filename >> 16) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)filename >> 24) & 0xFF, false);
-    
+
     add_to_cbuffer(&shell_tasks, (uint32_t)str & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)str >> 8) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)str >> 16) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)str >> 24) & 0xFF, false);
-    
+
     add_to_cbuffer(&shell_tasks, (uint32_t)len & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)len >> 8) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)len >> 16) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)len >> 24) & 0xFF, false);
-    
+
 }
 
 void load_shell(){
@@ -59,7 +60,7 @@ void load_shell(){
     //     // execute command
     //     cmd->fptr("");
     // }
-    
+
     uint32_t i = 0;
     while (true){
         char c = get_from_kb_buffer();
@@ -94,7 +95,7 @@ void load_shell(){
                 kprint_char(read, 0);
             }
         }
-		
+
 		while (shell_tasks.bot != shell_tasks.top){
             char task = get_from_cbuffer(&shell_tasks);
             if (task == 'W') {
@@ -102,40 +103,40 @@ void load_shell(){
                 uint32_t b = get_from_cbuffer(&shell_tasks) & 0xFF;
                 uint32_t c = get_from_cbuffer(&shell_tasks) & 0xFF;
                 uint32_t d = get_from_cbuffer(&shell_tasks) & 0xFF;
-                
+
                 char* filename = (char*) (a | b << 8 | c << 16 | d << 24);
-                
+
                 a = get_from_cbuffer(&shell_tasks) & 0xFF;
                 b = get_from_cbuffer(&shell_tasks) & 0xFF;
                 c = get_from_cbuffer(&shell_tasks) & 0xFF;
                 d = get_from_cbuffer(&shell_tasks) & 0xFF;
-                
+
                 char* str = (char*) (a | b << 8 | c << 16 | d << 24);
-                
-                
+
+
                 a = get_from_cbuffer(&shell_tasks) & 0xFF;
                 b = get_from_cbuffer(&shell_tasks) & 0xFF;
                 c = get_from_cbuffer(&shell_tasks) & 0xFF;
                 d = get_from_cbuffer(&shell_tasks) & 0xFF;
-                
+
                 uint32_t len = (a | b << 8 | c << 16 | d << 24);
 
-                
+
                 remove_file(filename);
                 new_file(filename, (len / 512 + 1));
-                
+
                 write_string_to_file(str, filename);
             }
         }
     }
 
-    
+
 	return;
 }
 
 void refreshShell(){
-	kprint("> ");
-	return;
+    kprint("> ");
+    return;
 }
 
 
@@ -153,5 +154,5 @@ void parseCommand(){
 
     //SetCursorPosRaw(1920);
     refreshShell();
-    
+
 }

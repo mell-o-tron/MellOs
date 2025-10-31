@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stddef.h"
+#include "stdint.h"
 
 void* memset(void* dest, unsigned char val, size_t count);
 

@@ -1,8 +1,9 @@
+#include "autoconf.h"
 #include "text_editor.h"
 #include "stdint.h"
 #include "stdbool.h"
 #include "keyboard.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -32,7 +33,7 @@ void init_text_editor(char* filename){
     document_index = 0;
     
     cur_file = filename;
-    #ifdef VGA_VESA
+    #ifdef CONFIG_GFX_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);
@@ -111,7 +112,7 @@ void text_editor_loop(){
                         }
                         break;
             case 's':
-                        #ifdef VGA_VESA
+                        #ifdef CONFIG_GFX_VESA
                         kclear_screen();
                         #else
                         clear_screen_col(DEFAULT_COLOUR);

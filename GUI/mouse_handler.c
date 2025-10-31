@@ -1,4 +1,5 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "mouse_handler.h"
 #include "gui.h"
 #include "colours.h"

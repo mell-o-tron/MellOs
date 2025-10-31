@@ -1,3 +1,4 @@
+#include "autoconf.h"
 #include "processes.h"
 
 #include "stdio.h"
@@ -5,7 +6,7 @@
 #include "dynamic_mem.h"
 #include "stddef.h"
 #include "mem.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

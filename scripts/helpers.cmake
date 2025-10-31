@@ -1,0 +1,20 @@
+function(split_resolution input_string out_h out_v)
+    if(NOT DEFINED input_string OR "${input_string}" STREQUAL "")
+        message(WARNING "split_resolution(): input string is empty")
+        set(${out_h} "" PARENT_SCOPE)
+        set(${out_v} "" PARENT_SCOPE)
+        return()
+    endif()
+
+    # Match something like "1024x768" or "800x600"
+    string(REGEX MATCH "^([0-9]+)x([0-9]+)$" _match "${input_string}")
+
+    if(CMAKE_MATCH_COUNT EQUAL 2)
+        set(${out_h} "${CMAKE_MATCH_1}" PARENT_SCOPE)
+        set(${out_v} "${CMAKE_MATCH_2}" PARENT_SCOPE)
+    else()
+        message(WARNING "split_resolution(): invalid resolution format '${input_string}', expected WxH (e.g. 1024x768)")
+        set(${out_h} "" PARENT_SCOPE)
+        set(${out_v} "" PARENT_SCOPE)
+    endif()
+endfunction()

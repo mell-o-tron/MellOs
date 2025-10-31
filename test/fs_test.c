@@ -1,11 +1,12 @@
+#include "autoconf.h"
 #include "file_system.h"
 #include "string.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa.h"
 #include "vesa_text.h"
 #include "mouse.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 
 int create_file_test () {

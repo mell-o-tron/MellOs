@@ -1,4 +1,5 @@
 #pragma once
+#include "autoconf.h"
 
 // Function header to simplify declaring shell commands
 #define FHDR(name) void name(const char* s);
@@ -32,7 +33,7 @@ FHDR(texted);
 
 FHDR(exec);
 
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 // vell.c
 FHDR(vell);
 FHDR(frogues);

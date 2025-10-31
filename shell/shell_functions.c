@@ -1,5 +1,6 @@
+#include "autoconf.h"
 #include "stdint.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -39,7 +40,7 @@ shellfunction CMDs[] = {
     CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]"),
     CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]"),
     CMDENTRY(&erase_files, "erasefiles", "Erases the file bitmap", "erasefiles"),
-    #ifdef VGA_VESA
+    #ifdef CONFIG_GFX_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
     CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues"),
     CMDENTRY(&jb_juggle_balls, "jb", "Ball juggling program", "juggle_balls"),

@@ -1,3 +1,4 @@
+#include "autoconf.h"
 #include <errno.h>
 #include <string.h>
 
@@ -17,12 +18,11 @@ static void (*assert_kclear_screen)(void) = NULL;
 
 
 
-void init_assertions(void (*clscolorptr)(uint8_t), void (*set_cursor_pos_rawptr)(uint16_t), void (*kprintptr)(const char*),
+void init_assertions(void (*clscolorptr)(uint8_t), void (*set_cursor_pos_rawptr)(uint16_t),
     void (*kclear_screenptr)(void)) {
     assert_kclear_screen = kclear_screenptr;
     assert_clscolor = clscolorptr;
     assert_set_cursor_pos_raw = set_cursor_pos_rawptr;
-    assert_kprint = kprintptr;
 }
 
 void __assert_fail(const char* expr, const char* file, int line) { // NOLINT(*-reserved-identifier)
@@ -38,7 +38,7 @@ void __assert_fail_msg(const char* expr, const char* message, const char* file, 
 
 void assert(uint8_t condition){
     if(!condition){
-        #ifdef VGA_VESA
+        #ifdef CONFIG_GFX_VESA
         if (assert_kclear_screen) assert_kclear_screen();
         #else
         if (assert_clscolor) assert_clscolor(ERROR_COLOUR);

@@ -1,55 +1,50 @@
-//INTERRUPT DESCRIPTOR TABLE
-//(Shamelessely stolen | Adapted) from http://www.osdever.net/ 
+// INTERRUPT DESCRIPTOR TABLE
+//(Shamelessely stolen | Adapted) from http://www.osdever.net/
 
 #include "mem.h"
 
-
-
-struct idt_entry			// IDT structure
+struct idt_entry // IDT structure
 {
 	unsigned short base_lo;
-	unsigned short sel;	
-	unsigned char always0;	
-	unsigned char flags;	
+	unsigned short sel;
+	unsigned char always0;
+	unsigned char flags;
 	unsigned short base_hi;
 } __attribute__((packed));
 
-struct idt_ptr				// IDT poiner
+struct idt_ptr // IDT poiner
 {
 	unsigned short limit;
 	unsigned int base;
 } __attribute__((packed));
 
+__attribute__((section(".low.bss"))) struct idt_entry idt[256];
+__attribute__((section(".low.bss"))) struct idt_ptr _idtp;
 
+extern void _idt_load(); // ---> interrupt.asm
 
-struct idt_entry idt[256];
-struct idt_ptr _idtp;
+__attribute__((section(".low.text"))) void idt_set_gate(unsigned char num, unsigned long base,
+                                                        unsigned short sel, unsigned char flags) {
 
-
-extern  void _idt_load();		// ---> interrupt.asm
-
-
-void idt_set_gate(unsigned char num, unsigned long base, unsigned short sel, unsigned char flags)
-{
-	
 	idt[num].base_lo = (base & 0xFFFF);
 	idt[num].base_hi = (base >> 16) & 0xFFFF;
 
-	
 	idt[num].sel = sel;
 	idt[num].always0 = 0;
 	idt[num].flags = flags;
 }
 
+__attribute__((section(".low.text"))) void idt_install() {
+	_idtp.limit = (sizeof(struct idt_entry) * 256) - 1;
 
-void idt_install()
-{
-	
-	_idtp.limit = (sizeof (struct idt_entry) * 256) - 1;
 	_idtp.base = (unsigned int)&idt;
 
 	/* Clear out the entire IDT, initalizing it to zeros */
-	memset(&idt, 0, sizeof(struct idt_entry) * 256);
+	int size = sizeof(struct idt_entry) * 256;
+	char* dest = (char*)idt;
+	while (size--)
+		*dest++ = 0;
+	// memset(&idt, 0, sizeof(struct idt_entry) * 256);
 
 	/* Add any new ISRs to the IDT here using idt_set_gate */
 

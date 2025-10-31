@@ -1,4 +1,5 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "includes.h"
 
 typedef float float_16_arr[16];

@@ -1,6 +1,7 @@
 #include "dynamic_mem.h"
 #include "disk.h"
 #include "file_system.h"
+#include "stddef.h"
 #include "string.h"
 #include "diskinterface.h"
 #include "bitmap.h"

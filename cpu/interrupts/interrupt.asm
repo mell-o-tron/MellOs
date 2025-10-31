@@ -4,9 +4,9 @@
 
 
 global _idt_load
+extern _idtp
 
 _idt_load:
-	[extern _idtp]
 	lidt [_idtp]
 	ret
 
@@ -46,8 +46,9 @@ global _isr30
 global _isr31
 global _syscall
 
-[extern kpanic]
-[extern _fault_handler]
+extern kpanic
+extern _fault_handler
+
 
 _isr0:
 	cli
@@ -213,33 +214,40 @@ _syscall:
 	push dword 0x80
 	jmp isr_common_stub
 
+extern _fault_handler       ; cdecl: void handler(struct regs *)
 
 isr_common_stub:
-	pushad
-	push dword ds
-	push dword es
-	push dword fs
-	push dword gs
-	mov ax, 0x10                   ; Load the Kernel Data Segment descriptor!
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	mov eax, esp                   ; Push us the stack
-	
-	push eax
-	mov eax, _fault_handler		   ; checks if interrupt number < 32 (if it represents an exception)
-                                   ; prints exception message and halts system.
-	call eax	                   ; A special call, preserves the 'eip' register
-	pop eax
-	pop gs
-	pop fs
-	pop es
-	pop ds
-	popad
-	add esp, 8	                   ; Cleans up the pushed error code and pushed ISR number
-	iret		                   ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
-	
+    pushad                  ; EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI (in that order)
+    push dword ds
+    push dword es
+    push dword fs
+    push dword gs
+
+    mov ax, 0x10            ; kernel data selector
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    mov eax, cr2
+    push eax                ; put CR2 at the very top -> regs* will point here
+
+    mov eax, esp            ; regs* (CR2 is first field)
+    push eax
+    call _fault_handler
+    add  esp, 4             ; pop arg
+
+    add  esp, 4             ; discard the extra CR2 we pushed
+
+    pop  gs
+    pop  fs
+    pop  es
+    pop  ds
+    popad
+
+    add  esp, 8             ; drop (int_no, err_code) in that order
+    iretd                   ; (or 'iret' in 32-bit; both encode to 0xCF)
+
 ;;;;;;;;;;;;;;;;;;;;;;;; INTERRUPT REQUESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 global irq0
@@ -341,28 +349,37 @@ irq15:
 	push dword 47
 	jmp irq_common_stub
 
-[extern] _irq_handler
+extern _irq_handler
 
 irq_common_stub:
-	pusha
-	push ds
-	push es
-	push fs
-	push gs
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	mov eax, esp
-	push eax
-	mov eax, _irq_handler
-	call eax
-	pop eax
-	pop gs
-	pop fs
-	pop es
-	pop ds
-	popa
-	add esp, 8
-	iret
+    pushad
+
+    push dword ds
+    push dword es
+    push dword fs
+    push dword gs
+
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    mov eax, cr2
+    push eax
+
+    mov eax, esp
+    push eax
+    call _irq_handler
+    add esp, 4
+
+    add esp, 4
+
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popad
+
+    add esp, 8
+    iretd

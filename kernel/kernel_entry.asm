@@ -1,14 +1,14 @@
+bits 32
 %macro OUT_SERIAL 1
     mov al, %1
     out 0x3f8, al
 %endmacro
-
+%include "kconfig.asm"
 CODE_SEG equ GDT_code - GDT_start
 DATA_SEG equ GDT_data - GDT_start
 TMP_MEM  equ 0x60000            ; Tmp location to store the multiboot tags
 
 ; kernel_entry.asm
-bits 32
 global _kernel_start
 extern main
 extern kpanic
@@ -57,7 +57,7 @@ check_and_enable_features:
     ; Get basic CPU features (CPUID Leaf 1)
     mov eax, 1
     cpuid
-
+%ifdef CONFIG_CPU_FEAT_SSE
     ; Check for SSE support (EDX bit 25)
     test edx, 1 << 25   ; SSE
     jz .fault
@@ -72,6 +72,7 @@ check_and_enable_features:
     or eax, 1 << 10     ; Set OSXMMEXCPT (Operating System Unmasked SIMD Floating-Point Exception Support)
     mov cr4, eax
     OUT_SERIAL 'S' ; SSE Enabled
+%endif
 .fault:
     ret
 
@@ -126,9 +127,11 @@ init_serial:
     out dx, al         ; IRQs enabled, RTS/DSR set
     ret
 
-section .text
+section .low.text
     
 %include "../cpu/interrupts/interrupt.asm"
+
+section .text
 %include "../memory/paging/paging.asm"
 
 section .data

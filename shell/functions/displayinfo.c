@@ -1,4 +1,5 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
@@ -10,7 +11,7 @@
 
 FDEF(displayinfo){
     kprint("Display Information:\n");
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
     kprint("Resolution: ");
     kprint(tostring_inplace(Hres, 10));
     kprint("x");

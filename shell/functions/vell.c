@@ -1,5 +1,5 @@
 #include "math.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 
 #include "shell/vell.h"
 #include "vesa.h"
@@ -198,6 +198,7 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
             int dy = current_pos.y - dragging_prev_pos.y;
             Recti r = recti_of_window(dragging_window);
 #ifndef BOX_WINDOW_DRAG
+#include "autoconf.h"
             dragging_window->x += dx;
             dragging_window->y += dy;
             Recti r2 = recti_of_window(dragging_window);

@@ -1,12 +1,13 @@
 #pragma once
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 
 #include "graphics_types.h"
 #include "stdint.h"
 #include "stdbool.h"
 
 #define PIXEL 				uint32_t
-#define BYTES_PER_PIXEL (BPP / 8)
+#define BYTES_PER_PIXEL (CONFIG_GFX_BPP / 8)
 
 extern uint32_t Hres;
 extern uint32_t Vres;

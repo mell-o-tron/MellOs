@@ -1,6 +1,7 @@
+#include "autoconf.h"
 #include "circular_buffer.h"
 
-// #ifdef VGA_VESA
+// #ifdef CONFIG_GFX_VESA
 // #include "../drivers/vesa/vesa_text.h"
 // #else
 // #include "../drivers/vga_text.h"

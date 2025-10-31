@@ -1,6 +1,6 @@
 #pragma once
+#include "circular_buffer.h"
 #include "spinlock.h"
-
 #include "mellos/fd.h"
 #define PIPE_BUFFER_SIZE 1024
 

@@ -1,8 +1,9 @@
 #pragma once
+#include "autoconf.h"
 #include "stdint.h"
 #include "port_io.h"
 #include "timer.h"
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"

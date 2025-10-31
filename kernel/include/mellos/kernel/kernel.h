@@ -1,6 +1,5 @@
-#ifndef KERNEL_H
-#define KERNEL_H
-
+#pragma once
+#include "stdint.h"
 
 #ifndef asmlinkage
 # if defined(__i386__) && (defined(__GNUC__) || defined(__clang__))
@@ -12,5 +11,4 @@
 
 extern  void kpanic(struct regs *r);
 void kpanic_message(const char* msg);
-
-#endif
+_Noreturn void higher_half_main(uintptr_t multiboot_tags_addr);

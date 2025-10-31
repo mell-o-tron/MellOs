@@ -1,0 +1,608 @@
+mainmenu "MellOS configuration"
+
+menu "Display"
+
+choice
+    prompt "Graphical output type"
+    default GFX_VGA
+config GFX_VGA
+    bool "VGA"
+config GFX_VESA
+    bool "VESA"
+endchoice
+
+# A convenient string mirror of the choice above:
+config GFX_TYPE
+    string
+    default "VGA_VESA"   if GFX_VESA
+    default "VGA_TEXT"   if GFX_VGA
+    default "VESA"       if GFX_VESA
+
+choice
+    prompt "Framebuffer resolution"
+    default GFX_RES_1024x768
+config GFX_RES_640x480
+    bool "640x480"
+config GFX_RES_800x600
+    bool "800x600"
+config GFX_RES_1024x768
+    bool "1024x768"
+config GFX_RES_1152x864
+    bool "1152x864"
+config GFX_RES_1280x720
+    bool "1280x720"
+config GFX_RES_1280x800
+    bool "1280x800"
+config GFX_RES_1280x1024
+    bool "1280x1024"
+config GFX_RES_1366x768
+    bool "1366x768"
+config GFX_RES_1400x1050
+    bool "1400x1050"
+config GFX_RES_1440x900
+    bool "1440x900"
+config GFX_RES_1600x900
+    bool "1600x900"
+config GFX_RES_1600x1200
+    bool "1600x1200"
+config GFX_RES_1680x1050
+    bool "1680x1050"
+config GFX_RES_1920x1080
+    bool "1920x1080"
+config GFX_RES_1920x1200
+    bool "1920x1200"
+config GFX_RES_2048x1536
+    bool "2048x1536"
+config GFX_RES_2560x1440
+    bool "2560x1440"
+config GFX_RES_2560x1600
+    bool "2560x1600"
+config GFX_RES_3840x2160
+    bool "3840x2160"
+endchoice
+
+# String mirror of the resolution choice:
+config GFX_RES_STRING
+    string
+    default "640x480"    if GFX_RES_640x480
+    default "800x600"    if GFX_RES_800x600
+    default "1024x768"   if GFX_RES_1024x768
+    default "1152x864"   if GFX_RES_1152x864
+    default "1280x720"   if GFX_RES_1280x720
+    default "1280x800"   if GFX_RES_1280x800
+    default "1280x1024"  if GFX_RES_1280x1024
+    default "1366x768"   if GFX_RES_1366x768
+    default "1400x1050"  if GFX_RES_1400x1050
+    default "1440x900"   if GFX_RES_1440x900
+    default "1600x900"   if GFX_RES_1600x900
+    default "1600x1200"  if GFX_RES_1600x1200
+    default "1680x1050"  if GFX_RES_1680x1050
+    default "1920x1080"  if GFX_RES_1920x1080
+    default "1920x1200"  if GFX_RES_1920x1200
+    default "2048x1536"  if GFX_RES_2048x1536
+    default "2560x1440"  if GFX_RES_2560x1440
+    default "2560x1600"  if GFX_RES_2560x1600
+    default "3840x2160"  if GFX_RES_3840x2160
+
+# Hidden numeric mirrors (become CONFIG_GFX_HRES / CONFIG_GFX_VRES)
+config GFX_HRES
+    int
+    default 640  if GFX_RES_640x480
+    default 800  if GFX_RES_800x600
+    default 1024 if GFX_RES_1024x768
+    default 1152 if GFX_RES_1152x864
+    default 1280 if GFX_RES_1280x720
+    default 1280 if GFX_RES_1280x800
+    default 1280 if GFX_RES_1280x1024
+    default 1366 if GFX_RES_1366x768
+    default 1400 if GFX_RES_1400x1050
+    default 1440 if GFX_RES_1440x900
+    default 1600 if GFX_RES_1600x900
+    default 1600 if GFX_RES_1600x1200
+    default 1680 if GFX_RES_1680x1050
+    default 1920 if GFX_RES_1920x1080
+    default 1920 if GFX_RES_1920x1200
+    default 2048 if GFX_RES_2048x1536
+    default 2560 if GFX_RES_2560x1440
+    default 2560 if GFX_RES_2560x1600
+    default 3840 if GFX_RES_3840x2160
+
+config GFX_VRES
+    int
+    default 480  if GFX_RES_640x480
+    default 600  if GFX_RES_800x600
+    default 768  if GFX_RES_1024x768
+    default 864  if GFX_RES_1152x864
+    default 720  if GFX_RES_1280x720
+    default 800  if GFX_RES_1280x800
+    default 1024 if GFX_RES_1280x1024
+    default 768  if GFX_RES_1366x768
+    default 1050 if GFX_RES_1400x1050
+    default 900  if GFX_RES_1440x900
+    default 900  if GFX_RES_1600x900
+    default 1200 if GFX_RES_1600x1200
+    default 1050 if GFX_RES_1680x1050
+    default 1080 if GFX_RES_1920x1080
+    default 1200 if GFX_RES_1920x1200
+    default 1536 if GFX_RES_2048x1536
+    default 1440 if GFX_RES_2560x1440
+    default 1600 if GFX_RES_2560x1600
+    default 2160 if GFX_RES_3840x2160
+
+choice
+    prompt "Bits Per Pixel"
+    default GFX_BPP_32
+config GFX_BPP_2
+    bool "2"
+config GFX_BPP_4
+    bool "4"
+config GFX_BPP_8
+    bool "8"
+config GFX_BPP_15
+    bool "15"
+config GFX_BPP_24
+    bool "24"
+config GFX_BPP_32
+    bool "32"
+endchoice
+
+# Integer mirror of the BPP choice:
+config GFX_BPP
+    int
+    default 2   if GFX_BPP_2
+    default 4   if GFX_BPP_4
+    default 8   if GFX_BPP_8
+    default 15  if GFX_BPP_15
+    default 24  if GFX_BPP_24
+    default 32  if GFX_BPP_32
+
+endmenu  # Display
+
+menu "Console"
+
+config CONFIG_SERIAL
+    bool "Use serial console"
+    default y
+
+choice
+    prompt "Default serial port"
+    depends on CONFIG_SERIAL
+    default COM1
+
+config COM1
+    bool "COM1"
+config COM2
+    bool "COM2"
+config COM3
+    bool "COM3"
+config COM4
+    bool "COM4"
+endchoice
+
+config CONFIG_SERIAL_PORT
+    string
+    default "COM1" if COM1
+    default "COM2" if COM2
+    default "COM3" if COM3
+    default "COM4" if COM4
+
+endmenu  # Console
+
+config TESTING
+    bool "Enable tests"
+    default y
+
+choice
+    prompt "Window drag type"
+    default WINDOW_DRAG_NORMAL
+config WINDOW_DRAG_NORMAL
+    bool "NORMAL"
+config WINDOW_DRAG_OUTLINE
+    bool "OUTLINE"
+endchoice
+
+menu "Target"
+
+choice
+    prompt "Target architecture preset"
+    default ARCH_I486
+
+# Early CPUs
+
+config ARCH_I386
+    bool "Intel 80386"
+    help
+      Original 32-bit x86 baseline (1985).
+      No atomic primitives beyond XCHG.
+      No CMPXCHG, no BSWAP, no XADD.
+      External 80387 FPU required for floating-point.
+      Paging and protected mode supported.
+
+config ARCH_I486
+    bool "Intel 80486"
+    help
+      First pipelined x86 (1989).
+      Added CMPXCHG, XADD, BSWAP, INVLPG, and INVD/WBINVD.
+      Built-in FPU (486DX). Some late 486DX4 steppings have CPUID.
+      Safe lowest baseline for modern 32-bit systems.
+
+config ARCH_PENTIUM
+    bool "Pentium (P5)"
+    help
+      Superscalar dual-pipeline integer core (1993).
+      Added RDTSC, CPUID (mandatory), CMPXCHG8B, and MSRs.
+      Introduced branch prediction and write combining.
+      No CMOV (that’s Pentium Pro).
+      Pentium MMX variants add MMX SIMD instructions.
+
+config ARCH_PENTIUM_MMX
+    bool "Pentium MMX (P55C)"
+    help
+      Pentium core with 57 new MMX integer SIMD ops (1996).
+      Shares MMX state with x87 FPU.
+      Otherwise ISA-compatible with classic Pentium.
+      Common baseline for DOS-era multimedia.
+
+config ARCH_PENTIUM2
+    bool "Pentium II (Klamath/Deschutes)"
+    help
+      P6-class core derived from Pentium Pro (1997).
+      Adds CMOV, PAE, PGE, UD2, and better FPU/MMX integration.
+      Serves as “i686” baseline for many Linux distros.
+
+config ARCH_PENTIUM3
+    bool "Pentium III (Katmai/Coppermine)"
+    help
+      Extends P6 ISA with SSE (Streaming SIMD Extensions) and
+      prefetch instructions. Supports fast CPUID, RDTSC, and MSRs.
+
+config ARCH_PENTIUM4
+    bool "Pentium 4 (Willamette/Northwood)"
+    help
+      NetBurst microarchitecture (2000).
+      Adds SSE2, better branch prediction, and deeper pipeline.
+      Often the highest baseline before 64-bit (x86-64) transition.
+
+# Emulator / virtual targets
+
+config ARCH_QEMU32
+    bool "QEMU 32-bit virtual CPU"
+    help
+      Generic “qemu32” target used by QEMU for 32-bit guests.
+      Behaves like a Pentium II/Pentium III hybrid with CMOV,
+      PAE, PGE, TSC, and optional SSE. Safe for generic 32-bit kernels.
+
+config ARCH_GENERIC32
+    bool "Generic 32-bit (safe lowest common denominator)"
+    help
+      486/Pentium-level compatibility for portable kernels.
+      Avoids modern SIMD (no SSE/MMX), keeps CMPXCHG, XADD, and TSC.
+
+config ARCH_BOCHS
+    bool "Bochs/PcEm (486DX baseline)"
+    help
+      Ideal baseline for the Bochs emulator.
+      Implements all 486 instructions and CPUID.
+      Useful for testing pure software-rendered or baremetal code.
+
+endchoice
+
+# Derived string identifier
+
+config ARCH_STRING
+    string
+    default "i386"       if ARCH_I386
+    default "i486"       if ARCH_I486
+    default "pentium"    if ARCH_PENTIUM
+    default "pentium-mmx" if ARCH_PENTIUM_MMX
+    default "pentium2"   if ARCH_PENTIUM2
+    default "pentium3"   if ARCH_PENTIUM3
+    default "pentium4"   if ARCH_PENTIUM4
+    default "qemu32"     if ARCH_QEMU32
+    default "generic32"  if ARCH_GENERIC32
+    default "bochs"      if ARCH_BOCHS
+
+# Feature selection by target
+
+# 386 baseline
+config ARCH_I386
+    select CPU_FEAT_INVLPG          # paging
+    select CPU_FEAT_INVD_WBINVD
+
+# 486 baseline
+config ARCH_I486
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+
+# Pentium
+config ARCH_PENTIUM
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+
+# Pentium MMX
+config ARCH_PENTIUM_MMX
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_MMX
+
+# Pentium II
+config ARCH_PENTIUM2
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_MMX
+    select CPU_FEAT_CMOV
+    select CPU_FEAT_PAE
+    select CPU_FEAT_PGE
+    select CPU_FEAT_UD2
+
+# Pentium III
+config ARCH_PENTIUM3
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_MMX
+    select CPU_FEAT_CMOV
+    select CPU_FEAT_PAE
+    select CPU_FEAT_PGE
+    select CPU_FEAT_UD2
+    select CPU_FEAT_SSE
+
+# Pentium 4
+config ARCH_PENTIUM4
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_MMX
+    select CPU_FEAT_CMOV
+    select CPU_FEAT_PAE
+    select CPU_FEAT_PGE
+    select CPU_FEAT_UD2
+    select CPU_FEAT_SSE
+    select CPU_FEAT_SSE2
+
+# QEMU 32-bit virtual CPU
+config ARCH_QEMU32
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_CMOV
+    select CPU_FEAT_PAE
+    select CPU_FEAT_PGE
+    select CPU_FEAT_UD2
+    select CPU_FEAT_SSE     # QEMU32 emulates SSE
+    select CPU_FEAT_MMX
+
+# Generic 32-bit (safe)
+config ARCH_GENERIC32
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+    select CPU_FEAT_TSC
+    select CPU_FEAT_MSR
+    select CPU_FEAT_CMPXCHG8B
+    select CPU_FEAT_CMOV
+    select CPU_FEAT_PAE
+    select CPU_FEAT_PGE
+    select CPU_FEAT_UD2
+
+# Bochs baseline (486DX4)
+config ARCH_BOCHS
+    select CPU_FEAT_CMPXCHG
+    select CPU_FEAT_XADD
+    select CPU_FEAT_BSWAP
+    select CPU_FEAT_INVLPG
+    select CPU_FEAT_INVD_WBINVD
+    select CPU_FEAT_CPUID
+
+# Core atomic / synchronization & utility ops
+config CPU_FEAT_CMPXCHG
+    bool "CMPXCHG (atomic compare-and-exchange)"
+    default n
+    help
+      Adds the 486-class CMPXCHG instruction for lock-free/lock-based
+      synchronization on 8/16/32-bit operands. First appeared on the 80486.
+      Required by many modern atomics and spinlocks.
+      Typical compiler gating: enabled with -march=i486 and newer.
+
+config CPU_FEAT_XADD
+    bool "XADD (exchange-and-add)"
+    default n
+    help
+      Exchange-and-add read-modify-write primitive (486+). Useful for
+      atomic counters and ticket locks. Often paired with LOCK prefix.
+
+config CPU_FEAT_BSWAP
+    bool "BSWAP (byte swap 32-bit register)"
+    default n
+    help
+      Reverses byte order in a 32-bit register. Documented from 80486 onward.
+      Useful for endianness conversions without memory traffic.
+
+config CPU_FEAT_CMPXCHG8B
+    bool "CMPXCHG8B (64-bit compare-and-exchange on memory)"
+    default n
+    help
+      Introduced on Pentium (P5). Enables 64-bit atomic CAS on 32-bit x86,
+      required for building 64-bit atomics and some lock-free queues.
+
+# Feature detection, timers, MSRs
+
+config CPU_FEAT_CPUID
+    bool "CPUID instruction"
+    default n
+    help
+      Returns CPU identification and feature bits. Standardized on Pentium,
+      present on some late 486 models. Use to probe availability of MMX/SSE/etc.
+
+config CPU_FEAT_TSC
+    bool "RDTSC (time-stamp counter)"
+    default n
+    help
+      Adds RDTSC/RDTSCP timing capability (RDTSC on Pentium; RDTSCP came later).
+      Useful for high-resolution timing. Beware frequency scaling/VM effects.
+
+config CPU_FEAT_MSR
+    bool "RDMSR/WRMSR (Model Specific Registers)"
+    default n
+    help
+      Access to model-specific registers used for performance counters,
+      MTRRs, feature control, etc. Standard from Pentium and later
+      (some availability on late 486 derivatives).
+
+# SIMD & multimedia extensions
+
+config CPU_FEAT_MMX
+    bool "MMX SIMD"
+    default n
+    help
+      Integer SIMD (64-bit MMX registers) introduced with Pentium MMX (P55C).
+      Useful for pixel ops, audio, etc. Shares state with x87; requires EMMS.
+
+config CPU_FEAT_3DNOW
+    bool "3DNow! (AMD)"
+    default n
+    help
+      AMD K6-2 and later. Adds packed FP integer-like ops on MMX regs and
+      prefetch instructions. Non-Intel. Treat as optional/vendor-specific.
+
+config CPU_FEAT_SSE
+    bool "SSE (Streaming SIMD Extensions)"
+    default n
+    help
+      Introduced with Pentium III. Adds XMM registers (128-bit) and scalar
+      FP/datamove ops; OS must set CR4.OSFXSR and save/restore XMM state.
+
+config CPU_FEAT_SSE2
+    bool "SSE2"
+    default n
+    help
+      Introduced with Pentium 4. Extends SSE to double-precision FP and
+      more integer SIMD on XMM. Requires OSFXSR state management.
+
+# For future use
+# config CPU_FEAT_SSE3
+#     bool "SSE3 (later gen)"
+#     default n
+#     help
+#       Prescott-era refinements (ADDSUB*, HADD/HSUB*, MOVDDUP, etc.).
+
+# Control/paging related ISA toggles (not “opcodes” per se, but tightly coupled)
+
+config CPU_FEAT_INVLPG
+    bool "INVLPG (invalidate single TLB entry)"
+    default n
+    help
+      Explicitly invalidates a page translation without reloading CR3.
+      Introduced with the 80486. Essential for paging/TLB maintenance.
+
+config CPU_FEAT_INVD_WBINVD
+    bool "INVD / WBINVD (cache invalidation)"
+    default n
+    help
+      Cache control instructions: INVD (discard caches) and WBINVD (write back
+      and invalidate). Present from 486 class onward. Use carefully in kernel code.
+
+config CPU_FEAT_PSE
+    bool "PSE (Page Size Extension, 4 MiB pages)"
+    default n
+    help
+      Enables 4 MiB pages via CR4.PSE (Pentium/P6 era). Reduces TLB pressure
+      for large mappings (e.g., kernel text). Requires paging enabled.
+
+config CPU_FEAT_PAE
+    bool "PAE (Physical Address Extension, 36-bit phys)"
+    default n
+    help
+      32-bit paging with 36-bit physical addresses and 3-level tables.
+      Introduced with Pentium Pro (i686). Needed for NX on later chips.
+
+config CPU_FEAT_PGE
+    bool "PGE (Page Global Enable)"
+    default n
+    help
+      Allows “global” TLB entries that aren’t flushed on CR3 reload. Controlled
+      by CR4.PGE (Pentium Pro and later). Useful for mapping the kernel permanently.
+
+# Control-flow / defined traps
+
+config CPU_FEAT_CMOV
+    bool "CMOV/FCMOV (conditional move)"
+    default n
+    help
+      Integer CMOVcc (and related FCMOVcc) introduced with the Pentium Pro (i686).
+      Improves branchless code paths; compilers exploit it at -march=i686+.
+      Not available on classic Pentium (P5) or Pentium MMX.
+
+config CPU_FEAT_UD2
+    bool "UD2 (defined invalid opcode)"
+    default n
+    help
+      Guaranteed invalid instruction that reliably traps (#UD). Introduced in
+      the P6 era; useful for assertions and generating clean “intended fault” paths.
+
+
+# Feature implications
+# (For example: SSE implies MMX, SSE2 implies SSE)
+config CPU_FEAT_SSE
+    imply CPU_FEAT_MMX
+config CPU_FEAT_SSE2
+    imply CPU_FEAT_SSE
+config CPU_FEAT_3DNOW
+    imply CPU_FEAT_MMX
+
+# Convenience feature string for the build system
+config CPU_FEATURES_STRING
+    string
+    default "none"                if ARCH_I386
+    default "cmov"                if ARCH_I486
+    default "cmov"                if ARCH_I686
+    default "cmov,mmx"            if ARCH_PENTIUM
+    default "cmov,mmx,sse"        if ARCH_PENTIUM2
+
+endmenu
+

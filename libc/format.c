@@ -1,8 +1,5 @@
-#include <unistd.h>
-#include <mellos/pipe.h>
-
+#include "unistd.h"
 #include "stdint.h"
-
 #include "conversions.h"
 #include "string.h"
 #include "stddef.h"
@@ -582,6 +579,7 @@ int printf(const char* s, ...) {
 	char buf [256];
     const int rval = vsnprintf(buf, sizeof buf, s, va);
     va_end(va);
+    syscall_write(FD_STDOUT, buf, rval);
 //fixme:print to current process's output stream
     //kprint(buf);
     return rval;

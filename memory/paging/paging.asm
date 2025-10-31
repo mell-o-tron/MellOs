@@ -1,4 +1,5 @@
 [bits 32]
+section .low.text
 global loadPageDirectory
 loadPageDirectory:
     push ebp
@@ -19,7 +20,7 @@ enablePaging:
     mov esp, ebp
     pop ebp
     ret
-
+section .text
 global disablePaging
 disablePaging:
     mov eax, cr0

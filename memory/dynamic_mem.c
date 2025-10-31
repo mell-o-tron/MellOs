@@ -1,16 +1,23 @@
-#include "stdint.h"
-#include "stddef.h"
 #include "dynamic_mem.h"
-#include "mem.h"
-#include "allocator.h"
 #include "assert.h"
 #include "mellos/kernel/kernel.h"
+#include "mem.h"
+#include "memory_area_spec.h"
+#include "paging/paging.h"
+#include "stddef.h"
+#include "stdint.h"
+
+#include <conversions.h>
+#include <vga_text.h>
 
 #define MAX_ORDER 24
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
-volatile void *dynamic_mem_loc = NULL;
+#define BUDDY_DEFAULT_GROW (1u << 5)
+#define BUDDY_GROW_ALIGN PAGE_LENGTH
+
+#define ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
 
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
 
@@ -21,7 +28,7 @@ volatile void *dynamic_mem_loc = NULL;
 typedef struct Block {
     struct Block* next;
     size_t order;
-    bool free;      // 1 = free, 0 = full
+    bool free;       // 1 = free, 0 = full
     uint8_t padding; // IMPORTANT: Last byte should be 0
 } Block;
 
@@ -30,30 +37,97 @@ Block* free_list[MAX_ORDER + 1];
 bool buddy_inited = false;
 static void* allocator_base = NULL;
 static size_t allocator_size = 0;
+static bool buddy_grow(size_t min_bytes);
 
-bool buddy_init(const uintptr_t base, const size_t size) {
-    if (size < 1UL << 7) return false;
-
-    allocator_base = (void *) base;
-    allocator_size = size; 
+bool buddy_init(size_t size) {
+    if (size < 1UL << 7)
+        return false;
+    // Use virtual memory for the heap instead of physical
+    allocator_base = (void *) KERNEL_HEAP_START;
+    allocator_size = size;
 
     for (size_t i = MIN_ORDER; i <= MAX_ORDER; ++i) {
         free_list[i] = NULL;
     }
+
     size_t order = MAX_ORDER;
-    while (1UL << order > size){
+    while (1UL << order > size) {
         order--;
     }
 
-    Block* block = (void *) base;
+    allocate_pages_virtual(0, (ALIGN_UP(size, PAGE_LENGTH)) / PAGE_LENGTH,
+                           (uintptr_t)allocator_base);
+    Block* block = allocator_base;
     block->order = order;
-
     block->free = true;
     block->next = NULL;
     block->padding = 0;
 
     free_list[order] = block;
     buddy_inited = true;
+    buddy_grow(BUDDY_DEFAULT_GROW);
+    return true;
+}
+
+static void buddy_add_region(void* base, size_t size) {
+    uintptr_t cur = (uintptr_t)base;
+    uintptr_t end = cur + size;
+
+    // Ensure we start page-aligned (not strictly required for buddy, but sane)
+    cur = ALIGN_UP(cur, PAGE_LENGTH);
+
+    while (cur < end) {
+        size_t max_block = (size_t)1 << MAX_ORDER;
+
+        // Find largest order that fits AND is aligned at 'cur'
+        size_t order = MAX_ORDER;
+        while (order > MIN_ORDER) {
+            size_t blk = (size_t)1 << order;
+            if (blk <= (end - cur) && (cur % blk) == 0)
+                break;
+            order--;
+        }
+
+        // Create a free block header at 'cur'
+        Block* b = (Block*)cur;
+        b->order = order;
+        b->free = true;
+        b->padding = 0;
+        b->next = free_list[order];
+        free_list[order] = b;
+
+        cur += ((size_t)1 << order);
+    }
+}
+
+static bool buddy_grow(size_t min_bytes) {
+    if (!allocator_base) {
+        return false;
+    }
+
+    size_t grow_bytes = min_bytes;
+    if (grow_bytes < BUDDY_DEFAULT_GROW) {
+        grow_bytes = BUDDY_DEFAULT_GROW;
+    }
+
+    // page-align growth
+    grow_bytes = ALIGN_UP(grow_bytes, BUDDY_GROW_ALIGN);
+
+    uintptr_t start = (uintptr_t)allocator_base + allocator_size;
+    uintptr_t v = start;
+    uintptr_t end = start + grow_bytes;
+
+
+
+    for (; v < end; v += PAGE_LENGTH) {
+        if (allocate_pages_virtual(0, 1, v) == 0) {
+            return false;
+        }
+    }
+
+    // Tell the buddy about the new memory
+    buddy_add_region((void*)start, grow_bytes);
+    allocator_size += grow_bytes;
     return true;
 }
 
@@ -64,7 +138,7 @@ Block* get_buddy(Block* block) {
     return (Block*)((char*)allocator_base + buddy_offset);
 }
 
-void* buddy_alloc(size_t size) {
+void* buddy_alloc_internal(size_t size) {
     if (allocator_base == NULL) {
         return NULL;
     }
@@ -107,9 +181,34 @@ void* buddy_alloc(size_t size) {
     return (char*)block + sizeof(Block);
 }
 
+void* buddy_alloc(size_t size) {
+    if (allocator_base == NULL)
+        return NULL;
+
+    // no growth
+    void* p = buddy_alloc_internal(size);
+    if (p)
+        return p;
+    // grow by the minimum required amount
+    size_t want = 1u << MAX_ORDER;
+
+    size_t order = MIN_ORDER;
+    while ((((size_t)1) << order) < size + sizeof(Block))
+        order++;
+    if (order <= MAX_ORDER)
+        want = (size_t)1 << order;
+
+    if (!buddy_grow(want)) {
+        return NULL;
+    }
+
+    return buddy_alloc_internal(size);
+}
+
 void buddy_free(void* loc) {
-    if (!loc) return;
-    const uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
+    if (!loc)
+        return;
+    const uint32_t off = (uint32_t)loc - (uint32_t)KERNEL_HEAP_START;
 
     Block* block = (Block*)((char*)off - sizeof(Block));
     size_t order = block->order;
@@ -159,7 +258,7 @@ typedef struct SlabObjHeader {
     uint8_t size;
 } SlabObjHeader;
 
-LilSlab* slab_heads[SLAB_OBJ_SIZES_COUNT] = { NULL };
+LilSlab* slab_heads[SLAB_OBJ_SIZES_COUNT];
 
 void* slab_alloc(const size_t size) {
     int idx = -1;
@@ -180,7 +279,7 @@ void* slab_alloc(const size_t size) {
         for (size_t i = 0; i < slab->capacity; i++) {
             if (!(slab->bitmap[i / 8] & (1 << (i % 8)))) {
                 slab->bitmap[i / 8] |= (1 << (i % 8));
-                return (char *) slab->memory + i * slab->obj_size;
+                return (char*)slab->memory + i * slab->obj_size;
             }
         }
         slab = slab->next;
@@ -216,7 +315,7 @@ void* slab_alloc(const size_t size) {
 }
 
 void slab_free(void* loc, size_t size) {
-    uint32_t off = (uint32_t)loc - (uint32_t)dynamic_mem_loc;
+    uint32_t off = (uint32_t)loc - (uint32_t)KERNEL_HEAP_START;
     int idx = -1;
     for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
         if (size <= slab_sizes[i]) {
@@ -225,7 +324,8 @@ void slab_free(void* loc, size_t size) {
         }
     }
 
-    if (idx == -1) return;
+    if (idx == -1)
+        return;
 
     LilSlab* slab = slab_heads[idx];
     while (slab) {
@@ -247,15 +347,19 @@ void* kmalloc(size_t size) {
     long unsigned int offset;
     if (size <= SLAB_MAX_OBJ_SIZE - sizeof(SlabObjHeader)) {
         void* obj = slab_alloc(size + sizeof(SlabObjHeader));
-        SlabObjHeader* header = (SlabObjHeader*)obj + (uint32_t)dynamic_mem_loc;
+    	if (!obj) return NULL;
+        SlabObjHeader* header = (SlabObjHeader*)((uintptr_t)obj);
+
+
         header->size = (uint8_t)(size);
-        offset = obj + sizeof(SlabObjHeader);
+        offset = (unsigned long)obj + sizeof(SlabObjHeader);
     } else {
-        offset = (long unsigned int) buddy_alloc(size);
+        offset = (long unsigned int)buddy_alloc_internal(size);
     }
-    assert(offset != NULL);
-    if (offset == NULL) return NULL;
-    return (void*)((long unsigned int)dynamic_mem_loc + offset);
+    assert(offset != 0);
+    if (offset == 0)
+        return NULL;
+    return (void*)((long unsigned int)KERNEL_HEAP_START + offset);
 }
 
 void kfree(void* loc) {
@@ -271,8 +375,11 @@ void kfree(void* loc) {
     }
 }
 
-void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
-                                                            // switch this to 1 to change realloc mode
+#pragma GCC push_options
+#pragma GCC optimize("O0")
+
+void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
+    // switch this to 1 to change realloc mode
 #if 0
     void* newloc = kmalloc(newsize);
     if (newloc == NULL) return NULL;
@@ -282,20 +389,24 @@ void* krealloc (void* oldloc, size_t oldsize, size_t newsize){
     memcp(oldloc, newloc, min);
     return newloc;
 #else
-    kfree(oldloc);                                 // less fragmentation this way, but if no memory there is risk to lose a reference.
+    kfree(
+        oldloc); // less fragmentation this way, but if no memory there is risk to lose a reference.
     void* newloc = kmalloc(newsize);
-    if (newloc == NULL) return NULL;
-    
+    if (newloc == NULL)
+        return NULL;
+
     size_t min = (oldsize > newsize) ? newsize : oldsize;
     memcp(oldloc, newloc, min);
-    return newloc;    
-    
+    return newloc;
+
 #endif
 }
 
-void init_allocators(void* loc, size_t size) {
-    dynamic_mem_loc = loc;
-    if (!buddy_init(loc, size)) {
+#pragma GCC pop_options
+
+void init_allocators() {
+	memset(slab_heads, 0, sizeof(slab_heads));
+    if (!buddy_init(0x4000)) {
         // TODO: This is not ok: if in graphics mode, the
         // fb has not been initialized yet, so we can't print.
         kpanic_message("Buddy allocator fault");
