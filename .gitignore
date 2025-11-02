@@ -17,8 +17,11 @@ osimage_formated.bin
 mellos.iso
 iso/boot/kernel.elf
 build/
+build-text/
+build-vesa/
 
 # logs
 serial.log
 qemu_debug.log
 .gdb_history
+Testing/
