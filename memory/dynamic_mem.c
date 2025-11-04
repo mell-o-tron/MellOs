@@ -8,13 +8,15 @@
 #include "stdint.h"
 
 #include <conversions.h>
+#include <mellos/kernel/kernel_stdio.h>
+#include <stdio.h>
 #include <vga_text.h>
 
 #define MAX_ORDER 24
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
-#define BUDDY_DEFAULT_GROW (1u << 5)
+#define BUDDY_DEFAULT_GROW (1u << 16)
 #define BUDDY_GROW_ALIGN PAGE_LENGTH
 
 #define ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
@@ -143,14 +145,17 @@ void* buddy_alloc_internal(size_t size) {
         return NULL;
     }
 
-    size_t order = MIN_ORDER;
+	size_t order = MIN_ORDER;
     while (((size_t)1) << order < size + sizeof(Block)) {
         order++;
-    }
-
-    if (order > MAX_ORDER) {
-        return NULL;
-    }
+    	if (order > MAX_ORDER) {
+    		if (!buddy_grow(BUDDY_DEFAULT_GROW)) {
+    			kfprintf(stderr, "Failed to grow buddy memory\n");
+    			return NULL;
+    		}
+    		order = MIN_ORDER;
+        }
+	}
 
     size_t current_order = order;
     while (current_order <= MAX_ORDER && free_list[current_order] == NULL) {
@@ -359,7 +364,7 @@ void* kmalloc(size_t size) {
     assert(offset != 0);
     if (offset == 0)
         return NULL;
-    return (void*)((long unsigned int)KERNEL_HEAP_START + offset);
+    return (void*)offset;
 }
 
 void kfree(void* loc) {

@@ -1,7 +1,7 @@
 [bits 32]
 section .low.text
-global loadPageDirectory
-loadPageDirectory:
+global load_page_directory
+load_page_directory:
     push ebp
     mov ebp, esp
     mov eax, [esp+8]
@@ -10,8 +10,8 @@ loadPageDirectory:
     pop ebp
     ret
 
-global enablePaging
-enablePaging:
+global enable_paging
+enable_paging:
     push ebp
     mov ebp, esp
     mov eax, cr0
@@ -21,8 +21,8 @@ enablePaging:
     pop ebp
     ret
 section .text
-global disablePaging
-disablePaging:
+global disable_paging
+disable_paging:
     mov eax, cr0
     and eax, 0x7FFFFFFF
     mov cr0, eax

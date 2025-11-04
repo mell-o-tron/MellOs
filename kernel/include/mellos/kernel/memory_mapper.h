@@ -5,6 +5,8 @@
 #pragma once
 #include "stdint.h"
 #include "multiboot_tags.h"
+#include "kernel_stdio.h"
+
 static char* names[5] = {
     "Available",
     "Reserved",
@@ -25,8 +27,11 @@ typedef struct {
 
 // Define excluded areas array
 
-uintptr_t get_multiboot_framebuffer_addr(const MultibootTags* mb);
+uintptr_t get_multiboot_framebuffer_addr(MultibootTags* mb);
 
 void init_memory_mapper(MultibootTags *multiboot_tags, void *framebuffer_addr, uint8_t bpp);
 
-MemoryArea get_largest_free_block();
+MemoryArea map_memory();
+
+// Prints the bootloader-provided physical memory map to the current stdout device
+void dump_memory_map(FILE* stream);

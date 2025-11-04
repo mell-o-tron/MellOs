@@ -1,7 +1,18 @@
 bits 32
 %macro OUT_SERIAL 1
     mov al, %1
-    out 0x3f8, al
+    
+                                ; wait for transmit buffer to be empty
+    mov dx, 0x3f8 + 5           ; line Status Register (LSR)
+    %%wait_transmit:
+        in al, dx
+        test al, 0x20           ; empty bit
+        jz %%wait_transmit
+    
+                                ; safe to send
+    mov dx, 0x3f8
+    mov al, %1
+    out dx, al
 %endmacro
 %include "kconfig.asm"
 CODE_SEG equ GDT_code - GDT_start
@@ -18,7 +29,21 @@ _kernel_start:
     cli
     cld
 
+    ; Preserve Multiboot EBX early
     mov [TMP_MEM], ebx
+    jmp init_serial
+.pre_mb_test:
+    ; EAX contains Multiboot magic for v1 (0x2BADB002). Emit a quick serial breadcrumb.
+    push eax
+    mov eax, 0x2BADB002
+    cmp eax, [esp]
+    pop eax
+    jne .mb_bad
+    OUT_SERIAL 'M' ; Magic OK
+    jmp .after_magic
+.mb_bad:
+    OUT_SERIAL 'm' ; Magic BAD
+.after_magic:
 
     lgdt [GDT_descriptor]
 
@@ -34,6 +59,7 @@ _kernel_start:
 
     xor ebp, ebp
 
+    ; Pass saved EBX (Multiboot info) as cdecl arg to main
     push dword [TMP_MEM]
     call check_and_enable_features
     call main
@@ -125,7 +151,7 @@ init_serial:
     dec dx
     mov al, 0x0b
     out dx, al         ; IRQs enabled, RTS/DSR set
-    ret
+    jmp _kernel_start.pre_mb_test
 
 section .low.text
     

@@ -11,7 +11,7 @@ set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
 
 # Toolchain (can be overridden by -D on configure)
 set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
-set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
+set(CMAKE_C_COMPILER "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
 # We let the gcc driver do the link but still pass linker script via link options
 set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
 set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
@@ -23,7 +23,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 # Helpful: export compile commands (a compile_commands.json will be in build dir)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 
 
 project(MellOs LANGUAGES C ASM_NASM)
@@ -43,13 +42,13 @@ set(ASM_SOURCES
 
 add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
 
-set(KCONFIG_ROOT      ${CMAKE_SOURCE_DIR}/Kconfig)
-set(KCONFIG_BUILD     ${CMAKE_BINARY_DIR})
+set(KCONFIG_ROOT ${CMAKE_SOURCE_DIR}/Kconfig)
+set(KCONFIG_BUILD ${CMAKE_BINARY_DIR})
 set(KCONFIG_DOTCONFIG ${KCONFIG_BUILD}/.config)
 set(KCONFIG_HEADERDIR ${KCONFIG_BUILD}/include/generated)
 
-set(KCONFIG_AUTOCONF  ${KCONFIG_BUILD}/auto.conf)
-set(KCONFIG_HEADER    ${KCONFIG_HEADERDIR}/autoconf.h)
+set(KCONFIG_AUTOCONF ${KCONFIG_BUILD}/auto.conf)
+set(KCONFIG_HEADER ${KCONFIG_HEADERDIR}/autoconf.h)
 set(KCONFIG_NASM ${CMAKE_BINARY_DIR}/include/generated/kconfig.asm)
 set(KCONFIG_CMAKE ${CMAKE_BINARY_DIR}/cmake/kconfig.cmake)
 
@@ -73,7 +72,7 @@ add_custom_command(OUTPUT ${KCONFIG_HEADER} ${KCONFIG_AUTOCONF}
         COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
         ${GENCONFIG_EXE} ${KCONFIG_ROOT}
         --header-path ${KCONFIG_HEADER}
-        --config-out  ${KCONFIG_BUILD}/auto.conf
+        --config-out ${KCONFIG_BUILD}/auto.conf
         DEPENDS ${KCONFIG_ROOT}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Generating ${KCONFIG_HEADER} from ${KCONFIG_DOTCONFIG}")
@@ -121,7 +120,7 @@ execute_process(
         COMMAND ${CMAKE_COMMAND} -E env KCONFIG_CONFIG=${KCONFIG_DOTCONFIG}
         ${GENCONFIG_EXE} ${KCONFIG_ROOT}
         --header-path ${KCONFIG_HEADER}
-        --config-out  ${KCONFIG_AUTOCONF}
+        --config-out ${KCONFIG_AUTOCONF}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMAND_ERROR_IS_FATAL ANY
 )
@@ -147,10 +146,36 @@ include(${SCRIPTS_DIR}/helpers.cmake)
 collect_kconfig_cpu_flags(CPU_FLAGS)
 message(STATUS "cpu flags: ${CPU_FLAGS}")
 
-
+# Map CONFIG_ARCH_STRING to QEMU -cpu value
+# See scripts/kconfig_helper.cmake for how we map compiler -march; here we map for QEMU runtime
+# Defaults to a broadly compatible CPU if unknown
+if (NOT DEFINED CONFIG_ARCH_STRING)
+    set(TARGET_CPU "qemu32")
+else ()
+    if (CONFIG_ARCH_STRING STREQUAL "i386")
+        set(TARGET_CPU "386")
+    elseif (CONFIG_ARCH_STRING STREQUAL "i486")
+        set(TARGET_CPU "486")
+    elseif (CONFIG_ARCH_STRING STREQUAL "i586" OR CONFIG_ARCH_STRING STREQUAL "pentium")
+        set(TARGET_CPU "pentium")
+    elseif (CONFIG_ARCH_STRING STREQUAL "i686")
+        # Pick a safe i686-class CPU for QEMU; qemu32 is a generic 32-bit CPU
+        set(TARGET_CPU "qemu32")
+    elseif (CONFIG_ARCH_STRING STREQUAL "pentium-mmx")
+        set(TARGET_CPU "pentium-mmx")
+    elseif (CONFIG_ARCH_STRING STREQUAL "generic32" OR CONFIG_ARCH_STRING STREQUAL "qemu32")
+        set(TARGET_CPU "qemu32")
+    elseif (CONFIG_ARCH_STRING STREQUAL "bochs")
+        # Bochs target is very old/strict; run QEMU in 486 mode
+        set(TARGET_CPU "486")
+    else ()
+        # Fallback: try to use the arch string directly (works if it is a valid QEMU CPU name)
+        set(TARGET_CPU "${CONFIG_ARCH_STRING}")
+    endif ()
+endif ()
+message(STATUS "QEMU target CPU: ${TARGET_CPU}")
 
 include(${SCRIPTS_DIR}/helpers.cmake)
-
 
 
 set(GENERATED_INC "${CMAKE_BINARY_DIR}/include/generated")
@@ -178,9 +203,9 @@ add_subdirectory(disk_interface)
 add_subdirectory(test)
 
 set(NASM_INCS)
-foreach(d ${INC_DIRS})
+foreach (d ${INC_DIRS})
     list(APPEND NASM_INCS -I${d}/)
-endforeach()
+endforeach ()
 
 list(APPEND NASM_INCS -I${CMAKE_BINARY_DIR}/include/generated)
 
@@ -190,10 +215,12 @@ set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
 target_link_libraries(kernel.elf
         kernel
         drivers
-        gui_objs
+
         shell_objs
-        text_editor_objs
+        gui_objs
+
         vesa_objects
+        text_editor_objs
         memory
         cpu_api
         processes
@@ -210,7 +237,7 @@ target_link_libraries(kernel.elf
 if (TARGET gui_objs)
     target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:mellos_libc>)
     #target_include_directories(gui_objs PRIVATE ${INC_DIRS} ${CMAKE_SOURCE_DIR}/kernel/include)
-endif()
+endif ()
 
 #if (TARGET shell_objs)
 #    target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:shell_objs>)
@@ -226,20 +253,22 @@ endif()
 #target_link_libraries(kernel.elf mellos_libc)
 # Apply NASM flags correctly as a list (each arg stays its own token)
 message(STATUS "nasm includes: ${NASM_INCS}")
-foreach(asm ${ASM_SOURCES})
+foreach (asm ${ASM_SOURCES})
     set_source_files_properties(${asm} PROPERTIES
             COMPILE_OPTIONS "${NASM_INCS};-w+all" # defs no longer needed, settings in autoconf.asm
     )
-endforeach()
+endforeach ()
 
 get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
 # Linker script and options (similar to: ld -T kernel/kernel.ld ...)
 # Use gcc driver to link with script and without standard libs
 target_link_options(kernel.elf PRIVATE
         -Wl,-T,${LDSCRIPT}
+        -Wl,--start-group
         -no-pie
         -nostdlib -nodefaultlibs -nostartfiles
         -Wl,-m,elf_i386
+        -Wl,--end-group
 )
 # Freestanding kernel style build
 # add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
@@ -271,13 +300,13 @@ target_compile_options(kernel.elf PRIVATE
 )
 
 foreach (mod_t IN ITEMS gui_objs shell_objs text_editor drivers mellos_libc kernel vesa_objects memory data_structures utils
-syscalls processes testing)
+        syscalls processes testing)
     if (TARGET ${mod_t})
         target_compile_options(${mod_t} PRIVATE
                 ${MELLOS_COMPILE_OPTIONS}
         )
     endif ()
-endforeach()
+endforeach ()
 
 # Create the ISO using grub-mkrescue
 set(ISO_NAME "mellos.iso")
@@ -320,7 +349,7 @@ add_custom_target(debug_symbols
 
 # Run targets (mirroring Makefile)
 add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -serial file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D ${CMAKE_BINARY_DIR}/qemu_debug.log -cpu ${TARGET_CPU}
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")

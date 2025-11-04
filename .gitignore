@@ -9,6 +9,12 @@ cmake-build-debug
 .cache/
 compile_flags.txt
 compile_commands.json
+.config
+auto.conf
+cmake/
+include/
+scripts/kconfig-py/__pycache__/
+
 
 # binaries
 wee_bins/

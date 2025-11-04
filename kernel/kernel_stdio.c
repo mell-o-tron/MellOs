@@ -1,8 +1,11 @@
-#include "autoconf.h"
-#include "stddef.h"
+#include "mellos/kernel/kernel_stdio.h"
 #include "stdio.h"
+#include "errno.h"
+#include "processes.h"
 #include "string.h"
-
+#include "unistd.h"
+#include "colours.h"
+#include "autoconf.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -12,6 +15,29 @@
 struct va_wrap {
 	va_list va;
 };
+
+static device_t* get_device_from_stream(FILE* stream) {
+	if (!stream)
+		return NULL;
+
+	if (stream->device)
+		return (device_t*)stream->device;
+
+	process_t* proc = get_current_process();
+	if (!proc)
+		return NULL;
+
+	switch (stream->fd) {
+	case 0:
+		return proc->stdin_device;
+	case 1:
+		return proc->stdout_device;
+	case 2:
+		return proc->stderr_device;
+	default:
+		return NULL;
+	}
+}
 
 static void append_char(char** buf, size_t* remaining, char c) {
 	if (*remaining > 1) {
@@ -50,7 +76,7 @@ static void append_uint32(char** buf, size_t* remaining, uint32_t val, int base,
 	}
 }
 
-uint32_t ksnprintf(char* buf, size_t size, const char* fmt, va_list va) {
+int32_t ksnprintf(char* buf, size_t size, const char* fmt, va_list va) {
 	struct va_wrap wrap;
 
 	va_copy(wrap.va, va);
@@ -146,12 +172,48 @@ uint32_t ksnprintf(char* buf, size_t size, const char* fmt, va_list va) {
 	return (int)(*out - buf);
 }
 
-__attribute__((format(printf, 1, 2))) uint32_t kprintf(char* fmt, ...) {
+__attribute__((format(printf, 1, 2))) int32_t kprintf(char* fmt, ...) {
 	char buf[512];
 	va_list args;
 	va_start(args, fmt);
 
 	ksnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
-	return kprint(buf);
+	return kputs(buf);
+}
+
+static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s, uint32_t len) {
+	if (!s || len == 0)
+		return 0;
+
+	spinlock_lock(&stream->lock);
+	device_t* dev = get_device_from_stream(stream);
+	if (dev && dev->write) {
+		int written = dev->write((void*)s, (int)len);
+		spinlock_unlock(&stream->lock);
+		return (written < 0) ? -1 : (int32_t)written;
+	}
+
+	spinlock_unlock(&stream->lock);
+	kprint_col((char*)s, DEFAULT_COLOUR);
+	return (int32_t)len;
+}
+
+int32_t kfputs(const char* __restrict s, FILE* __restrict stream) {
+	const uint32_t len = strlen(s);
+	return write_to_stream(stream, s, len);
+}
+
+int32_t kfprintf(FILE* stream, const char* format, ...) {
+	va_list va;
+	va_start(va, format);
+	char buf[256];
+	const int rval = vsnprintf(buf, sizeof buf, format, va);
+	va_end(va);
+	if (rval <= 0) return rval;
+	return write_to_stream(stream, buf, (uint32_t)rval);
+}
+
+int32_t kputs(const char* s) {
+	return kfputs(s, stdout);
 }

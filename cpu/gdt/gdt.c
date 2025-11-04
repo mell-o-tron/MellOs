@@ -1,7 +1,9 @@
+#include "autoconf.h"
+
 #include "cpu/gdt.h"
 #include "stdint.h"
-
-#include <memory_area_spec.h>
+#include "memory_area_spec.h"
+#include "vesa.h"
 
 typedef struct {
 	uint16_t LimitLow;
@@ -139,11 +141,14 @@ void gdt_init() {
 							   GDT_ACCESS_PRESENT | GDT_ACCESS_RING0 | GDT_ACCESS_DATA_SEGMENT |
 								   GDT_ACCESS_DATA_WRITEABLE,
 							   GDT_FLAG_32BIT);
-
-	g_GDT[10] = make_gdt_entry(FRAMEBUFFER_VIRT_START, FRAMEBUFFER_VIRT_SIZE - 1,
+	g_GDT[10] = make_gdt_entry(FRAMEBUFFER_VIRT_START,
+#ifdef CONFIG_GFX_VESA
+		FRAMEBUFFER_SIZE_BYTES(vga_fb->height, vga_fb->pitch) - 1,
+#else
+		64,
+#endif
 								GDT_ACCESS_PRESENT | GDT_ACCESS_RING0 | GDT_ACCESS_DATA_SEGMENT |
 								GDT_ACCESS_DATA_WRITEABLE,
 								GDT_FLAG_32BIT);
-
-	gdt_load(sizeof(g_GDT) -1, g_GDT, GDT_CODE_SEGMENT, GDT_DATA_SEGMENT);
+	gdt_load(sizeof(g_GDT)-1, g_GDT, GDT_CODE_SEGMENT, GDT_DATA_SEGMENT);
 }

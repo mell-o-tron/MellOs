@@ -4,23 +4,33 @@
 #include "mellos/pipe.h"
 #include "process_memory.h"
 
+typedef struct {
+	const char *name;
+	int (*read)(void *buf, int size);
+	int (*write)(void *buf, int size);
+	int (*ioctl)(int request, void *arg);
+} device_t;
+
 typedef struct task_state {
-    void* stack;
+	void* stack;
 } state_t;
 
 typedef struct process {
-    uint32_t owner;
-    uint32_t pid;
-    int32_t errno;
-    state_t* state;
-    bool must_relinquish;
-    fd_table_t fd_table;
-    struct process* parent;
-    linked_list_t* children_list;
-    fd_t* stdin;
-    fd_t* stdout;
-    fd_t* stderr;
-    ProcessPageList* page_list;
+	uint32_t owner;
+	uint32_t pid;
+	int32_t errno;
+	state_t* state;
+	bool must_relinquish;
+	fd_table_t fd_table;
+	struct process* parent;
+	linked_list_t* children_list;
+	fd_t* stdin;
+	fd_t* stdout;
+	fd_t* stderr;
+	device_t* stdin_device;
+	device_t* stdout_device;
+	device_t* stderr_device;
+	process_page_list_t* page_list;
 } process_t;
 
 extern void __attribute__((__cdecl__)) switch_task(process_t* current, process_t* new);

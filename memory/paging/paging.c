@@ -91,7 +91,7 @@ void init_frame_allocator_range(uint32_t min_frame, uint32_t max_frame) {
 	frame_allocator_max_frame = max_frame;
 	next_free_frame = min_frame;
 
-	kprintf("Frame allocator initialized: range [0x%X, 0x%X) (%u - %u frames)\n",
+	kprintf("Frame allocator init: range [0x%X, 0x%X) (%u - %u frames)\n",
 	        min_frame * PHYSICAL_FRAME_SIZE,
 	        max_frame * PHYSICAL_FRAME_SIZE,
 	        min_frame,
@@ -303,7 +303,7 @@ static bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_t
 		}
 	}
 
-	enablePaging();
+	enable_paging();
 	return true;
 }
 
@@ -365,6 +365,71 @@ bool allocate_page_with_offset(uint32_t owner, size_t count, uint32_t offset) {
 
 bool allocate_page(uint32_t owner, size_t count) {
 	return allocate_pages_with_offset(owner, count, 0);
+}
+
+uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t offset) {
+	if (owner == 0 || count == 0) return 0;
+	offset = PAGE_ALIGN_DOWN(offset);
+	const uint32_t dir_lo = ((HEAP_START >> 12) & 0x3FF);
+	const uint32_t dir_hi = (((HEAP_START + 4096*1024) >> 12) & 0x3FF);
+	const uint32_t pte_flags = (PT_PRESENT | PT_READWRITE | PT_USER);
+	const PD_FLAGS pd_flags = (PD_PRESENT | PD_READWRITE | PD_USER);
+
+	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
+		for (uint32_t j = 0; j < 1024; ++j) {
+			uint32_t max_pages_left_in_dir = 1024 - j + (dir_hi - i) * 1024;
+			if ((size_t)max_pages_left_in_dir < count)
+				break;
+			if (!run_is_free(i, j, dir_lo, dir_hi, count))
+				continue;
+			uint32_t phys_base = alloc_physical_frames((uint32_t)count);
+			if (phys_base == 0) {
+				kpanic_message("Out of memory (process pages)");
+				return 0;
+			}
+			if (!map_run_and_own(owner, i, j, count, phys_base, pte_flags, pd_flags)) {
+				return 0;
+			}
+			uintptr_t base = ((uintptr_t)i << 22) | ((uintptr_t)j << 12);
+			(void)offset; // not currently used in virtual placement
+			return base;
+		}
+	}
+	return 0;
+}
+
+static inline void invlpg(void* m) {
+	asm volatile ("invlpg (%0)" :: "r"(m) : "memory");
+}
+
+bool free_user_pages(uint32_t owner, uintptr_t base, size_t count) {
+	if (owner == 0 || base == 0 || count == 0) return false;
+	process_t* proc = get_process_by_pid(owner);
+	if (!proc || !proc->page_list) return false;
+	uintptr_t addr = PAGE_ALIGN_DOWN(base);
+	uint32_t dir = (uint32_t)(addr >> 22) & 0x3FF;
+	uint32_t tbl = (uint32_t)((addr >> 12) & 0x3FF);
+	for (size_t k = 0; k < count; ++k) {
+		uint32_t* pte_table = (uint32_t*) (page_directories[currently_selected_directory][dir] & ~0xFFFu);
+		if (pte_table) {
+			uint32_t entry = ((uint32_t*)pte_table)[tbl];
+			if (entry & PT_PRESENT) {
+				uint32_t phys = entry & ~0xFFFu;
+				free_physical_frame(phys);
+				((uint32_t*)pte_table)[tbl] = 0; // clear mapping
+				process_memory_remove_page(proc->page_list, ((uintptr_t)dir << 22) | ((uintptr_t)tbl << 12));
+				invlpg((void*)(((uintptr_t)dir << 22) | ((uintptr_t)tbl << 12)));
+			}
+		}
+		// advance to next slot
+		tbl++;
+		if (tbl >= 1024) {
+			tbl = 0;
+			dir++;
+		}
+	}
+	enable_paging();
+	return true;
 }
 
 extern bool buddy_inited;
@@ -475,7 +540,6 @@ _Noreturn void higher_half_init(MultibootTags* multiboot_addr) {
 
 	switch_page_directory((uint32_t*)page_directories[0]);
 	init_frame_allocator();
-
 	higher_half_main((uintptr_t)multiboot_addr); // kernel main for higher half
 }
 
@@ -569,7 +633,7 @@ void setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_
 	}
 
 	uint32_t magic_number = 0x80000000;
-	loadPageDirectory(base_page_directory_low);
+	load_page_directory(base_page_directory_low);
 	asm volatile("mov %%cr0, %%eax\n"
 	             "or %0, %%eax\n"
 	             "mov %%eax, %%cr0\n" ::"r"(magic_number)
@@ -591,12 +655,12 @@ void setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_
 	uint32_t cr0_check;
 	asm volatile("mov %%cr0, %0\n" : "=r"(cr0_check));
 
-	kprintf("CR0 after paging = %X\n", cr0_check);
+	//kprintf("CR0 after paging = %X\n", cr0_check);
 
 	// After enabling paging and adjusting stack
 	uint32_t* test_ptr = (uint32_t*)0xC0000000;
 	uint32_t test_value = *test_ptr; // Try to read from higher-half
-	kprintf("Read from 0xC0000000: %X\n", test_value);
+	//kprintf("Read from 0xC0000000: %X\n", test_value);
 	asm volatile("mov %1, %%eax\n"
 	             "jmp *%0\n" // this is set at the top of the function
 	             ::"r"(higher_half_init),
@@ -611,10 +675,10 @@ __attribute__((section(".low.text"))) void init_paging(uintptr_t fb,
 }
 
 void stop_paging() {
-	disablePaging();
+	disable_paging();
 }
 
 __attribute__((section(".low.text"))) void switch_page_directory(unsigned int* page_directory) {
-	loadPageDirectory(page_directory);
-	enablePaging();
+	load_page_directory(page_directory);
+	enable_paging();
 }

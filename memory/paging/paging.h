@@ -47,6 +47,12 @@ uint32_t alloc_physical_frames(uint32_t frames);
 void initialize_page_directory(uint32_t *directory);
 bool free_page(pagedata_t *page);
 bool allocate_page(uint32_t owner, size_t count);
+
+// Allocate `count` user pages and return the base virtual address (or 0 on failure)
+uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t offset);
+// Free `count` user pages starting at `base` for the specified owner
+bool free_user_pages(uint32_t owner, uintptr_t base, size_t count);
+
 void init_paging(uintptr_t fb, MultibootTags* multiboot_info_addr);
 void stop_paging();
 void put_page_table_to_directory(uint32_t **directory, uint32_t page_table, uint32_t index,

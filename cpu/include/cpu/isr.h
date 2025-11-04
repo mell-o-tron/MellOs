@@ -1,5 +1,6 @@
 #pragma once
 #include "stdint.h"
+#include "stdbool.h"
 // Shamelessely stolen, with some degree of adaptation, from http://www.osdever.net/
 
 extern void _fault_handler(struct regs* r);

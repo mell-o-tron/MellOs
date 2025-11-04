@@ -8,6 +8,8 @@
 #include "errno.h"
 #include "mem.h"
 
+#include <mellos/kernel/stdio_devices.h>
+
 union arg {
     long long ll;
     unsigned long long ull;
@@ -580,19 +582,23 @@ int printf(const char* s, ...) {
     const int rval = vsnprintf(buf, sizeof buf, s, va);
     va_end(va);
     syscall_write(FD_STDOUT, buf, rval);
-//fixme:print to current process's output stream
     //kprint(buf);
     return rval;
 }
 
 int fputs(const char* __restrict s, FILE* __restrict stream) {
-    if (cqueue_enqueue(stream->cqueue, s, strlen(s)) == -1) {
-        return -1;
-    }
-    return (int32_t) strlen(s);
+	const uint32_t len = strlen(s); // todo return how many bytes written from int
+	syscall_write(stream->fd, s, len);
+    return (int32_t) len;
 }
 
 int fprintf(FILE* stream, const char* format, ...) {
+	va_list va;
+	va_start(va, format);
+	char buf [256];
+	const int rval = vsnprintf(buf, sizeof buf, format, va);
+	va_end(va);
+	syscall_write(stream->fd, buf, rval);
     errno = ENOSYS;
     return -1;
 }

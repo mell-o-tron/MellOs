@@ -1,4 +1,5 @@
 #include "math.h"
+#include "autoconf.h"
 #ifdef CONFIG_GFX_VESA
 
 #include "shell/vell.h"

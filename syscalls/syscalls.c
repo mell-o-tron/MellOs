@@ -1,8 +1,14 @@
 #include "autoconf.h"
 #include "errno.h"
-#include <processes.h>
+#include "processes.h"
+
+#include "mellos/kernel/kernel_stdio.h"
 
 #include "cpu/idt.h"
+
+#include "stdio.h"
+
+#include <colours.h>
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -13,6 +19,9 @@
 #include "shell/shell.h"
 #include "string.h"
 #include "syscalls.h"
+#include "paging/paging.h"
+#include "process_memory.h"
+#include "memory_area_spec.h"
 
 int syscall_stub(regs* r) {
 	switch (r->eax) {
@@ -38,7 +47,11 @@ int syscall_stub(regs* r) {
 	case 7:
 		return get_pid(r);
 	case 8:
-		return sys_memory(r);
+		return sys_mmap(r);
+	case 9:
+		return sys_munmap(r);
+	case 10:
+		return sys_mprotect(r);
 	}
 
 	return 0;
@@ -84,47 +97,31 @@ int sys_write(regs* r) {
 		}
 
 		if (stdout_local != NULL) {
-			char buf[128];
 
-			while (true) {
-				const int ret = pipe_read(stdout_local, buf, 127);
-				if (ret < 0) {
-					errno = ret;
-					return -1;
-				}
-				if (ret == 0) {
-					return 0;
-				}
-				const int written = pipe_write(current_process->parent->stdin, buf, ret);
 
-				if (written < 0) {
-					errno = written;
-					return -1;
-				}
-				if (written != ret) {
-					return -1;
-				}
+			const int written = kprintf("[KERNEL] %s", msg);
 
-				// kprint(buf);
+			if (written < 0) {
+				return written;
 			}
 		}
 
 		return -EINVAL;
 	}
 
-	// If the file descriptor is 1, we write to "stdout"
-	// Which for now does not exist lol, we just print.
 	switch (LBA) {
-	case 1: // stdout
-		if (strlen(msg) > len)
+	case 1:
+		if (strlen(msg) > len) {
 			msg[len - 1] = 0;
-		// For now, write to the screen directly regardless of process context
-		kprint(msg);
+		}
+
+		pipe_write(current_process->stdout, msg, len);
 		return 0;
 	case 2: // stderr
-		if (strlen(msg) > len)
+		if (strlen(msg) > len) {
 			msg[len - 1] = 0;
-		print_error(msg);
+		}
+		pipe_write(current_process->stderr, msg, len);
 		return 0;
 	default:
 		break;
@@ -161,17 +158,60 @@ int sys_close(regs* r) {
 	return -1;
 }
 
-int sys_memory(regs* r) {
-	switch (r->ebx) {
-	case 0: // allocate
-		kmalloc(r->ecx);
-	// TODO: allocate memory directly from the page manager
-	case 1: // free
-		kfree((void*)r->ecx);
-		break;
-	default:
-		return -1;
+int sys_mmap(regs* r) {
+	// ebx: subop (0=alloc, 1=free)
+	// ecx: size (bytes) for alloc, or base address for free
+	// edx: unused for alloc (can be hint/flags), or size for free (optional)
+	process_t* proc = get_current_process();
+	if (!proc) return -1;
+	uint32_t subop = r->ebx;
+	if (subop == 0) {
+		// allocate N bytes for this process without using kernel allocator
+		size_t size = (size_t)r->ecx;
+		if (size == 0) return 0;
+		size_t pages = (size + (PAGE_SIZE - 1)) / PAGE_SIZE;
+		uintptr_t base = allocate_user_pages_return_base(proc->pid, pages, 0);
+		if (base == 0) return 0; // failure -> return 0 like mmap
+		// store region
+		process_memory_add_region(proc->page_list, base, pages);
+		return (int)base;
 	}
+	if (subop == 1) {
+		// free region; if size provided in edx==0 then look up region by base
+		uintptr_t base = (uintptr_t)r->ecx;
+		size_t pages = 0;
+		if (r->edx) {
+			pages = ((size_t)r->edx + (PAGE_SIZE - 1)) / PAGE_SIZE;
+		} else {
+			if (!process_memory_find_region(proc->page_list, base, &pages)) {
+				return -1;
+			}
+		}
+		if (pages == 0)
+			return -1;
+		if (!free_user_pages(proc->pid, base, pages))
+			return -1;
+		process_memory_remove_region(proc->page_list, base);
+		return 0;
+	}
+	return -1;
+}
+
+int sys_munmap(regs* r) {
+	// compatibility wrapper: munmap(base, size)
+	process_t* proc = get_current_process();
+	if (!proc) return -1;
+	uintptr_t base = (uintptr_t)r->ebx;
+	size_t size = (size_t)r->ecx;
+	size_t pages = (size + (PAGE_SIZE - 1)) / PAGE_SIZE;
+	if (pages == 0) return -1;
+	if (!free_user_pages(proc->pid, base, pages)) return -1;
+	process_memory_remove_region(proc->page_list, base);
+	return 0;
+}
+
+int sys_mprotect(regs* r) {
+	// Not yet implemented: just return success for now
 	return 0;
 }
 

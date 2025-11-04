@@ -4,13 +4,7 @@
 #include "stdint.h"
 #include "circular_queue.h"
 // File structure definition
-typedef struct _FILE { // NOLINT(*-reserved-identifier)
-    int fd;                      // File descriptor
-    uint32_t flags;              // Status flags (read/write/error/eof)
-    CircularQueue *cqueue;       // use the utilities from circular_queue.h
-    int error;                   // Error indicator
-    int eof;                     // End-of-file indicator
-} FILE;
+struct _FILE; typedef struct _FILE FILE;
 
 // File position type
 typedef struct _fpos_t {

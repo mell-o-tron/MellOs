@@ -4,9 +4,9 @@
 // Text video memory (Non VESA)
 #define TEXT_VIDEO_MEMORY (char*)0xB8000
 
-#define VGA_WIDTH			80
-#define VGA_HEIGHT  		25
-#define BYTES_PER_CHAR		2
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define BYTES_PER_CHAR 2
 
 #define NUM_MANY_DIRECTORIES 4
 
@@ -22,11 +22,16 @@
 #define KERNEL_HEAP_START 0xC00000
 #define KERNEL_HEAP_END 0xFFFFff
 
-#define FRAMEBUFFER_VIRT_START 0xBF000000                             // vesa
+#define FRAMEBUFFER_VIRT_START 0xAF000000                             // vesa
 #define FRAMEBUFFER_PD_INDEX ((FRAMEBUFFER_VIRT_START >> 22) & 0x3FF) // 752
 #define FRAMEBUFFER_PT_INDEX ((FRAMEBUFFER_VIRT_START >> 12) & 0x3FF) // 0
 #define NUM_FB_PAGE_DIRS 2
-#define FRAMEBUFFER_VIRT_SIZE (8 * 1024 * 1024)
+#define FRAMEBUFFER_SIZE_BYTES(vres, pitch) ((vres) * (pitch))
+#define FRAMEBUFFER_NUM_DIRECTORIES(vres, pitch)                                                   \
+	(((FRAMEBUFFER_SIZE_BYTES(vres, pitch) + 0x3FFFFF) / 0x400000))
+
+#define FRAMEBUFFER_VIRT_END(vres, pitch)                                                          \
+	(FRAMEBUFFER_VIRT_START + FRAMEBUFFER_SIZE_BYTES(vres, pitch))
 
 #define FRAMEBUFFER_PAGE_DFLAGS (PD_FLAGS)(PD_PRESENT | PD_READWRITE)
 #define FRAMEBUFFER_PAGE_TFLAGS (PT_FLAGS)(PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING);

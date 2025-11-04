@@ -16,7 +16,7 @@
 // libc includes
 #include "math.h"
 
-#include <mellos/kernel/kernel.h>
+#include "mellos/kernel/kernel.h"
 
 uint32_t Hres;
 uint32_t Vres;
