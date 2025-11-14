@@ -10,9 +10,9 @@ else
     echo "Cannot get the distro name"
 fi
 
-if [ "$ID" = "debian" ]; then
+if [[ "$ID" = "debian" || "$ID" = "ubuntu" || "$ID" = "linuxmint" || "$ID" = "pop" || "$ID" = "elementary" || "$ID" = "kali" ]]; then
     "$curr_dir/setup-gcc-debian.sh" 
-elif [ "$ID" = "arch" ];then
+elif [[ "$ID" = "arch" || "$ID" = "manjora" || "$ID" = "endeavouros" ]];then
     "$curr_dir/setup-gcc-debian.sh" 
 else
     echo "Unsupported distro: $ID"
