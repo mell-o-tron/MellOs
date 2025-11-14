@@ -40,4 +40,3 @@ sudo make install-target-libgcc
 echo HERE U GO MAYBE:
 ls /usr/local/i386elfgcc/bin
 export PATH="$PATH:/usr/local/i386elfgcc/bin"
-
