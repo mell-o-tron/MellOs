@@ -1,13 +1,6 @@
 #include "autoconf.h"
 #include "circular_buffer.h"
 
-// #ifdef CONFIG_GFX_VESA
-// #include "../drivers/vesa/vesa_text.h"
-// #else
-// #include "../drivers/vga_text.h"
-// #endif
-// #include "../utils/conversions.h"
-
 int add_to_cbuffer(cbuffer_t * buf, char c, bool is_uppercase){
 
   size_t next_top = (buf -> top + 1) % buf -> size;

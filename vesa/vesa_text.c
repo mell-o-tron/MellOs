@@ -9,7 +9,8 @@
 #include "stddef.h"
 #include "uart.h"
 
-#include <string.h>
+#include "mellos/kernel/kernel.h"
+#include "string.h"
 
 struct VbeInfoBlock {
     char signature[4];
@@ -114,7 +115,7 @@ void _vesa_text_set_dirty_callback(function_type f) {
 }
 
 void _vesa_text_init() {
-    fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES);
+    fb = allocate_framebuffer(Hres, Vres, CONFIG_GFX_BPP);
     // char buf[256];
     // tostring((int)fb->fb, 16, buf);
     // kprint(buf);
@@ -169,32 +170,30 @@ int kprint_col(const char* s, Colour col) {
         return strlen(s);
     }
     while (*s) {
-	if (*s == '\n') {
-	    cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
-	    if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
-		scroll_up();
-	    }
-	} else {
-	    size_t hpos = HSLOT(fb);
-	    fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
-	    increment_cursor_pos();
-	    if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
-		cursor_pos += CONSOLE_WIDTH(fb) - hpos;
-		if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
-		    scroll_up();
+		if (*s == '\n') {
+		    cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
+		    if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+				scroll_up();
+		    }
+		} else {
+		    size_t hpos = HSLOT(fb);
+		    fb_draw_char(HPOS(fb), VPOS(fb), *s, fg, HSCALE, VSCALE, fb);
+		    increment_cursor_pos();
+		    if (hpos > HSLOT(fb)) { // TODO: Doesn't work on the last line for some reason. Fix
+				cursor_pos += CONSOLE_WIDTH(fb) - hpos;
+				if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+				    scroll_up();
+				}
+		    }
 		}
-	    }
-	}
-	s++;
-	written++;
+		s++;
+		written++;
     }
 
-    if (autoblit) {
 	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
-    }
 
     if (dirty_callback) {
-	dirty_callback();
+		dirty_callback();
     }
     return written;
 }
@@ -209,15 +208,16 @@ void kprint_char(char c, bool caps) {
     VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
     // Blank out the slot for the next character. Needed to implement backspace as going back and
     // printing a space
+	if (fb == NULL) {
+		kpanic_message("Framebuffer is null");
+	}
     fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), fb);
     fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
 
-    if (autoblit) {
 	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
-    }
 
     if (dirty_callback) {
-	dirty_callback();
+		dirty_callback();
     }
 
     increment_cursor_pos();

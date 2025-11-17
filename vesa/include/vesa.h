@@ -26,7 +26,7 @@ extern Framebuffer* vga_fb;
 void _vesa_framebuffer_init(PIXEL pointer);
 
 Framebuffer* allocate_full_screen_framebuffer();
-Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height);
+Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height, uint8_t bpp);
 void deallocate_framebuffer(Framebuffer* fb);
 
 void blit(Framebuffer* src, Framebuffer* dest, int x, int y, uint32_t width, uint32_t height);

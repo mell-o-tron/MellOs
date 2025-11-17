@@ -24,7 +24,7 @@ typedef struct MouseState {
 static MouseState mouse_state;
 
 void _init_mouse_handler(){
-    Framebuffer* fb = allocate_framebuffer(16, 16);
+    Framebuffer* fb = allocate_framebuffer(16, 16, CONFIG_GFX_BPP);
     mouse_window = create_window_with_fb(fb, "mouse");
     _vell_deregister_window(mouse_window);
     _vell_register_mouse(mouse_window);

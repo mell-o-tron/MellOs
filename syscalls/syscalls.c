@@ -8,7 +8,6 @@
 
 #include "stdio.h"
 
-#include <colours.h>
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else

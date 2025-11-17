@@ -132,7 +132,12 @@ __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, un
 	snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
 
 	fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-	fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
+
+	if (CONFIG_GFX_HRES > 1200) {
+		fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
+	} else {
+		fb_draw_string(16, 16, buf, VESA_DARK_GREY, 2, 2, vga_fb);
+	}
 #else
 #define ERRCOL 0x47 // Lightgrey on Lightred
 #define VGAMEM (unsigned char*)0xB8000;
@@ -226,6 +231,9 @@ void task_2() {
 	}
 }
 
+__attribute__((section(".low.bss")))
+MultibootTags mb_tags;
+
 // char test[0xe749] = {1};
 allocator_t allocator;
 __attribute__((section(".low.bss"))) uint32_t fb_addr;
@@ -236,9 +244,10 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 		kpanic_message("Null Multiboot pointer");
 	}
 
+	mb_tags = *((MultibootTags*)multiboot_tags_addr);
 	fb_addr = (uint32_t)get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
 #ifdef CONFIG_GFX_VESA
-	init_memory_mapper((MultibootTags*)multiboot_tags_addr, fb_addr, CONFIG_GFX_BPP);
+	init_memory_mapper((MultibootTags*)multiboot_tags_addr, (PIXEL*)fb_addr, CONFIG_GFX_BPP);
 #else
 	init_memory_mapper((MultibootTags*)multiboot_tags_addr, 0, 0);
 #endif
@@ -261,18 +270,18 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #ifdef CONFIG_GFX_VESA
 	fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
 
-	if (multiboot_tags->flags & (1 << 12)) {
-		Hres = multiboot_tags->framebuffer_width;
-		Vres = multiboot_tags->framebuffer_height;
-		Pitch = multiboot_tags->framebuffer_pitch; // Convert to pixels
+	if (mb_tags.flags & (1 << 12)) {
+		Hres = mb_tags.framebuffer_width;
+		Vres = mb_tags.framebuffer_height;
+		Pitch = mb_tags.framebuffer_pitch; // Convert to pixels
 	} else {
 		Hres = CONFIG_GFX_HRES;
 		Vres = CONFIG_GFX_VRES;
-		Pitch = CONFIG_GFX_HRES * (CONFIG_GFX_BPP / 8);
+		Pitch = sizeof(PIXEL) * CONFIG_GFX_HRES;
 	}
 #endif
-	kprintf("lower: %X\n", multiboot_tags->mem_lower);
-	kprintf("upper: %X\n", multiboot_tags->mem_upper);
+	kprintf("lower: %X\n", mb_tags.mem_lower);
+	kprintf("upper: %X\n", mb_tags.mem_upper);
 
 	kprintf("map:\n");
 

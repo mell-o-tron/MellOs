@@ -1,9 +1,12 @@
 #include "paging.h"
+#include "autoconf.h"
 #include "conversions.h"
 #include "cpu/isr.h"
 #include "dynamic_mem.h"
+#include "frame_allocator.h"
 #include "mellos/kernel/kernel.h"
 #include "mellos/kernel/kernel_stdio.h"
+#include "mellos/kernel/memory_mapper.h"
 #include "mem.h"
 #include "memory_area_spec.h"
 #include "paging_utils.h"
@@ -12,38 +15,31 @@
 #include "stddef.h"
 #include "stdint.h"
 #include "stdlib.h"
-#include "autoconf.h"
-#include "mellos/kernel/memory_mapper.h"
 #include "vesa_text.h"
 
-#define MAX_FRAMES 262144 // 1GB of physical memory
-
-static uint32_t frame_allocator_min_frame = 0;
-static uint32_t frame_allocator_max_frame = MAX_FRAMES;
-
-__attribute__((section(".low.bss")))
-uint32_t base_page_directory_low[1024] __attribute__((aligned(4096)));
-__attribute__((section(".low.bss")))
-uint32_t first_page_table[1024] __attribute__((aligned(4096)));
-__attribute__((section(".low.bss")))
-uint32_t second_page_table[1024] __attribute__((aligned(4096)));
-__attribute__((section(".low.bss")))
-uint32_t kernel_heap_page_table[1024] __attribute__((aligned(4096)));
-__attribute__((section(".low.bss")))
-uint32_t heap_page_table[1024] __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t base_page_directory_low[1024]
+    __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t first_page_table[1024] __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t second_page_table[1024]
+    __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t kernel_heap_page_table[KERNEL_HEAP_PAGE_TABLES][1024]
+    __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t heap_page_table[1024] __attribute__((aligned(4096)));
 // uint32_t lots_of_pages[NUM_MANY_DIRECTORIES][1024] __attribute__((aligned(4096)));
+
 #ifdef CONFIG_GFX_VESA
 #define NUM_FB_DIRECTORIES (uint32_t)4 // FB is 8100 KB (1920x1080x4)
-__attribute__((section(".low.bss")))
-uint32_t framebuffer_pages[NUM_FB_DIRECTORIES][1024] __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t framebuffer_pages[NUM_FB_DIRECTORIES][1024]
+    __attribute__((aligned(4096)));
+
 #endif
 
 __attribute__((section(".low.bss"))) uint32_t page_table_identity[1024]
     __attribute__((aligned(4096)));
-__attribute__((section(".low.bss"))) uint32_t page_table_higher_half[1024] __attribute__((aligned(4096)));
+__attribute__((section(".low.bss"))) uint32_t page_table_higher_half[1024]
+    __attribute__((aligned(4096)));
 
-__attribute__((section(".low.bss")))
-uint32_t page_directories[NUM_MANY_DIRECTORIES][1024]
+__attribute__((section(".low.bss"))) uint32_t page_directories[NUM_MANY_DIRECTORIES][1024]
     __attribute__((aligned(4096)));
 uint32_t currently_selected_directory = 0;
 
@@ -51,144 +47,12 @@ uint32_t currently_selected_directory = 0;
 #define KERNEL_PHYSICAL_START 0x00100000
 #define KERNEL_START_INDEX 768
 
+#define PAGE_ALIGN_DOWN(x) ((uintptr_t)ALIGN_DOWN(x, PAGE_SIZE))
 
-#define PHYSICAL_FRAME_SIZE 4096
-
-#define PAGE_ALIGN_DOWN(x) ((uintptr_t)(x) & ~(uintptr_t)(PAGE_SIZE - 1))
-
-static uint32_t frame_bitmap[MAX_FRAMES / 32];
-static uint32_t next_free_frame = 0;
-
-void init_frame_allocator_range(uint32_t min_frame, uint32_t max_frame) {
-	if (min_frame >= max_frame) {
-		kpanic_message("Invalid frame range: min >= max");
-		return;
-	}
-
-	if (max_frame > MAX_FRAMES) {
-		kpanic_message("Frame range exceeds MAX_FRAMES");
-		return;
-	}
-
-	memset(frame_bitmap, 0, sizeof(frame_bitmap));
-
-	// Mark all frames below min_frame as used
-	for (uint32_t frame = 0; frame < min_frame; frame++) {
-		uint32_t index = frame / 32;
-		uint32_t bit = frame % 32;
-		frame_bitmap[index] |= (1 << bit);
-	}
-
-	// Mark all frames at or above max_frame as used
-	for (uint32_t frame = max_frame; frame < MAX_FRAMES; frame++) {
-		uint32_t index = frame / 32;
-		uint32_t bit = frame % 32;
-		frame_bitmap[index] |= (1 << bit);
-	}
-
-	// Store the range
-	frame_allocator_min_frame = min_frame;
-	frame_allocator_max_frame = max_frame;
-	next_free_frame = min_frame;
-
-	kprintf("Frame allocator init: range [0x%X, 0x%X) (%u - %u frames)\n",
-	        min_frame * PHYSICAL_FRAME_SIZE,
-	        max_frame * PHYSICAL_FRAME_SIZE,
-	        min_frame,
-	        max_frame);
-}
-
-void init_frame_allocator(void) {
-	// Default: mark everything below HEAP_START as used
-	uint32_t heap_start_frame = HEAP_START / PHYSICAL_FRAME_SIZE;
-	uint32_t heap_end_frame = (KERNEL_HEAP_END + 1) / PHYSICAL_FRAME_SIZE;
-
-	init_frame_allocator_range(heap_start_frame, heap_end_frame);
-}
-
-void get_frame_allocator_range(uint32_t* out_min_frame, uint32_t* out_max_frame) {
-	if (out_min_frame)
-		*out_min_frame = frame_allocator_min_frame;
-	if (out_max_frame)
-		*out_max_frame = frame_allocator_max_frame;
-}
-
-inline uint32_t alloc_physical_frame_internal(uint32_t i, uint32_t frames) {
-	uint32_t free_count = 0;
-
-	for (uint32_t j = i; j < frame_allocator_max_frame && free_count < frames; j++) {
-		uint32_t index = j / 32;
-		uint32_t bit = j % 32;
-
-		if (frame_bitmap[index] & (1 << bit)) {
-			break;
-		}
-		free_count++;
-	}
-
-	// Found a block of sufficient size
-	if (free_count == frames) {
-		for (uint32_t j = i; j < i + frames; j++) {
-			uint32_t index = j / 32;
-			uint32_t bit = j % 32;
-
-			frame_bitmap[index] |= (1 << bit);
-		}
-		next_free_frame = i + frames;
-		return i * PHYSICAL_FRAME_SIZE;
-	}
-	return 0;
-}
-
-uint32_t alloc_physical_frames_ranged(uint32_t frames) {
-	if (frames == 0)
-		return 0;
-
-	uint32_t ret;
-
-	// Search forward from next_free_frame
-	for (uint32_t i = next_free_frame; i < frame_allocator_max_frame; i++) {
-		if ((ret = alloc_physical_frame_internal(i, frames)) != 0) {
-			return ret;
-		}
-	}
-
-	// Wrap around to search from min_frame
-	for (uint32_t i = frame_allocator_min_frame; i < next_free_frame; i++) {
-		if ((ret = alloc_physical_frame_internal(i, frames)) != 0) {
-			return ret;
-		}
-	}
-
-	return 0; // OOM
-}
-
-uint32_t alloc_physical_frames(uint32_t frames) {
-	return alloc_physical_frames_ranged(frames);
-}
-
-void free_physical_frame(uint32_t physical_address) {
-	uint32_t frame = physical_address / PHYSICAL_FRAME_SIZE;
-
-	// Validate frame is within range
-	if (frame < frame_allocator_min_frame || frame >= frame_allocator_max_frame) {
-		kprintf("WARNING: Attempted to free frame 0x%X outside allocator range [0x%X, 0x%X)\n",
-		        frame, frame_allocator_min_frame, frame_allocator_max_frame);
-		return;
-	}
-
-	uint32_t idx = frame / 32;
-	uint32_t bit = frame % 32;
-	frame_bitmap[idx] &= ~(1 << bit);
-
-	if (frame < next_free_frame) {
-		next_free_frame = frame;
-	}
-}
+extern MultibootTags mb_tags;
 
 // writes the page directory full of tables with write perms
-__attribute__((section(".low.text")))
-void initialize_page_directory(uint32_t* directory) {
+__attribute__((section(".low.text"))) void initialize_page_directory(uint32_t* directory) {
 	for (int i = 0; i < 1024; i++) {
 		directory[i] = 0;
 	}
@@ -232,7 +96,8 @@ static inline bool next_slot(uint32_t* dir, uint32_t* tbl, uint32_t dir_lo, uint
 	return true;
 }
 
-static bool run_is_free(uint32_t start_dir, uint32_t start_tbl, uint32_t dir_lo, uint32_t dir_hi, size_t count) {
+static bool run_is_free(uint32_t start_dir, uint32_t start_tbl, uint32_t dir_lo, uint32_t dir_hi,
+                        size_t count) {
 	uint32_t d = start_dir, t = start_tbl;
 	for (size_t k = 0; k < count; ++k) {
 		if (d < dir_lo || d > dir_hi)
@@ -251,8 +116,8 @@ static bool run_is_free(uint32_t start_dir, uint32_t start_tbl, uint32_t dir_lo,
 
 // Map `count` pages starting from (dir, tbl), using `phys_base` as the first frame,
 // and set proper flags and owners. Returns pagedata for the first page.
-static bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_table, size_t count,
-                            uint32_t phys_base, uint32_t pte_flags, PD_FLAGS pd_flags) {
+bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_table, size_t count,
+                     uint32_t phys_base, uint32_t pte_flags, PD_FLAGS pd_flags) {
 	uint32_t dir = start_dir, table = start_table;
 
 	// Ensure user PDEs are marked present where needed.
@@ -288,13 +153,14 @@ static bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_t
 		uint32_t phys = phys_base + (uint32_t)(k * PAGE_SIZE);
 		uintptr_t virt_addr = ((uintptr_t)dir << 22) | ((uintptr_t)table << 12);
 
-		((uint32_t *)page_directories[currently_selected_directory][dir])[table] =
+		((uint32_t*)page_directories[currently_selected_directory][dir])[table] =
 		    (phys & ~0xFFFu) | (pte_flags | PT_PRESENT);
 
 		// Track page in process's page list
 		if (proc != NULL) {
 			if (!process_memory_add_page(proc->page_list, virt_addr)) {
-				kprintf("WARNING: Failed to add page %p to process %u's page list\n", virt_addr, owner);
+				kprintf("WARNING: Failed to add page %p to process %u's page list\n", virt_addr,
+				        owner);
 			}
 		}
 
@@ -303,27 +169,21 @@ static bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_t
 		}
 	}
 
-	enable_paging();
+	load_page_directory(page_directories[currently_selected_directory]);
 	return true;
 }
 
-__attribute__((section(".low.text")))
-bool allocate_pages_with_offset(uint32_t owner, size_t count, uint32_t offset) {
-	if (count == 0)
+__attribute__((section(".low.text"))) bool allocate_pages_with_offset(uint32_t owner, size_t count,
+                                                                      uint32_t offset) {
+	if (count == 0) {
 		return false;
+	}
 	offset = PAGE_ALIGN_DOWN(offset);
 
-	const uint32_t dir_lo = (owner == 0) ?
-		(((uint32_t)KERNEL_HEAP_START >> 12) & 0x3FF) :
-		((HEAP_START >> 12) & 0x3FF);
-	const uint32_t dir_hi = (owner == 0) ?
-		(((uint32_t)KERNEL_HEAP_END >> 12) & 0x3FF) :
-		(((HEAP_START + 4096*1024) >> 12) & 0x3FF);
-
-	const uint32_t pte_flags = (owner == 0) ? (PT_PRESENT | PT_READWRITE) : (PT_PRESENT | PT_READWRITE | PT_USER);
-
-	const PD_FLAGS pd_flags =
-	    (owner == 0) ? (PD_PRESENT | PD_READWRITE) : (PD_PRESENT | PD_READWRITE | PD_USER);
+	const uint32_t dir_lo = (owner == 0) ? (((uint32_t)KERNEL_HEAP_PHYS_START >> 12) & 0x3FF)
+	                                     : ((HEAP_PHYS_START >> 12) & 0x3FF);
+	const uint32_t dir_hi = (owner == 0) ? (((uint32_t)KERNEL_HEAP_PHYS_END >> 12) & 0x3FF)
+	                                     : (((HEAP_PHYS_START + 4096 * 1024) >> 12) & 0x3FF);
 
 	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
 		for (uint32_t j = 0; j < 1024; ++j) {
@@ -334,7 +194,7 @@ bool allocate_pages_with_offset(uint32_t owner, size_t count, uint32_t offset) {
 			if (!run_is_free(i, j, dir_lo, dir_hi, count))
 				continue;
 
-			uint32_t phys_base = alloc_physical_frames((uint32_t)count);
+			void* phys_base = alloc_frame(owner, (uint32_t)count);
 			if (phys_base == 0) {
 				if (owner == 0) {
 					kpanic_message("Out of memory (kernel pages)");
@@ -344,7 +204,7 @@ bool allocate_pages_with_offset(uint32_t owner, size_t count, uint32_t offset) {
 				return NULL;
 			}
 
-			return map_run_and_own(owner, i, j, count, phys_base, pte_flags, pd_flags);
+			return phys_base;
 		}
 	}
 
@@ -359,21 +219,16 @@ bool allocate_pages_virtual(uint32_t owner, size_t count, uintptr_t addr) {
 	return allocate_pages_with_offset(owner, count, offset);
 }
 
-bool allocate_page_with_offset(uint32_t owner, size_t count, uint32_t offset) {
-	return allocate_pages_with_offset(owner, count, offset);
-}
-
 bool allocate_page(uint32_t owner, size_t count) {
 	return allocate_pages_with_offset(owner, count, 0);
 }
 
 uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t offset) {
-	if (owner == 0 || count == 0) return 0;
+	if (owner == 0 || count == 0)
+		return 0;
 	offset = PAGE_ALIGN_DOWN(offset);
-	const uint32_t dir_lo = ((HEAP_START >> 12) & 0x3FF);
-	const uint32_t dir_hi = (((HEAP_START + 4096*1024) >> 12) & 0x3FF);
-	const uint32_t pte_flags = (PT_PRESENT | PT_READWRITE | PT_USER);
-	const PD_FLAGS pd_flags = (PD_PRESENT | PD_READWRITE | PD_USER);
+	const uint32_t dir_lo = ((HEAP_PHYS_START >> 12) & 0x3FF);
+	const uint32_t dir_hi = (((HEAP_PHYS_START + 4096 * 1024) >> 12) & 0x3FF);
 
 	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
 		for (uint32_t j = 0; j < 1024; ++j) {
@@ -382,12 +237,9 @@ uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t
 				break;
 			if (!run_is_free(i, j, dir_lo, dir_hi, count))
 				continue;
-			uint32_t phys_base = alloc_physical_frames((uint32_t)count);
+			void* phys_base = alloc_frame(owner, (uint32_t)count);
 			if (phys_base == 0) {
 				kpanic_message("Out of memory (process pages)");
-				return 0;
-			}
-			if (!map_run_and_own(owner, i, j, count, phys_base, pte_flags, pd_flags)) {
 				return 0;
 			}
 			uintptr_t base = ((uintptr_t)i << 22) | ((uintptr_t)j << 12);
@@ -399,25 +251,29 @@ uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t
 }
 
 static inline void invlpg(void* m) {
-	asm volatile ("invlpg (%0)" :: "r"(m) : "memory");
+	asm volatile("invlpg (%0)" ::"r"(m) : "memory");
 }
 
 bool free_user_pages(uint32_t owner, uintptr_t base, size_t count) {
-	if (owner == 0 || base == 0 || count == 0) return false;
+	if (owner == 0 || base == 0 || count == 0)
+		return false;
 	process_t* proc = get_process_by_pid(owner);
-	if (!proc || !proc->page_list) return false;
+	if (!proc || !proc->page_list)
+		return false;
 	uintptr_t addr = PAGE_ALIGN_DOWN(base);
 	uint32_t dir = (uint32_t)(addr >> 22) & 0x3FF;
 	uint32_t tbl = (uint32_t)((addr >> 12) & 0x3FF);
 	for (size_t k = 0; k < count; ++k) {
-		uint32_t* pte_table = (uint32_t*) (page_directories[currently_selected_directory][dir] & ~0xFFFu);
+		uint32_t* pte_table =
+		    (uint32_t*)(page_directories[currently_selected_directory][dir] & ~0xFFFu);
 		if (pte_table) {
 			uint32_t entry = ((uint32_t*)pte_table)[tbl];
 			if (entry & PT_PRESENT) {
 				uint32_t phys = entry & ~0xFFFu;
-				free_physical_frame(phys);
+				free_physical_frame(false, phys);
 				((uint32_t*)pte_table)[tbl] = 0; // clear mapping
-				process_memory_remove_page(proc->page_list, ((uintptr_t)dir << 22) | ((uintptr_t)tbl << 12));
+				process_memory_remove_page(proc->page_list,
+				                           ((uintptr_t)dir << 22) | ((uintptr_t)tbl << 12));
 				invlpg((void*)(((uintptr_t)dir << 22) | ((uintptr_t)tbl << 12)));
 			}
 		}
@@ -437,7 +293,7 @@ extern bool buddy_inited;
 pagedata_t* set_page_ownership(unsigned int** page_directory_table,
                                unsigned int page_directory_index, unsigned int page_table_index,
                                unsigned int page_index, unsigned int owner) {
-	
+
 	if (page_directory_index >= NUM_MANY_DIRECTORIES) {
 		kpanic_message("Invalid page directory index");
 		return NULL;
@@ -455,8 +311,8 @@ pagedata_t* set_page_ownership(unsigned int** page_directory_table,
 	if (owner != 0) {
 		process_t* proc = get_process_by_pid(owner);
 		if (proc != NULL) {
-			uintptr_t virt_addr = ((uintptr_t)page_directory_index << 22) | 
-			                      ((uintptr_t)page_table_index << 12) | 
+			uintptr_t virt_addr = ((uintptr_t)page_directory_index << 22) |
+			                      ((uintptr_t)page_table_index << 12) |
 			                      ((uintptr_t)page_index * PAGE_SIZE);
 			process_memory_add_page(&proc->page_list, virt_addr);
 		}
@@ -480,22 +336,21 @@ bool is_page_directory_present(unsigned int pd_index) {
 	}
 	return false;
 }
-__attribute__((section(".low.text")))
-void map_framebuffer_pages(uintptr_t fb_addr) {
+__attribute__((section(".low.text"))) void map_framebuffer_pages(uintptr_t fb_addr) {
 #ifdef CONFIG_GFX_VESA
-	for (uint32_t i = 0; i < 2; i++) {
+	for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++) {
 		uintptr_t phys_base = (fb_addr & ~0x3FFFFF) + (i * 0x400000);
 
 		for (uint32_t j = 0; j < 1024; j++) {
 			framebuffer_pages[i][j] = phys_base + (j * 0x1000) | PT_PRESENT | PT_READWRITE;
 		}
-		put_page_table_to_directory(base_page_directory_low, (uint32_t)framebuffer_pages[i], 2 + 512 + i,
-		                            FRAMEBUFFER_PAGE_DFLAGS);
+		put_page_table_to_directory(base_page_directory_low, (uint32_t)framebuffer_pages[i],
+		                            FRAMEBUFFER_PD_INDEX + i, FRAMEBUFFER_PAGE_DFLAGS);
 	}
 #endif
 }
-__attribute__((section(".low.text")))
-void put_page_table_to_directory(uint32_t** directory, const unsigned int page_table, uint32_t index,
+__attribute__((section(".low.text"))) void
+put_page_table_to_directory(uint32_t** directory, const unsigned int page_table, uint32_t index,
                             PD_FLAGS pdf) {
 	if (index >= 1024) {
 		kpanic_message("Invalid page directory index");
@@ -505,14 +360,31 @@ void put_page_table_to_directory(uint32_t** directory, const unsigned int page_t
 }
 
 __attribute__((optimize("O0"))) __attribute__((noinline))
-__attribute__((section(".text")))
-_Noreturn void higher_half_init(MultibootTags* multiboot_addr) {
+__attribute__((section(".text"))) _Noreturn void
+higher_half_init(MultibootTags* multiboot_addr) {
 	memset(page_directories, 0, sizeof(page_directories));
 	memset(heap_page_table, 0, sizeof(heap_page_table));
 	memset(kernel_heap_page_table, 0, sizeof(kernel_heap_page_table));
-	for (int i = 0; i < 1024; i++) {
-		heap_page_table[i] = (2*0x400000 + i * 0x1000) | (PT_PRESENT | PT_READWRITE | PT_USER);
-		kernel_heap_page_table[i] = (3*0x400000 + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
+
+	uint32_t heap_pages = HEAP_SIZE / 0x1000; // Calculate actual page count
+
+	for (uint32_t i = 0; i < heap_pages; i++) {
+		heap_page_table[i] = (HEAP_PHYS_START + i * 0x1000) | (PT_PRESENT | PT_READWRITE | PT_USER);
+	}
+
+	uint32_t kernel_heap_pd_index = KERNEL_HEAP_VIRT_START >> 22;
+
+	for (uint32_t i = 0; i < KERNEL_HEAP_PAGE_TABLES; i++) {
+		for (uint32_t j = 0; j < 1024; j++) {
+			kernel_heap_page_table[i][j] =
+				(KERNEL_HEAP_PHYS_START + i * 0x400000 + j * 0x1000) | (PT_PRESENT | PT_READWRITE);
+		}
+
+		// Map each page table into the page directory
+		put_page_table_to_directory(page_directories[0],
+								   (uint32_t)&kernel_heap_page_table[i],
+								   kernel_heap_pd_index + i,
+								   PD_PRESENT | PD_READWRITE);
 	}
 
 	put_page_table_to_directory(page_directories[0], (uint32_t)first_page_table, 0,
@@ -521,25 +393,27 @@ _Noreturn void higher_half_init(MultibootTags* multiboot_addr) {
 	                            PD_PRESENT | PD_READWRITE);
 	put_page_table_to_directory(page_directories[0], (uint32_t)page_table_higher_half, 768,
 	                            PD_PRESENT | PD_READWRITE);
-	put_page_table_to_directory(page_directories[0], (uint32_t)heap_page_table, 2,
-	                            PD_PRESENT | PD_READWRITE | PD_USER);
-	put_page_table_to_directory(page_directories[0], (uint32_t)kernel_heap_page_table, 3,
-	                            PD_PRESENT | PD_READWRITE);
+	put_page_table_to_directory(page_directories[0], (uint32_t)heap_page_table,
+	                            HEAP_VIRT_START >> 22, PD_PRESENT | PD_READWRITE | PD_USER);
 
 #ifdef CONFIG_GFX_VESA
 	for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++) {
-		uintptr_t phys_base_fb = (get_multiboot_framebuffer_addr(multiboot_addr) & ~0x3FFFFF) + (i * 0x400000);
+		uintptr_t phys_base_fb =
+		    (get_multiboot_framebuffer_addr(&mb_tags) & ~0x3FFFFF) + (i * 0x400000);
 
 		for (uint32_t j = 0; j < 1024; j++) {
 			framebuffer_pages[i][j] = (phys_base_fb + (j * 0x1000)) | PT_PRESENT | PT_READWRITE;
 		}
-		put_page_table_to_directory(page_directories[0], (uint32_t)framebuffer_pages[i], FRAMEBUFFER_PD_INDEX + i,
-									FRAMEBUFFER_PAGE_DFLAGS);
+		put_page_table_to_directory(page_directories[0], (uint32_t)framebuffer_pages[i],
+		                            FRAMEBUFFER_PD_INDEX + i, FRAMEBUFFER_PAGE_DFLAGS);
 	}
 #endif
 
 	switch_page_directory((uint32_t*)page_directories[0]);
-	init_frame_allocator();
+	isrs_install();
+	irq_install();
+
+	init_frame_allocators();
 	higher_half_main((uintptr_t)multiboot_addr); // kernel main for higher half
 }
 
@@ -560,8 +434,8 @@ extern char __bss_va_start[];
 extern char __bss_pa_end[];
 extern char __bss_pa_start[];
 
-__attribute__((optimize("O0"))) __attribute__((section(".low.text")))
-void setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr) {
+__attribute__((optimize("O0"))) __attribute__((section(".low.text"))) void
+setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr) {
 	isrs_install();
 
 	memset(first_page_table, 0, sizeof(first_page_table));
@@ -605,14 +479,16 @@ void setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_
 			// Map kernel code/data
 			page_table_higher_half[i] = ((uint32_t)__text_pa_start + i * 0x1000) | (PT_PRESENT);
 		} else if (i >= rodata_offset / 0x1000 && i < (data_offset) / 0x1000) {
-			page_table_higher_half[i] = ((uint32_t)__rodata_pa_start + i * 0x1000) | (PT_PRESENT); // readonly, also on paging
+			page_table_higher_half[i] = ((uint32_t)__rodata_pa_start + i * 0x1000) |
+			                            (PT_PRESENT); // readonly, also on paging
 		} else if (i >= data_offset / 0x1000 && i < (bss_offset) / 0x1000) {
-			page_table_higher_half[i] = ((uint32_t)__data_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
+			page_table_higher_half[i] =
+			    ((uint32_t)__data_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
 		} else if (i >= bss_offset / 0x1000 && i < (bss_offset + bss_delta) / 0x1000) {
-			page_table_higher_half[i] = ((uint32_t)__bss_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
-		} else if (i >= 1020) {
-			// Map stack (last 4 pages, 16 KB)
-			uint32_t stack_offset = (i - 1020) * 0x1000;
+			page_table_higher_half[i] =
+			    ((uint32_t)__bss_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
+		} else if (i >= (1024 - (KERNEL_STACK_SIZE / 0x1000))) {
+			uint32_t stack_offset = (i - (1024 - (KERNEL_STACK_SIZE / 0x1000))) * 0x1000;
 			uint32_t phys_addr = (0x90000 - KERNEL_STACK_SIZE) + stack_offset;
 			page_table_higher_half[i] = phys_addr | (PT_PRESENT | PT_READWRITE);
 		}
@@ -655,12 +531,12 @@ void setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_
 	uint32_t cr0_check;
 	asm volatile("mov %%cr0, %0\n" : "=r"(cr0_check));
 
-	//kprintf("CR0 after paging = %X\n", cr0_check);
+	// kprintf("CR0 after paging = %X\n", cr0_check);
 
 	// After enabling paging and adjusting stack
 	uint32_t* test_ptr = (uint32_t*)0xC0000000;
 	uint32_t test_value = *test_ptr; // Try to read from higher-half
-	//kprintf("Read from 0xC0000000: %X\n", test_value);
+	// kprintf("Read from 0xC0000000: %X\n", test_value);
 	asm volatile("mov %1, %%eax\n"
 	             "jmp *%0\n" // this is set at the top of the function
 	             ::"r"(higher_half_init),

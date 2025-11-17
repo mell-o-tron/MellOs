@@ -1,6 +1,4 @@
 #include "autoconf.h"
-#include <errno.h>
-#include <string.h>
 
 #include "stdio.h"
 #include "stdint.h"

@@ -12,8 +12,15 @@ Window* create_window(const char* title){
     return create_window_with_fb(fb, title);
 }
 
+/**
+ * //todo: we could allow for custom bpp windows
+ * @param title
+ * @param width
+ * @param height
+ * @return
+ */
 Window* create_window_with_size(const char* title, uint32_t width, uint32_t height){
-    Framebuffer* fb = allocate_framebuffer(width, height);
+    Framebuffer* fb = allocate_framebuffer(width, height, CONFIG_GFX_BPP);
     assert(fb != NULL);
     return create_window_with_fb(fb, title);
 }

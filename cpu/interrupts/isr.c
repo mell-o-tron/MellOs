@@ -11,13 +11,13 @@
 #include "cpu/isr.h"
 #include "mellos/kernel/kernel.h"
 #include "syscalls.h"
-
-#include <port_io.h>
+#include "port_io.h"
 
 bool probing;
 uint8_t probe_type;
 bool probe_result;
 
+__attribute__((section(".rodata")))
 char* exception_messages[32] = {"Division By Zero",
                                 "Debug",
                                 "Non Maskable Interrupt",

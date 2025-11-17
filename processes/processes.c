@@ -6,7 +6,7 @@
 #include "mem.h"
 #include "stddef.h"
 
-#include <mellos/kernel/kernel_stdio.h>
+#include "mellos/kernel/kernel_stdio.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else

@@ -2,8 +2,8 @@
 #include "autoconf.h"
 #include "stdint.h"
 
-#include <cpu/irq.h>
-#include <cpu/isr.h>
+#include "cpu/irq.h"
+#include "cpu/isr.h"
 
 /**
  * Issue a single request to CPUID. Fits 'intel features', for instance.

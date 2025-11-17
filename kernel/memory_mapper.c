@@ -10,6 +10,8 @@
 #include "dynamic_mem.h"
 #include "mem.h"
 
+#include "vesa.h"
+
 MultibootTags* multiboot_tags_local = NULL;
 void* framebuffer_addr_local = NULL;
 uint8_t bpp_local = 0;
@@ -42,7 +44,7 @@ get_multiboot_framebuffer_addr(MultibootTags* mb) {
 	return (intptr_t)mb->framebuffer_addr[0];
 }
 __attribute__((section(".low.text"))) void init_memory_mapper(MultibootTags* multiboot_tags,
-                                                              void* framebuffer_addr, uint8_t bpp) {
+                                                              PIXEL* framebuffer_addr, uint8_t bpp) {
 	multiboot_tags_local = multiboot_tags;
 	framebuffer_addr_local = framebuffer_addr;
 	bpp_local = bpp;

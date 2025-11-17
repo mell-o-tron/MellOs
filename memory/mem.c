@@ -2,11 +2,11 @@
 /// Ported from 64-bit version by assembler-0
 /// Public domain as of 05-10-25 (dd-mm-yy)
 #include "mem.h"
+#include "autoconf.h"
 #include "cpu/cpuid.h"
 #include "cpu/irq.h"
 #include "stddef.h"
 #include "stdint.h"
-#include "autoconf.h"
 
 #define _full_mem_prot_start()                                                                     \
 	{                                                                                              \
@@ -19,12 +19,21 @@
 		__sync_synchronize();                                                                      \
 	}
 
-__attribute__((section(".low.text"))) void* memset(void* dest, unsigned char value, size_t size) {
+/**
+ * Memset as defined in Unix standard. Uses sse2 if it is enabled in compiler flags, cpuid is
+ * enabled and cpu supports sse2. Uses the lowest 8 bits of value.
+ * @param dest Destination start
+ * @param value Value. Gets converted to uint8_t. Uses the lowest 8 bits.
+ * @param size How many times to fill the lowest 8 bits of value.
+ * @return NULL on failure, dest if value is 0 or success.
+ */
+__attribute__((section(".low.text"))) void* memset(void* dest, int value, size_t size) {
 	if (!dest)
 		return NULL;
 	if (size == 0)
 		return dest;
-	uint8_t* d = (uint8_t*)dest;
+	uint8_t* dest_low8 = (uint8_t*)dest;
+
 	uint8_t val = (uint8_t)value;
 
 #ifdef CONFIG_CPU_FEAT_SSE2
@@ -32,34 +41,34 @@ __attribute__((section(".low.text"))) void* memset(void* dest, unsigned char val
 		uint32_t val32 = 0x01010101UL * val;
 
 		__asm__ volatile("movd %0, %%xmm0\n"
-						 "pshufd $0, %%xmm0, %%xmm0\n" // Broadcast to all 4 dwords
-						 :
-						 : "r"(val32)
-						 : "xmm0");
+		                 "pshufd $0, %%xmm0, %%xmm0\n" // Broadcast to all 4 dwords
+		                 :
+		                 : "r"(val32)
+		                 : "xmm0");
 
 		while (size >= 16) {
-			__asm__ volatile("movdqu %%xmm0, (%0)" : : "r"(d) : "memory");
-			d += 16;
+			__asm__ volatile("movdqu %%xmm0, (%0)" : : "r"(dest_low8) : "memory");
+			dest_low8 += 16;
 			size -= 16;
 		}
 	} else {
 #endif
-		if (size >= 4) {
-			uint32_t val32 = 0x01010101UL * val;
-
-			while (size >= 4 && ((uintptr_t)d & 3) == 0) {
-				*(uint32_t*)d = val32;
-				d += 4;
-				size -= 4;
-			}
-		}
+		// if (size >= 4) {
+		// 	uint32_t val32 = 0x01010101UL * val;
+		//
+		// 	while (size >= 4 && ((uintptr_t)dest_low8 & 3) == 0) {
+		// 		*(uint32_t*)dest_low8 = val32;
+		// 		dest_low8 += 4;
+		// 		size -= 4;
+		// 	}
+		// }
 #ifdef CONFIG_CPU_FEAT_SSE2
 	}
 #endif
 
 	// Handle remaining bytes
 	while (size--)
-		*d++ = val;
+		*dest_low8++ = val;
 	return dest;
 }
 

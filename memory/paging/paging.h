@@ -2,7 +2,7 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-#include <mellos/kernel/multiboot_tags.h>
+#include "mellos/kernel/multiboot_tags.h"
 
 typedef enum {
     PD_PRESENT = 0b1,
@@ -40,10 +40,11 @@ typedef struct {
     uint32_t owner;    // pid
 } pagedata_t;
 
+bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_table, size_t count,
+                            uint32_t phys_base, uint32_t pte_flags, PD_FLAGS pd_flags);
+
 bool allocate_pages_virtual(uint32_t owner, size_t count, uintptr_t addr);
-void free_physical_frame(uint32_t physical_address);
-uint32_t alloc_physical_frame_internal(uint32_t i, uint32_t frames);
-uint32_t alloc_physical_frames(uint32_t frames);
+void free_physical_frame(bool kernel_call, uint32_t physical_address);
 void initialize_page_directory(uint32_t *directory);
 bool free_page(pagedata_t *page);
 bool allocate_page(uint32_t owner, size_t count);
@@ -60,27 +61,3 @@ void put_page_table_to_directory(uint32_t **directory, uint32_t page_table, uint
 pagedata_t* set_page_ownership(uint32_t** page_directory_table, uint32_t page_directory_index,
                                uint32_t page_table_index, uint32_t page_index, uint32_t owner);
 void switch_page_directory(uint32_t* page_directory_);
-
-/**
- * Initialize the frame allocator with a specific range
- * @param min_frame: Starting frame number (inclusive)
- * @param max_frame: Ending frame number (exclusive)
- */
-void init_frame_allocator_range(uint32_t min_frame, uint32_t max_frame);
-
-/**
- * Standard frame allocator initialization (uses full range)
- */
-void init_frame_allocator(void);
-
-/**
- * Allocate physical frames within the configured range
- * @param frames: Number of consecutive frames to allocate
- * @return Physical address of first frame, or 0 on failure
- */
-uint32_t alloc_physical_frames_ranged(uint32_t frames);
-
-/**
- * Get the current range limits
- */
-void get_frame_allocator_range(uint32_t* out_min_frame, uint32_t* out_max_frame);

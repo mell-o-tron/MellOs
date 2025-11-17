@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include "stdint.h"
 
 #define SYS_EXIT 1
 #define SYS_FORK 2

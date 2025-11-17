@@ -6,6 +6,8 @@
 #include "unistd.h"
 #include "colours.h"
 #include "autoconf.h"
+
+#include "dynamic_mem.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -16,16 +18,36 @@ struct va_wrap {
 	va_list va;
 };
 
-static device_t* get_device_from_stream(FILE* stream) {
-	if (!stream)
-		return NULL;
+extern bool scheduler_active;
+extern device_t stdout_device;
+extern device_t stdin_device;
 
-	if (stream->device)
+static device_t* get_device_from_stream(FILE* stream) {
+	if (!stream) {
+		return NULL;
+	}
+
+	if (stream->device) {
 		return (device_t*)stream->device;
+	}
+
+
+
+	if (!scheduler_active) {
+		if (stream->fd == 1 || stream->fd == 2) {
+			return &stdout_device;
+		} else if (stream->fd == 0) {
+			return &stdin_device;
+		} else {
+			return NULL;
+		}
+	}
 
 	process_t* proc = get_current_process();
-	if (!proc)
+
+	if (!proc) {
 		return NULL;
+	}
 
 	switch (stream->fd) {
 	case 0:
