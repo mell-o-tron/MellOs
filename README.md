@@ -21,6 +21,7 @@ WIP, there should be a markdown file in each directory, which will contain the d
 
 ### Index
 
+- [**Building and Running**](A_Setup/README.md)
 - [CPU](cpu/README.md)
 - [Data Structures](data_structures/README.md)
 - [Disk Interface](disk_interface/README.md)
@@ -37,6 +38,8 @@ WIP, there should be a markdown file in each directory, which will contain the d
 - [Text Editor](text_editor/README.md)
 
 ---
+
+## [Building and Running](A_Setup/README.md)
 
 ## Anything-here
 If you make a useful change or addition, you are allowed to use the `anything_here` file to write whatever you feel like writing; rules are: 
