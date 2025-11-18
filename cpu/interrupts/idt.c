@@ -14,7 +14,7 @@ struct idt_entry			// IDT structure
 	unsigned short base_hi;
 } __attribute__((packed));
 
-struct idt_ptr				// IDT poiner
+struct idt_ptr				// IDT pointer
 {
 	unsigned short limit;
 	unsigned int base;
