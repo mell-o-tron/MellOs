@@ -158,7 +158,7 @@ target_compile_options(kernel.elf PRIVATE
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<BOOL:${USE_CLANG}>>>:-m32>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
-        $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
+        $<$<COMPILE_LANGUAGE:C>:-fstack-protector-strong>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
         $<$<COMPILE_LANGUAGE:C>:-Wall>
         $<$<COMPILE_LANGUAGE:C>:-Wno-parentheses>
