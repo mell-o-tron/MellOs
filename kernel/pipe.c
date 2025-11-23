@@ -19,13 +19,17 @@ pipe_t* open_pipe(fd_t* read_fd, fd_t* write_fd, int buffer_size) {
 	pipe->is_open = true;
 	pipe->flags |= O_PIPE_BLOCKING; // pipes block by default
 
-	read_fd->type = FD_TYPE_PIPE;
-	read_fd->resource = pipe;
-	write_fd->type = FD_TYPE_PIPE;
-	write_fd->resource = pipe;
+	if (read_fd) {
+		read_fd->type = FD_TYPE_PIPE;
+		read_fd->private_data = pipe;
 
-	read_fd->flags |= O_RDONLY;
-	write_fd->flags |= O_WRONLY;
+		read_fd->flags |= O_RDONLY;
+	}
+	if (write_fd) {
+		write_fd->type = FD_TYPE_PIPE;
+		write_fd->private_data = pipe;
+		write_fd->flags |= O_WRONLY;
+	}
 
 	return pipe;
 }
@@ -38,7 +42,7 @@ ssize_t pipe_write(fd_t* fd, const void* buf, size_t count) {
 		return -EACCES;
 	}
 
-	pipe_t* pipe = fd->resource;
+	pipe_t* pipe = fd->private_data;
 
 	spinlock_lock(&pipe->lock);
 
@@ -64,7 +68,7 @@ ssize_t pipe_read(fd_t* fd, void* buf, size_t count) {
 		return -EACCES;
 	}
 
-	pipe_t* pipe = fd->resource;
+	pipe_t* pipe = fd->private_data;
 
 	spinlock_lock(&pipe->lock);
 
@@ -88,9 +92,7 @@ ssize_t pipe_read_nonblocking(fd_t* fd, void* buf, size_t count) {
 	if (!fd || !buf || count == 0)
 		return 0;
 
-
-
-	pipe_t* pipe = fd->resource;
+	pipe_t* pipe = fd->private_data;
 	if (!pipe || !pipe->buffer) {
 		return 0;
 	}

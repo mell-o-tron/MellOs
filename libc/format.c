@@ -1,13 +1,14 @@
 #include "conversions.h"
 #include "errno.h"
 #include "limits.h"
+#include "mellos/kernel/streams.h"
 #include "mem.h"
 #include "stddef.h"
 #include "stdint.h"
-#include "stdio.h"
 #include "string.h"
 #include "unistd.h"
-#include "mellos/kernel/stdio_devices.h"
+
+#include <stdio.h>
 
 union arg {
 	long long ll;

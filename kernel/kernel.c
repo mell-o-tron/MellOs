@@ -28,6 +28,12 @@
 #include "timer.h"
 
 #include "keyboard.h"
+
+#include "mellos/block_device.h"
+
+#include <mellos/kernel/mount_manager.h>
+#include <mellos/kernel/stdio_devices.h>
+#include <mellos/ramfs.h>
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "vesa.h"
@@ -324,6 +330,14 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	uart_init();
 #endif
 	asm volatile("sti");
+	init_kernel_devices();
+	init_stdio_files();
+
+
+	bdev_initialize_blockdevices();
+	init_fs_registry();
+	ramfs_init();
+	init_mount_manager();
 #ifdef MELLOS_ENABLE_TESTS
 	kprint("MellOS Debug mode:\n\n");
 
@@ -372,7 +386,9 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	kprintf(Fool);
 
 	// Initialize the process scheduler and set this as the first process
+	asm volatile("cli");
 	init_scheduler();
+	asm volatile("sti");
 
 	load_shell();
 	// init_text_editor("test_file");

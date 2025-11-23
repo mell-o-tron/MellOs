@@ -81,3 +81,7 @@ void timer_install()
 {
 	irq_install_handler(0, timer_handler);
 }
+
+uint32_t get_ms_since_boot() {
+	return (timer_ticks * 1000) / 60;
+}

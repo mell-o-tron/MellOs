@@ -65,8 +65,8 @@ int deallocate_file(uint32_t LBA, uint32_t num_sectors){
     return res;
 }
 
-file_t* get_file_list (uint32_t disk, uint32_t LBA, uint32_t sectors){
-    file_t* res = kmalloc(sizeof(file_t) * 32 * sectors);
+old_file_t* get_file_list (uint32_t disk, uint32_t LBA, uint32_t sectors){
+    old_file_t* res = kmalloc(sizeof(old_file_t) * 32 * sectors);
 
     // initialize res to all zeroes, to allow non-full result
     for (uint32_t i = 0; i < 32 * sectors; i++){
@@ -119,7 +119,7 @@ file_t* get_file_list (uint32_t disk, uint32_t LBA, uint32_t sectors){
     return res;
 }
 
-void write_file_list (file_t * list, uint32_t disk, uint32_t LBA, uint32_t sectors){
+void write_file_list (old_file_t * list, uint32_t disk, uint32_t LBA, uint32_t sectors){
     uint16_t *tmp = kmalloc(sizeof(uint16_t) * 256 * sectors);
 
      // global index
@@ -147,7 +147,7 @@ void new_file (char* name, uint32_t n_sectors){
         return;
     }
 
-    file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
+    old_file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
 
     // check is name already taken & find position for file
 
@@ -198,7 +198,7 @@ void remove_file(char* name){
         return;
     }
 
-    file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
+    old_file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
 
     for (uint32_t i = 0; i < 32; i++){
         if(strcmp(name, files[i].name) == 0){
@@ -219,7 +219,7 @@ void remove_file(char* name){
 }
 
 
-void print_files(file_t * files, uint32_t n){
+void print_files(old_file_t * files, uint32_t n){
     for (uint32_t i = 0; i < n; i++){
         if (files[i].name[0] == 0) break;
 
@@ -236,7 +236,7 @@ void print_files(file_t * files, uint32_t n){
 // WARNING these allow to write arbitrarily large strings, there should be a check
 
 void write_string_to_file(char* string, char* filename){
-    file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
+    old_file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
 
     for (uint32_t i = 0; i < 32; i++){
         if(strcmp(filename, files[i].name) == 0){
@@ -251,7 +251,7 @@ void write_string_to_file(char* string, char* filename){
 }
 
 char* read_string_from_file(char* filename){
-    file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
+    old_file_t * files = get_file_list(0xA0, 1, 1); //TODO should free this
     char* res;
     bool found = false;
     for (uint32_t i = 0; i < 32; i++){

@@ -9,8 +9,8 @@
 
 #define FDEF(name) void name(const char *s)
 
-FDEF(ls) {
-  file_t *files = get_file_list(0xA0, 1, 1);
+FDEF(dir) {
+  old_file_t *files = get_file_list(0xA0, 1, 1);
   print_files(files, 32);
 }
 

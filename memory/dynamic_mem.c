@@ -13,7 +13,7 @@
 #include "stdio.h"
 #include "vga_text.h"
 
-#define MAX_ORDER 24
+#define MAX_ORDER 26
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
@@ -119,6 +119,10 @@ static bool buddy_grow(size_t min_bytes) {
 
 	// Tell the buddy about the new memory
 	size_t bits = 32 - __builtin_clz(grow_bytes);
+	if (bits > MAX_ORDER) {
+		free_physical_frame(true, new_start);
+		kpanic_message("Buddy allocator trying to grow a size larger than MAX_ORDER");
+	}
 	buddy_add_region((void*)new_start, bits);
 	allocator_size += grow_bytes;
 	return true;
@@ -338,10 +342,14 @@ void slab_free(void* loc, size_t size) {
 	}
 }
 
+spinlock_t kmalloc_lock;
+
 void* kmalloc(size_t size) {
 	if (!buddy_inited) {
 		return NULL;
 	}
+
+	spinlock_lock(&kmalloc_lock);
 
 	void* result = NULL;
 
@@ -357,6 +365,7 @@ void* kmalloc(size_t size) {
 	} else {
 		result = buddy_alloc(size);
 	}
+	spinlock_unlock(&kmalloc_lock);
 
 	assert(result != 0);
 	if (result == 0) {
@@ -367,6 +376,7 @@ void* kmalloc(size_t size) {
 }
 
 void kfree(void* loc) {
+	spinlock_lock(&kmalloc_lock);
 	// To free a location, we need to check if it was allocated with slab or buddy
 	SlabObjHeader* header = (SlabObjHeader*)loc - (sizeof(SlabObjHeader));
 	// If the padding byte is non-zero, it was allocated with slab
@@ -377,12 +387,14 @@ void kfree(void* loc) {
 	} else {
 		buddy_free(loc);
 	}
+	spinlock_unlock(&kmalloc_lock);
 }
 
 #pragma GCC push_options
 #pragma GCC optimize("O0")
 
 void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
+	spinlock_lock(&kmalloc_lock);
 	// switch this to 1 to change realloc mode
 #if 0
     void* newloc = kmalloc(newsize);
@@ -404,11 +416,14 @@ void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
 	return newloc;
 
 #endif
+	spinlock_unlock(&kmalloc_lock);
 }
 
 #pragma GCC pop_options
 
 void init_allocators() {
+	spinlock_init(&kmalloc_lock);
+	memset(free_list, 0, sizeof(free_list));
 	memset(slab_heads, 0, sizeof(slab_heads));
 	if (!buddy_init(0x4000)) {
 		// TODO: This is not ok: if in graphics mode, the

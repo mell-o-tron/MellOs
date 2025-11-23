@@ -12,8 +12,8 @@
 #else
 #include "vga_text.h"
 #endif
-#include "assert.h"
 #include "mellos/kernel/stdio_devices.h"
+#include "assert.h"
 #include "port_io.h"
 
 /******* Tasks *******/
@@ -160,9 +160,9 @@ void init_scheduler() {
 
 	init_stdio_devices(processes[0]);
 
-	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, FD_PERM_WRITE, NULL);
-	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, O_RDONLY, FD_PERM_READ, NULL);
-	processes[0]->stderr = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, FD_PERM_WRITE, NULL);
+	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IWUSR, NULL);
+	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IRUSR, NULL);
+	processes[0]->stderr = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IWUSR, NULL);
 	open_pipe(processes[0]->stdin, NULL, 128);
 	open_pipe(NULL, processes[0]->stdout, 128);
 	open_pipe(NULL, processes[0]->stderr, 128);
@@ -206,6 +206,17 @@ void execute_next() {
 		}
 	} while (processes[cur_pid] == NULL);
 
+	process_t* proc = processes[cur_pid];
+
+	if (proc->state == NULL) {
+		proc->must_relinquish = true;
+		return;
+	}
+	if (proc->state->stack == NULL) {
+		proc->must_relinquish = true;
+		return;
+	}
+
 	switch_task(processes[prev_pid], processes[cur_pid]);
 	return;
 }
@@ -246,13 +257,25 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
 
 	init_stdio_devices(new_process);
 
-	new_process->stdin = open_fd_standalone(FD_TYPE_PIPE, O_RDONLY, 0, NULL);
-	new_process->stdout = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, 0, NULL);
-	new_process->stderr = open_fd_standalone(FD_TYPE_PIPE, O_WRONLY, 0, NULL);
+	char* stdout_str = kmalloc(128);
+	char* stderr_str = kmalloc(128);
+	char* stdin_str = kmalloc(128);
+
+	ksnprintf(stdout_str, 128, "/proc/%d/stdout\n", max_pid - 1);
+	ksnprintf(stderr_str, 128, "/proc/%d/stderr\n", max_pid - 1);
+	ksnprintf(stdin_str, 128, "/proc/%d/stdin\n", max_pid - 1);
+
+	new_process->stdin = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IRUSR, stdin_str);
+	new_process->stdout = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IWUSR, stdout_str);
+	new_process->stderr = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IWUSR, stderr_str);
 
 	open_pipe(new_process->stdin, stdin_target, 128);
 	open_pipe(stdout_target, new_process->stdout, 128);
 	open_pipe(stderr_target, new_process->stderr, 128);
+
+	kfree(stdout_str);
+	kfree(stderr_str);
+	kfree(stdin_str);
 
 	new_process->parent = parent;
 

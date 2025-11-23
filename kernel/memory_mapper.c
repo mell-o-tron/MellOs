@@ -44,7 +44,7 @@ get_multiboot_framebuffer_addr(MultibootTags* mb) {
 	return (intptr_t)mb->framebuffer_addr[0];
 }
 __attribute__((section(".low.text"))) void init_memory_mapper(MultibootTags* multiboot_tags,
-                                                              PIXEL* framebuffer_addr, uint8_t bpp) {
+                                                              void* framebuffer_addr, uint8_t bpp) {
 	multiboot_tags_local = multiboot_tags;
 	framebuffer_addr_local = framebuffer_addr;
 	bpp_local = bpp;
@@ -206,7 +206,7 @@ void dump_memory_map(FILE* stream) {
 	     mmap = (multiboot_memory_map_t*)((uintptr_t)mmap + mmap->size + sizeof(mmap->size))) {
 		const char* type_name =
 		    (mmap->type >= 1 && mmap->type <= 5) ? names[mmap->type - 1] : "Unknown";
-		kfprintf(stream, "base = %016lx, length = %016lx, type = %s\n", (uintptr_t)mmap->addr,
+		kfprintf(stream, "base = %016lX, length = %016lX, type = %s\n", (uintptr_t)mmap->addr,
 		        (uintptr_t)mmap->len, type_name);
 	}
 }

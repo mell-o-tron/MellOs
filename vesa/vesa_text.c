@@ -105,8 +105,10 @@ static struct VBEModeInfoBlock* vbe_mode_info = (struct VBEModeInfoBlock*)VBE_MO
 static struct VBEScreen* vbe_screen = (struct VBEScreen*)VBE_SCREEN_LOC;
 
 static uint16_t cursor_pos = 0;
+static bool framebuffer_allocated = false;
 static Framebuffer* fb = NULL;
 static bool autoblit = true;
+static char* vesa_text_buffer = NULL;
 
 static function_type dirty_callback = NULL;
 
@@ -116,6 +118,16 @@ void _vesa_text_set_dirty_callback(function_type f) {
 
 void _vesa_text_init() {
     fb = allocate_framebuffer(Hres, Vres, CONFIG_GFX_BPP);
+	// font is 8x8
+	vesa_text_buffer = kmalloc((CONFIG_GFX_HRES / 8) * (CONFIG_GFX_VRES / 8) * (CONFIG_GFX_BPP / 8));
+	if (vesa_text_buffer == NULL) {
+		kpanic_message("Failed to allocate vesa text buffer");
+	}
+	for (int i = 0; i < (CONFIG_GFX_HRES / 8) * (CONFIG_GFX_VRES / 8) * (CONFIG_GFX_BPP / 8); i++) {
+		vesa_text_buffer[i] = ' ';
+	}
+	framebuffer_allocated = true;
+	dirty_callback = NULL;
     // char buf[256];
     // tostring((int)fb->fb, 16, buf);
     // kprint(buf);
@@ -162,12 +174,52 @@ void kclear_screen() {
     set_cursor_pos_raw(0);
 }
 
-int kprint_col(const char* s, Colour col) {
+int32_t scroll_up_buffer() {
+	for (int i = 0; i < (CONFIG_GFX_HRES / 8) * ((CONFIG_GFX_VRES / 8) - 1); i++) {
+		vesa_text_buffer[i] = vesa_text_buffer[i + CONFIG_GFX_HRES / 8];
+	}
+	return 0;
+}
+
+int32_t write_draw_buffer(const char* str) {
+	while (*str) {
+		if (*str == '\n') {
+			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
+			if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+				scroll_up_buffer();
+			}
+		} else {
+			vesa_text_buffer[cursor_pos] = *str;
+			increment_cursor_pos();
+		}
+		str++;
+	}
+	return 0;
+}
+
+int32_t draw_buffer() {
+    const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
+	const char* buf = vesa_text_buffer;
+	while (*buf) {
+		if (*buf == '\n') {
+			cursor_pos += CONSOLE_WIDTH(fb) - cursor_pos % CONSOLE_WIDTH(fb);
+			if (VSLOT(fb) >= CONSOLE_HEIGHT(fb) - 1) {
+				scroll_up_buffer();
+			}
+		} else {
+			fb_draw_char(HPOS(fb), VPOS(fb), *buf, fg, HSCALE, VSCALE, fb);
+		}
+		buf++;
+	}
+	return 0;
+}
+
+int32_t kprint_col(const char* s, Colour col) {
     const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
     int written = 0;
     uart_print_all(s);
-    if (fb == NULL) {
-        return strlen(s);
+    if (fb == NULL || !framebuffer_allocated) {
+        return (int32_t)(strlen(s) >> 1);
     }
     while (*s) {
 		if (*s == '\n') {
@@ -190,15 +242,17 @@ int kprint_col(const char* s, Colour col) {
 		written++;
     }
 
-	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	if (autoblit) {
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	}
 
-    if (dirty_callback) {
+	if (dirty_callback) {
 		dirty_callback();
     }
     return written;
 }
 
-int kprint(const char* s) {
+int32_t kprint(const char* s) {
     return kprint_col(s, 0x0F);
 }
 
@@ -211,12 +265,16 @@ void kprint_char(char c, bool caps) {
 	if (fb == NULL) {
 		kpanic_message("Framebuffer is null");
 	}
+
     fb_fill_rect(HPOS(fb), VPOS(fb), CHAR_WIDTH, CHAR_HEIGHT, vga2vesa(0x00), fb);
     fb_draw_char(HPOS(fb), VPOS(fb), c, fg, HSCALE, VSCALE, fb);
 
-	blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	if (autoblit) {
+		blit(fb, vga_fb, CONSOLE_HOFF, CONSOLE_VOFF, fb->width, fb->height);
+	}
 
-    if (dirty_callback) {
+
+	if (dirty_callback) {
 		dirty_callback();
     }
 

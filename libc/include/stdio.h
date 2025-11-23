@@ -39,9 +39,9 @@ typedef struct _fpos_t {
 #define FD_STDERR 2
 #define FD_STDIN  0
 
-extern FILE* stdin;
-extern FILE* stdout;
-extern FILE* stderr;
+static FILE* stdin;
+static FILE* stdout;
+static FILE* stderr;
 
 // File operations
 FILE* fopen(const char* __restrict filename, const char* __restrict mode)

@@ -34,8 +34,6 @@ __attribute__((section(".low.bss"))) uint32_t framebuffer_pages[NUM_FB_DIRECTORI
 
 #endif
 
-__attribute__((section(".low.bss"))) uint32_t page_table_identity[1024]
-    __attribute__((aligned(4096)));
 __attribute__((section(".low.bss"))) uint32_t page_table_higher_half[1024]
     __attribute__((aligned(4096)));
 
@@ -45,7 +43,7 @@ uint32_t currently_selected_directory = 0;
 
 #define KERNEL_START 0xC0000000
 #define KERNEL_PHYSICAL_START 0x00100000
-#define KERNEL_START_INDEX 768
+#define KERNEL_START_INDEX (KERNEL_START >> 22)
 
 #define PAGE_ALIGN_DOWN(x) ((uintptr_t)ALIGN_DOWN(x, PAGE_SIZE))
 
@@ -344,19 +342,28 @@ __attribute__((section(".low.text"))) void map_framebuffer_pages(uintptr_t fb_ad
 		for (uint32_t j = 0; j < 1024; j++) {
 			framebuffer_pages[i][j] = phys_base + (j * 0x1000) | PT_PRESENT | PT_READWRITE;
 		}
-		put_page_table_to_directory(base_page_directory_low, (uint32_t)framebuffer_pages[i],
+		put_page_table_to_directory(base_page_directory_low, framebuffer_pages[i],
 		                            FRAMEBUFFER_PD_INDEX + i, FRAMEBUFFER_PAGE_DFLAGS);
 	}
 #endif
 }
-__attribute__((section(".low.text"))) void
-put_page_table_to_directory(uint32_t** directory, const unsigned int page_table, uint32_t index,
-                            PD_FLAGS pdf) {
-	if (index >= 1024) {
-		kpanic_message("Invalid page directory index");
+/**
+ *
+ * @param cr3 Page directory where the table will be inserted
+ * @param pte The page table to insert
+ * @param pde Index of the page table in the directory, this sets the virtual address of the
+ * page table entries (to be inserted at directory[pte])
+ * @param pdf Page directory flags
+ */
+__attribute__((section(".low.text"))) void put_page_table_to_directory(uint32_t* cr3,
+                                                                       uint32_t* pte,
+                                                                       uint32_t pde,
+                                                                       PD_FLAGS pdf) {
+	if (pde >= 1024) {
+		kpanic_message("Invalid page table index");
 	}
 
-	directory[index] = (unsigned int*)((uint32_t)page_table | pdf);
+	cr3[pde] = (uint32_t)pte | pdf;
 }
 
 __attribute__((optimize("O0"))) __attribute__((noinline))
@@ -372,29 +379,27 @@ higher_half_init(MultibootTags* multiboot_addr) {
 		heap_page_table[i] = (HEAP_PHYS_START + i * 0x1000) | (PT_PRESENT | PT_READWRITE | PT_USER);
 	}
 
-	uint32_t kernel_heap_pd_index = KERNEL_HEAP_VIRT_START >> 22;
+	uint32_t kernel_heap_pd_entry = KERNEL_HEAP_VIRT_START >> 22;
 
 	for (uint32_t i = 0; i < KERNEL_HEAP_PAGE_TABLES; i++) {
 		for (uint32_t j = 0; j < 1024; j++) {
 			kernel_heap_page_table[i][j] =
-				(KERNEL_HEAP_PHYS_START + i * 0x400000 + j * 0x1000) | (PT_PRESENT | PT_READWRITE);
+			    (KERNEL_HEAP_PHYS_START + i * 0x400000 + j * 0x1000) | (PT_PRESENT | PT_READWRITE);
 		}
 
 		// Map each page table into the page directory
-		put_page_table_to_directory(page_directories[0],
-								   (uint32_t)&kernel_heap_page_table[i],
-								   kernel_heap_pd_index + i,
-								   PD_PRESENT | PD_READWRITE);
+		put_page_table_to_directory(page_directories[0], kernel_heap_page_table[i],
+		                            kernel_heap_pd_entry + i, PD_PRESENT | PD_READWRITE);
 	}
 
-	put_page_table_to_directory(page_directories[0], (uint32_t)first_page_table, 0,
+	put_page_table_to_directory(page_directories[0], first_page_table, 0,
 	                            PD_PRESENT | PD_READWRITE);
-	put_page_table_to_directory(page_directories[0], (uint32_t)second_page_table, 1,
+	put_page_table_to_directory(page_directories[0], second_page_table, 1,
 	                            PD_PRESENT | PD_READWRITE);
-	put_page_table_to_directory(page_directories[0], (uint32_t)page_table_higher_half, 768,
+	put_page_table_to_directory(page_directories[0], page_table_higher_half, 768,
 	                            PD_PRESENT | PD_READWRITE);
-	put_page_table_to_directory(page_directories[0], (uint32_t)heap_page_table,
-	                            HEAP_VIRT_START >> 22, PD_PRESENT | PD_READWRITE | PD_USER);
+	put_page_table_to_directory(page_directories[0], heap_page_table, HEAP_VIRT_START >> 22,
+	                            PD_PRESENT | PD_READWRITE | PD_USER);
 
 #ifdef CONFIG_GFX_VESA
 	for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++) {
@@ -404,12 +409,12 @@ higher_half_init(MultibootTags* multiboot_addr) {
 		for (uint32_t j = 0; j < 1024; j++) {
 			framebuffer_pages[i][j] = (phys_base_fb + (j * 0x1000)) | PT_PRESENT | PT_READWRITE;
 		}
-		put_page_table_to_directory(page_directories[0], (uint32_t)framebuffer_pages[i],
+		put_page_table_to_directory(page_directories[0], framebuffer_pages[i],
 		                            FRAMEBUFFER_PD_INDEX + i, FRAMEBUFFER_PAGE_DFLAGS);
 	}
 #endif
 
-	switch_page_directory((uint32_t*)page_directories[0]);
+	switch_page_directory(page_directories[0]);
 	isrs_install();
 	irq_install();
 
@@ -420,19 +425,22 @@ higher_half_init(MultibootTags* multiboot_addr) {
 extern char __text_va_start[];
 extern char __text_pa_end[];
 extern char __text_pa_start[];
-extern char __text_delta[];
+extern char __text_va_end[];
 
 extern char __data_va_start[];
 extern char __data_pa_end[];
 extern char __data_pa_start[];
+extern char __data_va_end[];
 
 extern char __rodata_va_start[];
-extern char __rodata_pa_end[];
+extern char __rodata_va_end[];
 extern char __rodata_pa_start[];
+extern char __rodata_pa_end[];
 
 extern char __bss_va_start[];
-extern char __bss_pa_end[];
+extern char __bss_va_end[];
 extern char __bss_pa_start[];
+extern char __bss_pa_end[];
 
 __attribute__((optimize("O0"))) __attribute__((section(".low.text"))) void
 setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr) {
@@ -445,12 +453,14 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 		first_page_table[i] = i * 0x1000 | (PT_PRESENT | PT_READWRITE);
 		second_page_table[i] = (0x400000 + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
 	}
+	// zero page
+	first_page_table[0] = 0;
 
 	memset(base_page_directory_low, 0, sizeof(base_page_directory_low));
 
-	put_page_table_to_directory(base_page_directory_low, (uint32_t)first_page_table, 0,
+	put_page_table_to_directory(base_page_directory_low, first_page_table, 0,
 	                            PD_PRESENT | PD_READWRITE);
-	put_page_table_to_directory(base_page_directory_low, (uint32_t)second_page_table, 1,
+	put_page_table_to_directory(base_page_directory_low, second_page_table, 1,
 	                            PD_PRESENT | PD_READWRITE);
 	/*
 	    mov eax, 0x0         ; osdev wiki example
@@ -464,64 +474,72 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 	        cmp eax, 1024
 	        jne .fill_table
 	 */
-	uint32_t text_delta = __text_pa_end - __text_pa_start;
-	uint32_t data_delta = __data_pa_end - __data_pa_start;
-	uint32_t rodata_delta = __rodata_pa_end - __rodata_pa_start;
-	uint32_t bss_delta = __bss_pa_end - __bss_pa_start;
+	uint32_t text_start = ALIGN_DOWN((uint32_t)__text_pa_start, PAGE_SIZE);
+	uint32_t text_va_start = (uint32_t)__text_va_start;
 
-	uint32_t text_offset = 0;
-	uint32_t rodata_offset = text_delta + text_offset;
-	uint32_t data_offset = rodata_offset + rodata_delta;
-	uint32_t bss_offset = data_offset + data_delta;
+	uint32_t data_start = ALIGN_DOWN((uint32_t)__data_pa_start, PAGE_SIZE);
 
-	for (int i = 0; i < 1024; i++) {
-		if (i >= text_offset / 0x1000 && i < (rodata_offset) / 0x1000) {
+	uint32_t rodata_start = ALIGN_DOWN((uint32_t)__rodata_pa_start, PAGE_SIZE);
+
+	uint32_t bss_start = ALIGN_DOWN((uint32_t)__bss_pa_start, PAGE_SIZE);
+	uint32_t bss_va_end = ALIGN_UP((uint32_t)__bss_va_end, PAGE_SIZE);
+
+	for (int page_iterator = 0; page_iterator < 1024; page_iterator++) {
+		if (page_iterator >= (text_start - text_start) / 0x1000 &&
+		    page_iterator < (rodata_start - text_start) / 0x1000) {
 			// Map kernel code/data
-			page_table_higher_half[i] = ((uint32_t)__text_pa_start + i * 0x1000) | (PT_PRESENT);
-		} else if (i >= rodata_offset / 0x1000 && i < (data_offset) / 0x1000) {
-			page_table_higher_half[i] = ((uint32_t)__rodata_pa_start + i * 0x1000) |
-			                            (PT_PRESENT); // readonly, also on paging
-		} else if (i >= data_offset / 0x1000 && i < (bss_offset) / 0x1000) {
-			page_table_higher_half[i] =
-			    ((uint32_t)__data_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
-		} else if (i >= bss_offset / 0x1000 && i < (bss_offset + bss_delta) / 0x1000) {
-			page_table_higher_half[i] =
-			    ((uint32_t)__bss_pa_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE);
-		} else if (i >= (1024 - (KERNEL_STACK_SIZE / 0x1000))) {
-			uint32_t stack_offset = (i - (1024 - (KERNEL_STACK_SIZE / 0x1000))) * 0x1000;
+			page_table_higher_half[page_iterator] =
+			    (text_start + page_iterator * 0x1000) | (PT_PRESENT);
+		} else if (page_iterator >= (rodata_start - text_start) / 0x1000 &&
+		           page_iterator < (data_start - text_start) / 0x1000) {
+			page_table_higher_half[page_iterator] =
+			    (text_start + page_iterator * 0x1000) |
+			    (PT_PRESENT); // readonly, also on paging
+		} else if (page_iterator >= (data_start - text_start) / 0x1000 &&
+		           page_iterator < (bss_start - text_start) / 0x1000) {
+			page_table_higher_half[page_iterator] =
+			    (text_start + page_iterator * 0x1000) | (PT_PRESENT | PT_READWRITE);
+		} else if (page_iterator >= (bss_start - text_start) / 0x1000 &&
+		           page_iterator < (bss_va_end - text_va_start) / 0x1000) {
+			page_table_higher_half[page_iterator] =
+			    (text_start + page_iterator * 0x1000) | (PT_PRESENT | PT_READWRITE);
+		} else if (page_iterator >= (1024 - (KERNEL_STACK_SIZE / 0x1000))) {
+			uint32_t stack_offset =
+			    (page_iterator - (1024 - (KERNEL_STACK_SIZE / 0x1000))) * 0x1000;
 			uint32_t phys_addr = (0x90000 - KERNEL_STACK_SIZE) + stack_offset;
-			page_table_higher_half[i] = phys_addr | (PT_PRESENT | PT_READWRITE);
+			page_table_higher_half[page_iterator] = phys_addr | (PT_PRESENT | PT_READWRITE);
 		}
 	}
 
-	put_page_table_to_directory(base_page_directory_low, (uint32_t)page_table_higher_half, 768,
+	put_page_table_to_directory(base_page_directory_low, page_table_higher_half, 768,
 	                            PD_PRESENT | PD_READWRITE);
 
 	// base_page_directory[768] = ((unsigned int)page_table_higher_half) | (PD_PRESENT |
 	// PD_READWRITE); // Higher-half mapping
 
-	uint32_t old_esp = 0, old_ebp = 0;
+	// marked as volatile cuz i dont trust the compiler
+	volatile uint32_t old_esp = 0, old_ebp = 0;
 	asm volatile("mov %%esp, %0" : "=r"(old_esp));
 	asm volatile("mov %%ebp, %0" : "=r"(old_ebp));
 
-	if (old_esp > 0x90000) {
+	if (old_esp > PHYSICAL_KERNEL_STACK_TOP) {
 		kpanic_message("ESP is too high");
 	}
 
-	uint32_t magic_number = 0x80000000;
+	uint32_t enable_paging_bit = 0x80000000;
 	load_page_directory(base_page_directory_low);
 	asm volatile("mov %%cr0, %%eax\n"
 	             "or %0, %%eax\n"
-	             "mov %%eax, %%cr0\n" ::"r"(magic_number)
+	             "mov %%eax, %%cr0\n" ::"r"(enable_paging_bit)
 	             : "eax");
 #ifdef CONFIG_GFX_VESA
 	map_framebuffer_pages(fb);
 #endif
-	uintptr_t offset_esp = 0x90000 - old_esp;
+	uintptr_t offset_esp = PHYSICAL_KERNEL_STACK_TOP - old_esp;
 	uintptr_t new_esp = UPPER_KERNEL_STACK_TOP - offset_esp;
 	new_esp &= ~0xF;
 	asm volatile("mov %0, %%esp\n" ::"r"(new_esp));
-	uintptr_t offset_ebp = 0x90000 - old_ebp;
+	uintptr_t offset_ebp = PHYSICAL_KERNEL_STACK_TOP - old_ebp;
 	uintptr_t new_ebp = UPPER_KERNEL_STACK_TOP - offset_ebp;
 	new_ebp &= ~0xF;
 	asm volatile("mov %0, %%ebp\n" ::"r"(new_ebp));
@@ -531,18 +549,12 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 	uint32_t cr0_check;
 	asm volatile("mov %%cr0, %0\n" : "=r"(cr0_check));
 
-	// kprintf("CR0 after paging = %X\n", cr0_check);
-
-	// After enabling paging and adjusting stack
-	uint32_t* test_ptr = (uint32_t*)0xC0000000;
-	uint32_t test_value = *test_ptr; // Try to read from higher-half
-	// kprintf("Read from 0xC0000000: %X\n", test_value);
+	// todo: stack could be cleaned here?
 	asm volatile("mov %1, %%eax\n"
 	             "jmp *%0\n" // this is set at the top of the function
 	             ::"r"(higher_half_init),
 	             "r"(multiboot_info_addr)
 	             : "memory");
-	kpanic_message("Returned from higher_half_init, should not be here");
 }
 __attribute__((section(".low.text"))) void init_paging(uintptr_t fb,
                                                        MultibootTags* multiboot_info_addr) {

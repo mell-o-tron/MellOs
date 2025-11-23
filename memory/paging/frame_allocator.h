@@ -13,6 +13,7 @@ typedef struct {
   uintptr_t end_frame;
   bool user;
   uint32_t *frame_bitmap;
+  uint32_t bitmap_size;
   uint32_t next_free_frame;
 } frame_allocator_t;
 

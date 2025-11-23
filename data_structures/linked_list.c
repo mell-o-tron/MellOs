@@ -2,7 +2,7 @@
 #include "dynamic_mem.h"
 #include "stddef.h"
 
-linked_list_t* create_list() {
+linked_list_t* linked_list_create() {
     linked_list_t* list = kmalloc(sizeof(linked_list_t));
     list->head = NULL;
     list->tail = NULL;
@@ -10,7 +10,7 @@ linked_list_t* create_list() {
     return list;
 }
 
-void list_push_back(linked_list_t* list, void* data) {
+void linked_list_push_back(linked_list_t* list, void* data) {
     struct list_node* node = kmalloc(sizeof(struct list_node));
     node->data = data;
     node->next = NULL;
@@ -28,7 +28,7 @@ void list_push_back(linked_list_t* list, void* data) {
     list->size++;
 }
 
-void list_push_front(linked_list_t* list, void* data) {
+void linked_list_push_front(linked_list_t* list, void* data) {
     struct list_node* node = kmalloc(sizeof(struct list_node));
     node->data = data;
     node->prev = NULL;
@@ -46,7 +46,7 @@ void list_push_front(linked_list_t* list, void* data) {
     list->size++;
 }
 
-void* list_pop_back(linked_list_t* list) {
+void* linked_list_pop_back(linked_list_t* list) {
     if (!list->tail) return NULL;
 
     struct list_node* node = list->tail;
@@ -64,7 +64,7 @@ void* list_pop_back(linked_list_t* list) {
     return data;
 }
 
-void* list_pop_front(linked_list_t* list) {
+void* linked_list_pop_front(linked_list_t* list) {
     if (!list->head) return NULL;
 
     struct list_node* node = list->head;
@@ -82,7 +82,7 @@ void* list_pop_front(linked_list_t* list) {
     return data;
 }
 
-bool list_remove(linked_list_t* list, void* data) {
+bool linked_list_remove(linked_list_t* list, void* data) {
     struct list_node* current = list->head;
 
     while (current) {
@@ -108,11 +108,11 @@ bool list_remove(linked_list_t* list, void* data) {
     return false;
 }
 
-size_t list_size(linked_list_t* list) {
+size_t linked_list_size(linked_list_t* list) {
     return list->size;
 }
 
-void destroy_list(linked_list_t* list) {
+void linked_list_destroy(linked_list_t* list) {
     while (list->head) {
         struct list_node* node = list->head;
         list->head = node->next;
@@ -121,7 +121,7 @@ void destroy_list(linked_list_t* list) {
     kfree(list);
 }
 
-void* list_get(linked_list_t* list, size_t index) {
+void* linked_list_get(linked_list_t* list, size_t index) {
     if (index >= list->size) return NULL;
 
     struct list_node* current = list->head;
@@ -129,4 +129,25 @@ void* list_get(linked_list_t* list, size_t index) {
         current = current->next;
     }
     return current->data;
+}
+
+list_node_t* linked_list_get_node(linked_list_t* list, void* filter_data, bool(*filter_func)(list_node_t*, void*)) {
+	if (linked_list_is_empty(list)) {
+		return NULL;
+	}
+	struct list_node* current = list->head;
+    while (current) {
+        if (filter_func(current, filter_data)) {
+            return current;
+        }
+    	if (current->next == NULL) {
+    		return NULL;
+    	}
+        current = current->next;
+    }
+    return NULL;
+}
+
+bool linked_list_is_empty(linked_list_t* list) {
+	return list->size == 0;
 }

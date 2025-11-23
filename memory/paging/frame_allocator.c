@@ -96,12 +96,27 @@ void* alloc_frame(uint32_t owner, uint32_t continuous_frames_to_alloc) {
 }
 
 void init_frame_allocator_range(frame_allocator_t* frame_allocator) {
+	if (frame_allocator->start_frame >= frame_allocator->end_frame) {
+		kpanic_message("Invalid frame range: min >= max");
+		return;
+	}
+
+	memset(frame_allocator->frame_bitmap, 0, sizeof(frame_allocator->bitmap_size));
+
+	/*kprintf("Frame allocator init: range [0x%X, 0x%X) (%u - %u frames)\n",
+	        (frame_allocator->start_frame + frame_allocator->offset) * PHYSICAL_FRAME_SIZE,
+	        (frame_allocator->end_frame + frame_allocator->offset) * PHYSICAL_FRAME_SIZE,
+	        frame_allocator->start_frame, frame_allocator->end_frame);*/
+}
+
+void init_frame_allocators() {
 	primary_frame_allocator =
 	    (frame_allocator_t){(HEAP_VIRT_START) / PHYSICAL_FRAME_SIZE,
 	                        0,
 	                        (HEAP_PHYS_END - HEAP_PHYS_START) / PHYSICAL_FRAME_SIZE,
 	                        true,
 	                        frame_bitmap,
+	                        sizeof(frame_bitmap),
 	                        0};
 	kernel_frame_allocator =
 	    (frame_allocator_t){(KERNEL_HEAP_VIRT_START) / PHYSICAL_FRAME_SIZE,
@@ -109,22 +124,9 @@ void init_frame_allocator_range(frame_allocator_t* frame_allocator) {
 	                        (KERNEL_HEAP_PHYS_END - KERNEL_HEAP_PHYS_START) / PHYSICAL_FRAME_SIZE,
 	                        false,
 	                        kernel_frame_bitmap,
+	                        sizeof(kernel_frame_bitmap),
 	                        0};
 
-	if (frame_allocator->start_frame >= frame_allocator->end_frame) {
-		kpanic_message("Invalid frame range: min >= max");
-		return;
-	}
-
-	memset(frame_allocator->frame_bitmap, 0, sizeof(frame_allocator->frame_bitmap));
-
-	kprintf("Frame allocator init: range [0x%X, 0x%X) (%u - %u frames)\n",
-	        (frame_allocator->start_frame + frame_allocator->offset) * PHYSICAL_FRAME_SIZE,
-	        (frame_allocator->end_frame + frame_allocator->offset) * PHYSICAL_FRAME_SIZE,
-	        frame_allocator->start_frame, frame_allocator->end_frame);
-}
-
-void init_frame_allocators() {
 	init_frame_allocator_range(&primary_frame_allocator);
 	init_frame_allocator_range(&kernel_frame_allocator);
 }

@@ -1,77 +1,128 @@
 #include "mellos/kernel/stdio_devices.h"
 #include "autoconf.h"
+
+#include "dynamic_mem.h"
+
+#include "errno.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
 #include "colours.h"
+#include "mellos/kernel/streams.h"
+
+file_t* kernel_stdin_device;
+file_t* kernel_stdout_device;
+file_t* kernel_stderr_device;
+
+extern FILE* k_stdin;
+extern FILE* k_stdout;
+extern FILE* k_stderr;
 
 //todo: the keyboard input driver that the shell polls should be passed to this
-int stdin_read(void* buf, int size) {
-	return 0;
+ssize_t stdin_read(file_t* f, void* buf, size_t size, uint64_t offset) {
+	return k_stdin->ops->read(k_stdin, buf, size);
 }
 
-int stdout_write(void* buf, int size) {
+ssize_t stdout_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 	if (!buf || size <= 0) return 0;
+	if (f != kernel_stdout_device) {
+		return -EINVAL;
+	}
 
 	char buffer[size + 1];
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
-	buffer[size] = '\0';
 
 	kprint_col(buffer, DEFAULT_COLOUR);
 	return size;
 }
 
-int stderr_write(void* buf, int size) {
+ssize_t stderr_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 	if (!buf || size <= 0) return 0;
+	if (f != kernel_stderr_device) {
+		return -EINVAL;
+	}
 
 	char buffer[size + 1];
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
-	buffer[size] = '\0';
 
-	kprint_col(buffer, STDERR_COLOUR);
+	kprint_col(buffer, ERROR_COLOUR);
 	return size;
 }
 
-device_t stdin_device = {
-	.name = "stdin",
-	.read = stdin_read,
-	.write = NULL,
-	.ioctl = NULL,
-};
+size_t file_read(FILE* stream, char* buf, size_t size) {
+	file_t* f = stream->device;
+	return f->ops->read(f, buf, size, 0);
+}
 
-device_t stdout_device = {
-	.name = "stdout",
+size_t file_write(FILE* stream, const char* buf, size_t size) {
+	file_t* f = stream->device;
+	return f->ops->write(f, buf, size, 0);
+}
+
+file_ops stdout_fops = {
 	.read = NULL,
 	.write = stdout_write,
-	.ioctl = NULL,
 };
 
-device_t stderr_device = {
-	.name = "stderr",
+file_ops stderr_fops = {
 	.read = NULL,
 	.write = stderr_write,
-	.ioctl = NULL,
 };
+
+file_ops stdin_fops = {
+	.read = stdin_read,
+	.write = NULL,
+};
+
+stream_ops_t kernel_stdout_streamops = {
+	.write = kstream_write,
+};
+
+stream_ops_t kernel_stderr_streamops = {
+	.write = kstream_write,
+};
+
+stream_ops_t kernel_stdin_streamops = {
+	.read = kstream_read,
+};
+
+void init_kernel_devices() {
+	kernel_stdout_device = kmalloc(sizeof(file_t));
+	kernel_stdin_device = kmalloc(sizeof(file_t));
+	kernel_stderr_device = kmalloc(sizeof(file_t));
+
+
+	kernel_stdin_device->ops = &stdin_fops;
+	kernel_stdout_device->ops = &stdout_fops;
+	kernel_stderr_device->ops = &stderr_fops;
+}
 
 void init_stdio_devices(process_t *proc) {
 	if (!proc) return;
 
 	// Bind default stdio devices to the process
-	proc->stdin_device = &stdin_device;
-	proc->stdout_device = &stdout_device;
-	proc->stderr_device = &stderr_device;
+	proc->stdin_device = kernel_stdin_device;
+	proc->stdout_device = kernel_stdout_device;
+	proc->stderr_device = kernel_stderr_device;
 }
 
-FILE _stdin = { .fd = 0, .device = NULL};
-FILE _stdout = { .fd = 1, .device = NULL};
-FILE _stderr = { .fd = 2, .device = NULL};
 
-FILE* stdin = &_stdin;
-FILE* stdout = &_stdout;
-FILE* stderr = &_stderr;
+
+void init_stdio_files() {
+	k_stdin = kmalloc(sizeof(FILE));
+	k_stdout = kmalloc(sizeof(FILE));
+	k_stderr = kmalloc(sizeof(FILE));
+	k_stdin->device = kernel_stdin_device;
+	k_stdout->device = kernel_stdout_device;
+	k_stderr->device = kernel_stderr_device;
+
+	k_stdout->ops = &kernel_stdout_streamops;
+	k_stderr->ops = &kernel_stderr_streamops;
+	k_stdin->ops = &kernel_stdin_streamops;
+}

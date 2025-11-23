@@ -8,9 +8,13 @@ KHIGH = 0xC0000000;
 /* Program headers: R=4, W=2, X=1 */
 PHDRS {
   lowhdr   PT_LOAD FLAGS(5);   /* R+X for low code */
-  lowdata  PT_LOAD FLAGS(6);   /* R+W for any low data/bss (if used) */
+  lowdata  PT_LOAD FLAGS(6);   /* R+W for low data, bss */
+
   texthdr  PT_LOAD FLAGS(5);   /* R+X for high .text */
-  datahdr  PT_LOAD FLAGS(6);   /* R+W for high .data/.bss */
+  rodatahdr PT_LOAD FLAGS(4);  /* R, no exec for .rodata */
+  datahdr  PT_LOAD FLAGS(6);   /* R+W for high .data */
+  bsshdr   PT_LOAD FLAGS(6);   /* R+W for high .bss  */
+  /*todo: tls*/
 }
 
 /* Monotonic LMA cursor */
@@ -38,35 +42,41 @@ SECTIONS
     *(COMMON) *(.low.bss*)
   } :lowdata
   __lma = ALIGN(ADDR(.low.bss) + SIZEOF(.low.bss), 4K);
-  /* NOLOAD so it doesn't consume file bytes; LMA cursor unchanged */
 
   /* ---------- HIGH phase ---------- */
   . = KHIGH;
 
+  .text ALIGN(4K) : AT(__lma) { *(.text*) } :texthdr
+
   PROVIDE(__text_pa_start = LOADADDR(.text));
   PROVIDE(__text_va_start = ADDR(.text));
-  .text ALIGN(4K) : AT(__lma) { *(.text*) } :texthdr
   __lma = ALIGN(__lma + SIZEOF(.text), 4K);
   PROVIDE(__text_pa_end = LOADADDR(.text) + SIZEOF(.text));
-  PROVIDE(__text_delta = __text_va_start - __text_pa_base - 1);
+  PROVIDE(__text_va_end = ADDR(.text) + SIZEOF(.text));
+
+  .rodata ALIGN(4K) : AT(__lma) { *(.rodata*) } :rodatahdr
 
   PROVIDE(__rodata_pa_start = LOADADDR(.rodata));
-  .rodata ALIGN(4K) : AT(__lma) { *(.rodata*) } :texthdr
   __lma = ALIGN(__lma + SIZEOF(.rodata), 4K);
   PROVIDE(__rodata_pa_end = LOADADDR(.rodata) + SIZEOF(.rodata));
   PROVIDE(__rodata_va_start = ADDR(.rodata));
+  PROVIDE(__rodata_va_end = ADDR(.rodata) + SIZEOF(.rodata));
+
+  .data ALIGN(4K) : AT(__lma) { *(.data*) } :datahdr
 
   PROVIDE(__data_pa_start = LOADADDR(.data));
-  .data ALIGN(4K) : AT(__lma) { *(.data*) } :datahdr
   __lma = ALIGN(__lma + SIZEOF(.data), 4K);
   PROVIDE(__data_pa_end = LOADADDR(.data) + SIZEOF(.data));
   PROVIDE(__data_va_start = ADDR(.data));
+  PROVIDE(__data_va_end = ADDR(.data) + SIZEOF(.data));
 
-  PROVIDE(__bss_pa_start = LOADADDR(.bss));
-  .bss ALIGN(4K) (NOLOAD) : { *(.bss*) } :datahdr
+  .bss ALIGN(4K) (NOLOAD) : { *(.bss*) } :bsshdr
+
   __lma = ALIGN(__lma + SIZEOF(.bss), 4K);
+  PROVIDE(__bss_pa_start = LOADADDR(.bss));
   PROVIDE(__bss_pa_end = LOADADDR(.bss) + SIZEOF(.bss));
   PROVIDE(__bss_va_start = ADDR(.bss));
+  PROVIDE(__bss_va_end = ADDR(.bss) + SIZEOF(.bss));
 
   /* Useful labels */
   PROVIDE(__kload_start = KLOAD);

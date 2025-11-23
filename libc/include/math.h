@@ -32,6 +32,7 @@ float ln (float x, uint32_t order);
 float pow_f (float x, uint32_t n);
 int abs(int x);
 int min(int a, int b);
+unsigned int umin(unsigned int a, unsigned int b);
 int max(int a, int b);
 int sqrt(int x);
 float fsqrt(float x);

@@ -6,6 +6,9 @@
 #include "processes.h"
 
 #include "stddef.h"
+
+#include <mellos/kernel/kernel_stdio.h>
+#include <stdio.h>
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -15,7 +18,6 @@
 #include "colours.h"
 #include "conversions.h"
 #include "dynamic_mem.h"
-#include "file_system.h"
 #include "keyboard.h"
 #include "mem.h"
 #include "shell/shell_functions.h"
@@ -25,6 +27,16 @@
 char command_buffer[128];
 
 cbuffer_t shell_tasks;
+
+inode_t *current_dir = NULL;
+
+inode_t* get_working_dir() {
+	return current_dir;
+}
+
+void set_working_dir(inode_t* dir) {
+	current_dir = dir;
+}
 
 void add_filewrite_task(char* str, char* filename, uint32_t len) {
 	add_to_cbuffer(&shell_tasks, 'W', false);
@@ -46,6 +58,7 @@ void add_filewrite_task(char* str, char* filename, uint32_t len) {
 }
 
 void load_shell() {
+	current_dir = get_root_mount()->root;
 	refreshShell();
 	shell_tasks.size = 1000;
 	shell_tasks.array = kmalloc(shell_tasks.size);
@@ -91,8 +104,8 @@ void load_shell() {
 		}
 		process_t* current = get_current_process();
 		if (current && current->children_list) {
-			for (int child_idx = 0; child_idx < list_size(current->children_list); child_idx++) {
-				process_t* child = list_get(current->children_list, child_idx);
+			for (int child_idx = 0; child_idx < linked_list_size(current->children_list); child_idx++) {
+				process_t* child = linked_list_get(current->children_list, child_idx);
 				if (!child) {
 					continue;
 				}
@@ -124,6 +137,8 @@ void load_shell() {
 				}
 			}
 		}
+
+		/*
 		while (shell_tasks.bot != shell_tasks.top) {
 			char task = get_from_cbuffer(&shell_tasks);
 			if (task == 'W') {
@@ -153,14 +168,17 @@ void load_shell() {
 
 				write_string_to_file(str, filename);
 			}
-		}
+		}*/
 	}
 
 	return;
 }
 
 void refreshShell() {
-	kprint("> ");
+	while (current_dir == NULL) {
+		__builtin_ia32_pause();
+	}
+	kprintf("%s> ", current_dir->dentry->name);
 	return;
 }
 

@@ -1,13 +1,12 @@
 #include "mellos/kernel/kernel_stdio.h"
-#include "stdio.h"
-#include "errno.h"
-#include "processes.h"
-#include "string.h"
-#include "unistd.h"
-#include "colours.h"
 #include "autoconf.h"
+#include "colours.h"
+#include "errno.h"
+#include "mellos/kernel/streams.h"
+#include "processes.h"
+#include "stdio.h"
+#include "string.h"
 
-#include "dynamic_mem.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -19,25 +18,23 @@ struct va_wrap {
 };
 
 extern bool scheduler_active;
-extern device_t stdout_device;
-extern device_t stdin_device;
+extern file_t kernel_stdout_device;
+extern file_t kernel_stdin_device;
 
-static device_t* get_device_from_stream(FILE* stream) {
+static file_t* get_device_from_stream(FILE* stream) {
 	if (!stream) {
 		return NULL;
 	}
 
 	if (stream->device) {
-		return (device_t*)stream->device;
+		return stream->device;
 	}
-
-
 
 	if (!scheduler_active) {
 		if (stream->fd == 1 || stream->fd == 2) {
-			return &stdout_device;
+			return &kernel_stdout_device;
 		} else if (stream->fd == 0) {
-			return &stdin_device;
+			return &kernel_stdin_device;
 		} else {
 			return NULL;
 		}
@@ -98,7 +95,7 @@ static void append_uint32(char** buf, size_t* remaining, uint32_t val, int base,
 	}
 }
 
-int32_t ksnprintf(char* buf, size_t size, const char* fmt, va_list va) {
+int32_t kvsnprintf(char* buf, size_t size, const char* fmt, va_list va) {
 	struct va_wrap wrap;
 
 	va_copy(wrap.va, va);
@@ -199,9 +196,17 @@ __attribute__((format(printf, 1, 2))) int32_t kprintf(char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	ksnprintf(buf, sizeof(buf), fmt, args);
+	kvsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
 	return kputs(buf);
+}
+
+int32_t ksnprintf(char* buf, size_t size, const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	int32_t ret = kvsnprintf(buf, size, fmt, args);
+	va_end(args);
+	return ret;
 }
 
 static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s, uint32_t len) {
@@ -209,11 +214,12 @@ static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s
 		return 0;
 
 	spinlock_lock(&stream->lock);
-	device_t* dev = get_device_from_stream(stream);
-	if (dev && dev->write) {
-		int written = dev->write((void*)s, (int)len);
+
+	file_t* dev = get_device_from_stream(stream);
+	if (dev && dev->ops && dev->ops->write) {
+		int written = dev->ops->write(dev, (void*)s, (int)len, 0);
 		spinlock_unlock(&stream->lock);
-		return (written < 0) ? -1 : (int32_t)written;
+		return written < 0 ? -1 : written;
 	}
 
 	spinlock_unlock(&stream->lock);
@@ -222,6 +228,9 @@ static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s
 }
 
 int32_t kfputs(const char* __restrict s, FILE* __restrict stream) {
+	if (stream == NULL) {
+		return -EINVAL;
+	}
 	const uint32_t len = strlen(s);
 	return write_to_stream(stream, s, len);
 }
@@ -232,10 +241,11 @@ int32_t kfprintf(FILE* stream, const char* format, ...) {
 	char buf[256];
 	const int rval = vsnprintf(buf, sizeof buf, format, va);
 	va_end(va);
-	if (rval <= 0) return rval;
+	if (rval <= 0)
+		return rval;
 	return write_to_stream(stream, buf, (uint32_t)rval);
 }
-
+extern FILE* k_stdout;
 int32_t kputs(const char* s) {
-	return kfputs(s, stdout);
+	return kfputs(s, k_stdout);
 }

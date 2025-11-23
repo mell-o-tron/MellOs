@@ -4,12 +4,7 @@
 #include "mellos/pipe.h"
 #include "process_memory.h"
 
-typedef struct {
-	const char *name;
-	int (*read)(void *buf, int size);
-	int (*write)(void *buf, int size);
-	int (*ioctl)(int request, void *arg);
-} device_t;
+#include "mellos/fs.h"
 
 typedef struct task_state {
 	void* stack;
@@ -22,14 +17,17 @@ typedef struct process {
 	state_t* state;
 	bool must_relinquish;
 	fd_table_t fd_table;
+	size_t open_files_count;
 	struct process* parent;
 	linked_list_t* children_list;
 	fd_t* stdin;
 	fd_t* stdout;
 	fd_t* stderr;
-	device_t* stdin_device;
-	device_t* stdout_device;
-	device_t* stderr_device;
+	file_t* stdin_device;
+	file_t* stdout_device;
+	file_t* stderr_device;
+
+	// todo: implement
 	process_page_list_t* page_list;
 } process_t;
 

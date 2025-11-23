@@ -12,6 +12,8 @@ Framebuffer* _vesa_text_get_framebuffer();
 void _vesa_text_set_autoblit(bool enabled);
 void _vesa_text_set_dirty_callback(function_type f);
 
+int32_t write_draw_buffer(const char*);
+int32_t draw_buffer(void);
 
 void set_cursor_pos_raw(uint16_t pos);
 uint16_t get_cursor_pos_raw();

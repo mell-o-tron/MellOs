@@ -17,17 +17,19 @@ typedef struct linked_list {
 } linked_list_t;
 
 // List initialization and cleanup
-linked_list_t* list_create();
-void list_destroy(linked_list_t *list);
+linked_list_t* linked_list_create();
+void linked_list_destroy(linked_list_t *list);
 
 // Element access and modification
-void list_push_back(linked_list_t *list, void *data);
-void list_push_front(linked_list_t *list, void *data);
-void* list_pop_back(linked_list_t *list);
-void* list_pop_front(linked_list_t *list);
-void* list_get(linked_list_t *list, size_t index);
-bool list_remove(linked_list_t *list, void *data);
+void linked_list_push_back(linked_list_t *list, void *data);
+void linked_list_push_front(linked_list_t *list, void *data);
+void* linked_list_pop_back(linked_list_t *list);
+void* linked_list_pop_front(linked_list_t *list);
+
+list_node_t* linked_list_get_node(linked_list_t *list, void* filter_data, bool(*filter_func)(list_node_t*, void*));
+void* linked_list_get(linked_list_t *list, size_t index);
+bool linked_list_remove(linked_list_t *list, void *data);
 
 // List information
-size_t list_size(linked_list_t *list);
-bool list_is_empty(linked_list_t *list);
+size_t linked_list_size(linked_list_t *list);
+bool linked_list_is_empty(linked_list_t *list);

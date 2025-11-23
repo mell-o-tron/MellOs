@@ -86,10 +86,10 @@ int sys_write(regs* r) {
 		fd_t* stdout_local = NULL;
 		switch (LBA) {
 		case 1:
-			stdout_local = current_process->stdout->resource;
+			stdout_local = current_process->stdout->private_data;
 			break;
 		case 2:
-			stdout_local = current_process->stderr->resource;
+			stdout_local = current_process->stderr->private_data;
 			break;
 		default:
 			break;
@@ -135,7 +135,7 @@ int sys_write(regs* r) {
 			tmp[i] = 0;
 	}
 
-	file_t* files = get_file_list(0xA0, 1, 1);
+	old_file_t* files = get_file_list(0xA0, 1, 1);
 
 	for (uint32_t i = 0; i < 32; i++) {
 		if (LBA == files[i].LBA) {

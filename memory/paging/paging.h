@@ -55,8 +55,8 @@ uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t
 bool free_user_pages(uint32_t owner, uintptr_t base, size_t count);
 
 void init_paging(uintptr_t fb, MultibootTags* multiboot_info_addr);
-void stop_paging();
-void put_page_table_to_directory(uint32_t **directory, uint32_t page_table, uint32_t index,
+void stop_paging(void);
+void put_page_table_to_directory(uint32_t *cr3, uint32_t* pte, uint32_t pde,
                                  PD_FLAGS pdf);
 pagedata_t* set_page_ownership(uint32_t** page_directory_table, uint32_t page_directory_index,
                                uint32_t page_table_index, uint32_t page_index, uint32_t owner);

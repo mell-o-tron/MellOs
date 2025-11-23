@@ -59,7 +59,8 @@ bool string_starts_with(char *s, char *prefix) {
 
 char* str_decapitate(char *s, uint32_t n) {
     size_t len = strlen(s);
-    char* res = malloc(len - n + 1);
+	// fixme: libc-side malloc
+    char* res = kmalloc(len - n + 1);
 
     if (n >= len) res[0] = 0;
     else {
@@ -72,7 +73,8 @@ char* str_decapitate(char *s, uint32_t n) {
 
 char *strdup(const char *s) {
     if (s == NULL) return NULL;
-    char *res = malloc(strlen(s) + 1);
+	// fixme: libc-side malloc
+    char *res = kmalloc(strlen(s) + 1);
     strcpy(res, s);
     return res;
 }

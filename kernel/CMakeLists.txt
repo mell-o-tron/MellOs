@@ -1,13 +1,12 @@
-file(GLOB_RECURSE KERNEL_C_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
-
 enable_language(ASM_NASM)
 
-file(GLOB_RECURSE KERNEL_ASM_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.asm)
 
-set(KERNEL_SRCS ${KERNEL_C_SRCS} ${KERNEL_ASM_SRCS})
+set(KERNEL_C_SRCS stdio_devices.c ramfs.c pipe.c memory_mapper.c kernel_stdio.c
+        kernel_graphics.c kernel.c file_descritor.c block_device_manager.c mount_manager.c file_string_formatting.c
+        streams.c)
+set(KERNEL_ASM_SRCS kernel_entry.asm IncBins.asm empty_end.asm)
 
-add_library(kernel STATIC ${KERNEL_SRCS})
+add_library(kernel STATIC ${KERNEL_C_SRCS} ${KERNEL_ASM_SRCS})
 
 string(APPEND CMAKE_ASM_NASM_FLAGS " -I${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(kernel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

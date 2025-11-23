@@ -1,8 +1,6 @@
 #pragma once
 #include "kernel_stdio.h"
 #include "multiboot_tags.h"
-#include "stdint.h"
-#include "vesa.h"
 
 static char* names[5] = {"Available", "Reserved", "ACPI reclaimable", "NVS", "Bad RAM"};
 
@@ -17,9 +15,11 @@ typedef struct {
 
 uintptr_t get_multiboot_framebuffer_addr(MultibootTags* mb);
 
-void init_memory_mapper(MultibootTags* multiboot_tags, PIXEL* framebuffer_addr, uint8_t bpp);
+void init_memory_mapper(MultibootTags* multiboot_tags, void* framebuffer_addr, uint8_t bpp);
 
 MemoryArea map_memory();
 
-// Prints the bootloader-provided physical memory map to the current stdout device
+/**
+ * Prints the bootloader-provided physical memory map to the specified stream
+ */
 void dump_memory_map(FILE* stream);

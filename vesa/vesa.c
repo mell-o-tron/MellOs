@@ -23,8 +23,10 @@ uint32_t Vres;
 uint32_t Pitch;
 
 Framebuffer* vga_fb;
+bool framebuffer_init = false;
 
 void _vesa_framebuffer_init(PIXEL addr) {
+	framebuffer_init = true;
 	vga_fb = kmalloc(sizeof(Framebuffer));
 	if (vga_fb == NULL) {
 		kpanic_message("Failed to allocate memory for framebuffer\n");

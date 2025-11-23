@@ -60,6 +60,10 @@ int min(const int a, const int b) {
     return a < b ? a : b;
 }
 
+unsigned int umin(const unsigned int a, const unsigned int b) {
+    return a < b ? a : b;
+}
+
 int max(const int a, const int b) {
     return a > b ? a : b;
 }

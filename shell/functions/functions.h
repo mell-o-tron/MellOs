@@ -18,12 +18,18 @@ FHDR(diskread);
 
 // file_sys.c
 
-FHDR(ls);
+FHDR(dir);
 FHDR(newfile);
 FHDR(write_file);
 FHDR(read_file);
 FHDR(rmfile);
 FHDR(erase_files);
+
+// unix_files.c
+FHDR(ls);
+FHDR(lsblk);
+FHDR(pwd);
+FHDR(cd);
 
 // text_editor.c
 
@@ -42,3 +48,4 @@ FHDR(sperkaster);
 #endif
 FHDR(displayinfo);
 FHDR(meminfo);
+FHDR(mountcmd);
