@@ -4,7 +4,7 @@
 #include "stddef.h"
 #include "stdbool.h"
 
-int ramfs_create(inode_t* dir, const char* name, uint32_t mode, inode_t** out);
+int ramfs_create_dir(inode_t* dir, const char* name, uint32_t mode, inode_t** out);
 
 /**
  * Reads a directory
@@ -17,6 +17,19 @@ int ramfs_readlink(inode_t* vn, char* buf, size_t size);
  * Creates a soft link
  */
 int ramfs_symlink(inode_t* dir, const char* name, const char* target);
+/**
+ * no op
+ * @param sb superblock
+ * @return always 0
+ */
+int ramfs_sync(superblock_t* sb);
+/**
+ * get fs stats
+ * @param sb superblock
+ * @param st stats to write
+ * @return success
+ */
+int ramfs_statfs(superblock_t* sb, statfs_t* st);
 /**
  * Creates a hard link
  */

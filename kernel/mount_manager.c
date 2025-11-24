@@ -6,15 +6,30 @@
 
 #include "string.h"
 
-#include <mellos/ramfs.h>
+#include "mellos/ramfs.h"
+#include "statfs.h"
 
 bool mounts_initialized = false;
+/**
+ * list of mount_t type
+ */
 linked_list_t* mounts = NULL;
 bool fs_registry_initialized = false;
+/**
+ * mount_t type
+ */
 linked_list_t* registered_filesystems = NULL;
 
+/**
+ * get all the mounts
+ * @return list of mount_t
+ */
 linked_list_t* get_mounts() {
 	return mounts;
+}
+
+linked_list_t* get_registered_filesystems() {
+	return registered_filesystems;
 }
 
 // todo: more NULL protection
@@ -80,17 +95,17 @@ void destroy_fs_registry() {
 	linked_list_destroy(registered_filesystems);
 }
 
-void register_fs(mount_t* statfs) {
+void register_fs(mount_t* mount) {
 	if (!fs_registry_initialized) {
 		return;
 	}
-	linked_list_push_back(registered_filesystems, statfs);
+	linked_list_push_back(registered_filesystems, mount);
 }
 
-void unregister_fs(mount_t* statfs) {
+void unregister_fs(mount_t* mount) {
 	list_node_t* node = registered_filesystems->head;
 	while (node) {
-		if (node->data == statfs) {
+		if (node->data == mount) {
 			linked_list_remove(registered_filesystems, node);
 			return;
 		}
@@ -115,7 +130,7 @@ void mount(superblock_t* sb, const char* path) {
 	mount_t* mount_point = kmalloc(sizeof(mount_t));
 	mount_point->sb = sb;
 
-	linked_list_push_back(mounts, sb);
+	linked_list_push_back(mounts, mount_point);
 
 free:
 	kfree(statfs);

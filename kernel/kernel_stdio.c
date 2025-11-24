@@ -245,7 +245,7 @@ int32_t kfprintf(FILE* stream, const char* format, ...) {
 		return rval;
 	return write_to_stream(stream, buf, (uint32_t)rval);
 }
-extern FILE* k_stdout;
+extern FILE* kstdout;
 int32_t kputs(const char* s) {
-	return kfputs(s, k_stdout);
+	return kfputs(s, kstdout);
 }

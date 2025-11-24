@@ -92,45 +92,47 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
 
 // SSE2 implementation
 #ifdef CONFIG_CPU_FEAT_SSE2
-	if (cpuid_has_sse() && count >= 16) {
-		irqflags_t irqf = local_irq_save();
-		local_irq_disable();
+	/*
+	if (cpuid_has_sse() && count >= 16 && false) {
+	    irqflags_t irqf = local_irq_save();
+	    local_irq_disable();
 
-		// Align dest to 16 bytes
-		while (((uintptr_t)dest & 15) != 0 && count > 0) {
-			*dest++ = *source++;
-			count--;
-		}
+	    // Align dest to 16 bytes
+	    while (((uintptr_t)dest & 15) != 0 && count > 0) {
+	        *dest++ = *source++;
+	        count--;
+	    }
 
-		// If source is also aligned, use aligned moves
-		if (((uintptr_t)source & 15) == 0) {
-			while (count >= 16) {
-				__asm__ __volatile__("movaps (%%esi), %%xmm0\n"
-				                     "movaps %%xmm0, (%%edi)\n"
-				                     :
-				                     : "S"(source), "D"(dest)
-				                     : "xmm0", "memory");
-				source += 16;
-				dest += 16;
-				count -= 16;
-			}
-		} else // Unaligned source
-		{
-			while (count >= 16) {
-				__asm__ __volatile__("movups (%%esi), %%xmm0\n"
-				                     "movaps %%xmm0, (%%edi)\n"
-				                     :
-				                     : "S"(source), "D"(dest)
-				                     : "xmm0", "memory");
-				source += 16;
-				dest += 16;
-				count -= 16;
-			}
-		}
-		__asm__ volatile("sfence" ::: "memory");
-		local_irq_restore(irqf);
-		return;
+	    // If source is also aligned, use aligned moves
+	    if (((uintptr_t)source & 15) == 0) {
+	        while (count >= 16) {
+	            __asm__ __volatile__("movaps (%%esi), %%xmm0\n"
+	                                 "movaps %%xmm0, (%%edi)\n"
+	                                 :
+	                                 : "S"(source), "D"(dest)
+	                                 : "xmm0", "memory");
+	            source += 16;
+	            dest += 16;
+	            count -= 16;
+	        }
+	    } else // Unaligned source
+	    {
+	        while (count >= 16) {
+	            __asm__ __volatile__("movups (%%esi), %%xmm0\n"
+	                                 "movaps %%xmm0, (%%edi)\n"
+	                                 :
+	                                 : "S"(source), "D"(dest)
+	                                 : "xmm0", "memory");
+	            source += 16;
+	            dest += 16;
+	            count -= 16;
+	        }
+	    }
+	    __asm__ volatile("sfence" ::: "memory");
+	    local_irq_restore(irqf);
+	    return;
 	}
+	*/
 #endif
 
 	// 4-byte alignment

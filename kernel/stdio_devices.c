@@ -1,6 +1,7 @@
 #include "mellos/kernel/stdio_devices.h"
+#include "mellos/kernel/streams.h"
+#include "mellos/kernel/kernel_stdio.h"
 #include "autoconf.h"
-
 #include "dynamic_mem.h"
 
 #include "errno.h"
@@ -10,19 +11,18 @@
 #include "vga_text.h"
 #endif
 #include "colours.h"
-#include "mellos/kernel/streams.h"
 
 file_t* kernel_stdin_device;
 file_t* kernel_stdout_device;
 file_t* kernel_stderr_device;
 
-extern FILE* k_stdin;
-extern FILE* k_stdout;
-extern FILE* k_stderr;
+extern FILE* kstdin;
+extern FILE* kstdout;
+extern FILE* kstderr;
 
 //todo: the keyboard input driver that the shell polls should be passed to this
 ssize_t stdin_read(file_t* f, void* buf, size_t size, uint64_t offset) {
-	return k_stdin->ops->read(k_stdin, buf, size);
+	return kstdin->ops->read(kstdin, buf, size);
 }
 
 ssize_t stdout_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
@@ -32,6 +32,7 @@ ssize_t stdout_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 	}
 
 	char buffer[size + 1];
+	buffer[size] = 0;
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
@@ -115,14 +116,14 @@ void init_stdio_devices(process_t *proc) {
 
 
 void init_stdio_files() {
-	k_stdin = kmalloc(sizeof(FILE));
-	k_stdout = kmalloc(sizeof(FILE));
-	k_stderr = kmalloc(sizeof(FILE));
-	k_stdin->device = kernel_stdin_device;
-	k_stdout->device = kernel_stdout_device;
-	k_stderr->device = kernel_stderr_device;
+	kstdin = kmalloc(sizeof(FILE));
+	kstdout = kmalloc(sizeof(FILE));
+	kstderr = kmalloc(sizeof(FILE));
+	kstdin->device = kernel_stdin_device;
+	kstdout->device = kernel_stdout_device;
+	kstderr->device = kernel_stderr_device;
 
-	k_stdout->ops = &kernel_stdout_streamops;
-	k_stderr->ops = &kernel_stderr_streamops;
-	k_stdin->ops = &kernel_stdin_streamops;
+	kstdout->ops = &kernel_stdout_streamops;
+	kstderr->ops = &kernel_stderr_streamops;
+	kstdin->ops = &kernel_stdin_streamops;
 }

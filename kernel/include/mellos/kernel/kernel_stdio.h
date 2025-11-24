@@ -2,6 +2,11 @@
 #include "streams.h"
 #include "stdint.h"
 typedef __builtin_va_list va_list;
+
+extern FILE* kstdin;
+extern FILE* kstdout;
+extern FILE* kstderr;
+
 // tries to write to the stream first, if the stream does not exist
 // it will directly write to the framebuffer
 int kprintf(char *fmt, ...);

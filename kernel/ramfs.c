@@ -8,7 +8,7 @@
 #include "string.h"
 
 inode_ops ramfs_operations = {
-    .create = &ramfs_create,
+    .create = &ramfs_create_dir,
     .lookup = &ramfs_lookup,
     .mkdir = &ramfs_mkdir,
     .unlink = &ramfs_unlink,
@@ -25,7 +25,15 @@ file_ops ramfs_fileops = {
     .ioctl = &ramfs_ioctl,
     .mmap = &ramfs_mmap,
 };
-superblock_t* ramfs_superblock;
+
+super_ops ramfs_super_ops = {
+	.statfs = &ramfs_statfs,
+	.sync = &ramfs_sync,
+};
+
+superblock_t* root_ramfs_superblock;
+superblock_t* proc_ramfs_superblock;
+superblock_t* dev_ramfs_superblock;
 
 inode_t* root_inode;
 dentry_t* ramfs_root_dentry;
@@ -38,6 +46,7 @@ mount_t* ramfs_mount;
 
 file_t* open_files;
 
+// todo: init helpers so there wont be a need to write 50 lines of code to create 1 file
 int ramfs_init() {
 	open_files = kmalloc(sizeof(file_t) * MAX_OPEN_FILES);
 	ramfs_root_dentry = kmalloc(sizeof(dentry_t));
@@ -48,13 +57,24 @@ int ramfs_init() {
 	root_inode->mode =
 	    S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH | S_IFDIR;
 	root_inode->private = NULL;
-	root_inode->sb = ramfs_superblock;
+
+	// todo: proper superblock init
+	root_ramfs_superblock = kmalloc(sizeof(superblock_t));
+	root_ramfs_superblock->fs = kmalloc(sizeof(fs_type_t));
+	root_ramfs_superblock->fs->name = "ramfs";
+	root_ramfs_superblock->identifier = RAMFS_IDENTIFIER;
+	root_ramfs_superblock->block_size = RAMFS_BLOCK_SIZE;
+	root_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
+	root_ramfs_superblock->root = root_inode;
+	root_ramfs_superblock->ops = &ramfs_super_ops;
+
+	root_inode->sb = root_ramfs_superblock;
 	root_inode->ops = &ramfs_operations;
 	root_inode->ref_count = 1;
 	root_inode->fops = &ramfs_fileops;
 
 	ramfs_mount = kmalloc(sizeof(mount_t));
-	ramfs_mount->sb = ramfs_superblock;
+	ramfs_mount->sb = root_ramfs_superblock;
 	ramfs_mount->root = root_inode;
 
 	root_inode->private = kmalloc(sizeof(struct ramfs_dir));
@@ -66,8 +86,8 @@ int ramfs_init() {
 	inode_t* dev_inode = kmalloc(sizeof(inode_t*));
 	inode_t* proc_inode = kmalloc(sizeof(inode_t*));
 
-	ramfs_create(root_inode, "proc", S_IFDIR | S_IRUSR | S_IWUSR, &proc_inode);
-	ramfs_create(root_inode, "dev", S_IFDIR | S_IRUSR | S_IWUSR, &dev_inode);
+	ramfs_create_dir(root_inode, "proc", S_IFDIR | S_IRUSR | S_IWUSR, &proc_inode);
+	ramfs_create_dir(root_inode, "dev", S_IFDIR | S_IRUSR | S_IWUSR, &dev_inode);
 
 	if (dev_inode == NULL || proc_inode == NULL) {
 		return -ENOMEM;
@@ -83,8 +103,19 @@ int ramfs_init() {
 	dev_dir->count = 0;
 
 	mount_t* proc_mount = kmalloc(sizeof(mount_t));
-	proc_mount->root = proc_inode;
-	proc_mount->sb = kmalloc(sizeof(superblock_t));
+	proc_mount->root = kmalloc(sizeof(inode_t));
+
+
+	proc_ramfs_superblock = kmalloc(sizeof(superblock_t));
+	proc_ramfs_superblock->fs = kmalloc(sizeof(fs_type_t));
+	proc_ramfs_superblock->fs->name = "ramfs";
+	proc_ramfs_superblock->identifier = RAMFS_IDENTIFIER;
+	proc_ramfs_superblock->block_size = RAMFS_BLOCK_SIZE;
+	proc_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
+	proc_ramfs_superblock->root = proc_mount->root;
+	proc_ramfs_superblock->ops = &ramfs_super_ops;
+
+	proc_mount->sb = proc_ramfs_superblock;
 	proc_mount->mounted = true;
 	proc_mount->root->dentry = kmalloc(sizeof(dentry_t));
 	proc_mount->root->dentry->inode = dev_inode;
@@ -99,8 +130,20 @@ int ramfs_init() {
 
 
 	mount_t* dev_mount = kmalloc(sizeof(mount_t));
-	dev_mount->root = dev_inode;
-	dev_mount->sb = kmalloc(sizeof(superblock_t));
+	dev_mount->root = kmalloc(sizeof(inode_t));
+
+
+	dev_ramfs_superblock = kmalloc(sizeof(superblock_t));
+	dev_ramfs_superblock->fs = kmalloc(sizeof(fs_type_t));
+	dev_ramfs_superblock->fs->name = "ramfs";
+	dev_ramfs_superblock->identifier = RAMFS_IDENTIFIER;
+	dev_ramfs_superblock->block_size = RAMFS_BLOCK_SIZE;
+	dev_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
+	dev_ramfs_superblock->root = dev_mount->root;
+	dev_ramfs_superblock->ops = &ramfs_super_ops;
+
+	dev_mount->sb = dev_ramfs_superblock;
+
 	dev_mount->mounted = true;
 	dev_mount->root->dentry = kmalloc(sizeof(dentry_t));
 	dev_mount->root->dentry->inode = dev_inode;
@@ -116,6 +159,28 @@ int ramfs_init() {
 	register_fs(ramfs_mount);
 	register_fs(dev_mount);
 	register_fs(proc_mount);
+	return 0;
+}
+
+/**
+ * no op
+ * @param sb superblock
+ * @return always 0
+ */
+int ramfs_sync(superblock_t* sb) {
+	return 0;
+}
+/**
+ * gets fs stats, expects an array to preallocated memory, sizeof statfs_t
+ * @param sb superblock
+ * @param st stats to write
+ * @return success
+ */
+int ramfs_statfs(superblock_t* sb, statfs_t* st) {
+	//kfprintf(kstderr, "ramfs_statfs not implemented\n");
+	st->f_type = RAMFS_IDENTIFIER;
+	st->f_bsize = sb->block_size;
+	st->f_blocks = sb->total_blocks;
 	return 0;
 }
 
@@ -237,7 +302,7 @@ file_t* ramfs_get_file(const char* path) {
 
 inode_t* ramfs_resolve_file(const char* path) {
 	bool sc = true;
-	inode_t* last = ramfs_superblock->root;
+	inode_t* last = root_ramfs_superblock->root;
 
 	char* current_dir_name = kmalloc(strlen(path));
 	int path_iterator = 0;
@@ -289,9 +354,8 @@ void ramfs_list_dir(inode_t* dir) {
 	}
 }
 
-int ramfs_create(inode_t* dir, const char* name, uint32_t mode, inode_t** out) {
+int ramfs_create_dir(inode_t* dir, const char* name, uint32_t mode, inode_t** out) {
 	struct ramfs_dir* directory = dir->private;
-
 	if (dir->mode & S_IWUSR) {
 		inode_t* res = kmalloc(sizeof(inode_t));
 		if (!res) {

@@ -11,15 +11,47 @@ FDEF(ls) {
 	kprintf("searching directory: %s", s);
 }
 
+bool filter(mount_t* m) {
+	if (m->sb == NULL) {
+		kfprintf(kstderr, "superblock is null!\n");
+		return false;
+	}
+	if (m->root == NULL) {
+		kfprintf(kstderr, "mountpoint is null!\n");
+		return false;
+	}
+	if (m->sb->fs == NULL) {
+		kfprintf(kstderr, "fs is null\n");
+		return false;
+	}
+	if (m->sb->ops == NULL) {
+		kfprintf(kstderr, "ops is null\n");
+		return false;
+	}
+	if (m->sb->ops->statfs == NULL) {
+		kfprintf(kstderr, "ops->statfs is null\n");
+		return false;
+	}
+	return true;
+}
+
 void print_nodes_for(block_device_t* bd) {
+	if (bd == NULL) {
+		kfprintf(kstderr, "lsblk: Block device is null!\n");
+		return;
+	}
 	if (!are_mounts_initialized()) {
-		kprintf("Trying to access mounts while mounts are not initialized!\n");
+		kfprintf(kstderr, "lsblk: Trying to access mounts while mounts are not initialized!\n");
 		return;
 	}
 
 	linked_list_t* mounts = get_mounts();
 	if (mounts == NULL) {
-		kprintf("mounts is null\n");
+		kfprintf(kstderr, "lsblk: get_mounts() is null!\n");
+		return;
+	}
+	if (linked_list_is_empty(mounts)) {
+		kfprintf(kstderr, "lsblk: No mounts found!\n");
 		return;
 	}
 	list_node_t* node = mounts->head;
@@ -31,26 +63,13 @@ void print_nodes_for(block_device_t* bd) {
 	char* path = kmalloc(256);
 	while (node) {
 		m = node->data;
-		if (m->sb == NULL) {
-			kprintf("superblock is null\n");
-			goto free;
-		}
-		if (m->root == NULL) {
-			kprintf("mountpoint is null\n");
-			goto free;
-		}
-		if (m->sb->fs == NULL) {
-			kprintf("fs is null\n");
-			goto free;
-		}
-		if (bd == NULL) {
-			kprintf("block device is null\n");
+		if (!filter(m)) {
 			goto free;
 		}
 		m->sb->ops->statfs(m->sb, statfs);
-		//rebuild_path(m->mountpoint, path);
+		//rebuild_path(m->sb->fs->name, path);
 		if (m->sb->bd == bd) {
-			kprintf("%s %s %s %llu %s %s\n", path, NULL, bd->flags & 1 ? "yes" : "no",
+			kprintf("|-->%s %s %s %llu %s %s\n", m->sb->fs->name, NULL, bd->flags & 1 ? "yes" : "no",
 			        statfs->f_blocks * statfs->f_bsize, NULL, "part");
 		}
 		node = node->next;
@@ -61,31 +80,76 @@ free:
 }
 
 FDEF(lsblk) {
-	kprintf("NAME FSTYPE READONLY SIZE TYPE MOUNTPOINTS\n");
+	kprintf("NAME TYPE READONLY SIZE MOUNTPOINTS\n");
 
 	linked_list_t* devices = get_block_devices();
-	list_node_t* node = devices->head;
 	if (!devices) {
-		kprintf("No block devices found. Rebooting is advised.\n");
+		kfprintf(kstderr, "lsblk: No block devices found. Rebooting is advised.\n");
 		return;
 	}
+	list_node_t* node = devices->head;
 	if (!node) {
-		kprintf("No block devices found. Rebooting is advised.\n");
+		kfprintf(kstderr, "lsblk: No block devices found. Rebooting is advised.\n");
 		return;
 	}
 	while (node) {
 
 		if (!(node->data)) {
-			kprintf("Corrupted block device node. Rebooting is advised.\n");
+			kfprintf(kstderr, "lsblk: Corrupted block device node. Rebooting is advised.\n");
 			return;
 		}
 		block_device_t* bd = node->data;
-		kprintf("%s %s %s %llu %s %s\n", bd->name, NULL, bd->flags & 1 ? "yes" : "no",
-		        bd->logical_block_size * bd->num_blocks, NULL, "disk");
+		// todo: print mountpoint
+		kprintf("%s %s %s %u %s\n", bd->name, bd->parent == NULL ? "disk" : "part", bd->flags & 1 ? "true" : "false",
+		        bd->logical_block_size * bd->num_blocks, "");
 		print_nodes_for(bd);
 
 		node = node->next;
 	}
+
+	linked_list_t* list = get_registered_filesystems();
+	if (list == NULL) {
+		kfprintf(kstderr, "lsblk: get_registered_filesystems() is null!\n");
+		return;
+	}
+
+	node = list->head;
+	statfs_t* statfs = kmalloc(sizeof(statfs_t));
+	while (node) {
+		mount_t* m = node->data;
+		if (!m) {
+			kfprintf(kstderr, "lsblk: Corrupted mount node. Rebooting is advised.\n");
+			goto free;
+		}
+
+		if (m->sb == NULL) {
+			kfprintf(kstderr, "lsblk: fs is null\n");
+			goto free;
+		}
+
+		if (m->sb->bd != NULL) {
+			goto next;
+		}
+
+		if (!m->root->dentry) {
+			kfprintf(kstderr, "lsblk: root dentry is null\n");
+			goto free;
+		}
+
+		if (m->sb->ops == NULL) {
+			kfprintf(kstderr, "lsblk: ops is null\n");
+			goto free;
+		}
+		m->sb->ops->statfs(m->sb, statfs);
+		kprintf("%s %s %s %u %s\n", m->sb->fs->name, "part",
+			m->sb->flags & 1 ? "true" : "false",
+			RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS,
+			m->sb->root->dentry->name);
+	next:
+		node = node->next;
+	}
+free:
+	kfree(statfs);
 }
 
 FDEF(pwd) {

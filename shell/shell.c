@@ -7,19 +7,15 @@
 
 #include "stddef.h"
 
-#include <mellos/kernel/kernel_stdio.h>
-#include <stdio.h>
+#include "mellos/kernel/kernel_stdio.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
 #include "circular_buffer.h"
-#include "colours.h"
-#include "conversions.h"
 #include "dynamic_mem.h"
 #include "keyboard.h"
-#include "mem.h"
 #include "shell/shell_functions.h"
 #include "string.h"
 #include "uart.h"
@@ -89,7 +85,7 @@ void load_shell() {
 			break;
 		case 8: // backspace
 			if (i > 0) {
-				command_buffer[i] = 0;
+				command_buffer[i - 1] = 0;
 				i--;
 				move_cursor_LR(-1);
 				kprint_char(' ', 0);

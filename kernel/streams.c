@@ -3,9 +3,9 @@
 
 #include "mellos/fs.h"
 
-FILE* k_stdin;
-FILE* k_stdout;
-FILE* k_stderr;
+FILE* kstdin;
+FILE* kstdout;
+FILE* kstderr;
 
 size_t kstream_write(FILE* stream, const char* s, size_t size) {
 	if (!stream) {
