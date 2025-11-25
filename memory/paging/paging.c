@@ -355,10 +355,8 @@ __attribute__((section(".low.text"))) void map_framebuffer_pages(uintptr_t fb_ad
  * page table entries (to be inserted at directory[pte])
  * @param pdf Page directory flags
  */
-__attribute__((section(".low.text"))) void put_page_table_to_directory(uint32_t* cr3,
-                                                                       uint32_t* pte,
-                                                                       uint32_t pde,
-                                                                       PD_FLAGS pdf) {
+__attribute__((section(".low.text"))) void put_page_table_to_directory(uint32_t* cr3, uint32_t* pte,
+                                                                       uint32_t pde, PD_FLAGS pdf) {
 	if (pde >= 1024) {
 		kpanic_message("Invalid page table index");
 	}
@@ -369,9 +367,11 @@ __attribute__((section(".low.text"))) void put_page_table_to_directory(uint32_t*
 __attribute__((optimize("O0"))) __attribute__((noinline))
 __attribute__((section(".text"))) _Noreturn void
 higher_half_init(MultibootTags* multiboot_addr) {
+
 	memset(page_directories, 0, sizeof(page_directories));
 	memset(heap_page_table, 0, sizeof(heap_page_table));
 	memset(kernel_heap_page_table, 0, sizeof(kernel_heap_page_table));
+
 
 	uint32_t heap_pages = HEAP_SIZE / 0x1000; // Calculate actual page count
 
@@ -419,6 +419,7 @@ higher_half_init(MultibootTags* multiboot_addr) {
 	irq_install();
 
 	init_frame_allocators();
+
 	higher_half_main((uintptr_t)multiboot_addr); // kernel main for higher half
 }
 
@@ -445,7 +446,6 @@ extern char __bss_pa_end[];
 __attribute__((optimize("O0"))) __attribute__((section(".low.text"))) void
 setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr) {
 	isrs_install();
-
 	memset(first_page_table, 0, sizeof(first_page_table));
 	memset(second_page_table, 0, sizeof(second_page_table));
 
@@ -493,8 +493,7 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 		} else if (page_iterator >= (rodata_start - text_start) / 0x1000 &&
 		           page_iterator < (data_start - text_start) / 0x1000) {
 			page_table_higher_half[page_iterator] =
-			    (text_start + page_iterator * 0x1000) |
-			    (PT_PRESENT); // readonly, also on paging
+			    (text_start + page_iterator * 0x1000) | (PT_PRESENT); // readonly, also on paging
 		} else if (page_iterator >= (data_start - text_start) / 0x1000 &&
 		           page_iterator < (bss_start - text_start) / 0x1000) {
 			page_table_higher_half[page_iterator] =
@@ -526,9 +525,10 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 		kpanic_message("ESP is too high");
 	}
 
-	uint32_t enable_paging_bit = 0x80000000;
+	uint32_t enable_paging_bit = 0x80000001;
 	load_page_directory(base_page_directory_low);
-	asm volatile("mov %%cr0, %%eax\n"
+	asm volatile("xor %%eax, %%eax\n"
+	             "mov %%cr0, %%eax\n"
 	             "or %0, %%eax\n"
 	             "mov %%eax, %%cr0\n" ::"r"(enable_paging_bit)
 	             : "eax");

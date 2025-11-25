@@ -257,7 +257,6 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 #else
 	init_memory_mapper((MultibootTags*)multiboot_tags_addr, 0, 0);
 #endif
-
 #ifdef CONFIG_GFX_VESA
 	init_paging(fb_addr, (MultibootTags*)multiboot_tags_addr);
 #else
@@ -329,15 +328,14 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #ifdef CONFIG_CONFIG_SERIAL
 	uart_init();
 #endif
-	asm volatile("sti");
 	init_kernel_devices();
 	init_stdio_files();
-
 
 	bdev_initialize_blockdevices();
 	init_fs_registry();
 	ramfs_init();
 	init_mount_manager();
+	asm volatile("sti");
 #ifdef MELLOS_ENABLE_TESTS
 	kprint("MellOS Debug mode:\n\n");
 

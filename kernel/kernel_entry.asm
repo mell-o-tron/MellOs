@@ -17,7 +17,8 @@ bits 32
 %include "kconfig.asm"
 CODE_SEG equ GDT_code - GDT_start
 DATA_SEG equ GDT_data - GDT_start
-TMP_MEM  equ 0x60000            ; Tmp location to store the multiboot tags
+TMP_MEM  equ 0x60004            ; Tmp location to store the multiboot tags
+saved_eax equ 0x60000
 
 ; kernel_entry.asm
 global _kernel_start
@@ -31,13 +32,13 @@ _kernel_start:
 
     ; Preserve Multiboot EBX early
     mov [TMP_MEM], ebx
+    mov [saved_eax], eax
     jmp init_serial
 .pre_mb_test:
     ; EAX contains Multiboot magic for v1 (0x2BADB002). Emit a quick serial breadcrumb.
-    push eax
-    mov eax, 0x2BADB002
-    cmp eax, [esp]
-    pop eax
+    mov eax, [saved_eax]
+
+    cmp eax, 0x2BADB002
     jne .mb_bad
     OUT_SERIAL 'M' ; Magic OK
     jmp .after_magic
@@ -46,27 +47,30 @@ _kernel_start:
 .after_magic:
 
     lgdt [GDT_descriptor]
-
+    OUT_SERIAL 'G'
     mov ax, DATA_SEG
 	mov ds, ax
 	mov ss, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-
+    OUT_SERIAL 'P'
 	mov ebp, 0x90000		; 32 bit stack base pointer
 	mov esp, ebp
-
-    xor ebp, ebp
+    OUT_SERIAL 'p'
 
     ; Pass saved EBX (Multiboot info) as cdecl arg to main
     push dword [TMP_MEM]
+    OUT_SERIAL 'E'
     call check_and_enable_features
+    OUT_SERIAL 'm'
     call main
+    OUT_SERIAL 'F'
     jmp $
 
 check_and_enable_features:
     ; Test for CPUID capability (ID bit in EFLAGS)
+%ifdef CONFIG_CPU_FEAT_CPUID
     pushfd
     pop eax
     mov ecx, eax
@@ -83,7 +87,9 @@ check_and_enable_features:
     ; Get basic CPU features (CPUID Leaf 1)
     mov eax, 1
     cpuid
+%endif
 %ifdef CONFIG_CPU_FEAT_SSE
+    OUT_SERIAL 's'
     ; Check for SSE support (EDX bit 25)
     test edx, 1 << 25   ; SSE
     jz .fault

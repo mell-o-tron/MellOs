@@ -19,7 +19,7 @@ struct idt_ptr // IDT poiner
 } __attribute__((packed));
 
 __attribute__((section(".low.bss"))) struct idt_entry idt[256];
-__attribute__((section(".low.bss"))) struct idt_ptr _idtp;
+__attribute__((section(".low.bss"))) struct idt_ptr _idtp = {0};
 
 extern void _idt_load(); // ---> interrupt.asm
 
