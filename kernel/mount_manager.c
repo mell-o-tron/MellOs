@@ -9,6 +9,8 @@
 #include "mellos/ramfs.h"
 #include "statfs.h"
 
+#include "mellos/block_device.h"
+
 bool mounts_initialized = false;
 /**
  * list of mount_t type
@@ -34,7 +36,8 @@ linked_list_t* get_registered_filesystems() {
 
 // todo: more NULL protection
 bool get_root_filter_function(list_node_t* node, void* filterdata) {
-	if (node == NULL) return false;
+	if (node == NULL)
+		return false;
 	mount_t* mnt = node->data;
 	return strcmp(mnt->root->dentry->name, filterdata) == 0;
 }
@@ -99,6 +102,59 @@ void register_fs(mount_t* mount) {
 	if (!fs_registry_initialized) {
 		return;
 	}
+	char* str = kmalloc(sizeof(char) * 10);
+	// who said java is verbose? it does not need stupid amounts of error checks!
+	if (str == NULL) {
+		kfprintf(kstderr, "Failed to allocate memory for filesystem name\n");
+		return;
+	}
+	if (mount->root == NULL) {
+		kfprintf(kstderr, "Filesystem root is not mounted\n");
+		kfree(str);
+		return;
+	}
+	if (mount->root->dentry == NULL) {
+		kfprintf(kstderr, "Filesystem root dentry is NULL\n");
+		kfree(str);
+		return;
+	}
+	if (mount->root->dentry->name == NULL) {
+		kfprintf(kstderr, "Filesystem root dentry name is NULL\n");
+		kfree(str);
+		return;
+	}
+	// todo: add shortcut to siblings
+	if (mount->root->dentry->parent == NULL) {
+		// this is root
+		kprintf("Mounting root...");
+		ksnprintf(str, 10, "%sp%u", mount->root->sb->bd->name, 0);
+		mount->root->sb->bd->children++;
+		mount->sb->fs->name = str;
+		linked_list_push_back(registered_filesystems, mount);
+		return;
+	}
+
+	if (mount->root->dentry->parent->inode == NULL) {
+		kfprintf(kstderr, "Filesystem root dentry parent inode is NULL\n");
+		kfree(str);
+		return;
+	}
+
+	if (mount->root->dentry->parent->inode->sb == NULL) {
+		kfprintf(kstderr, "Filesystem root dentry parent inode sb is NULL\n");
+		kfree(str);
+		return;
+	}
+
+	if (mount->root->dentry->parent->inode->sb->bd == NULL) {
+		kfprintf(kstderr, "Filesystem root dentry parent inode sb bd is NULL\n");
+		kfree(str);
+		return;
+	}
+
+	ksnprintf(str, 10, "%sp%u", mount->root->sb->bd->name, mount->root->sb->bd->children);
+	mount->root->sb->bd->children++;
+	mount->sb->fs->name = str;
 	linked_list_push_back(registered_filesystems, mount);
 }
 

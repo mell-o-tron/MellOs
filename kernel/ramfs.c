@@ -7,6 +7,10 @@
 #include "mem.h"
 #include "string.h"
 
+#include "mellos/block_device.h"
+
+#include <ramdisk.h>
+
 inode_ops ramfs_operations = {
     .create = &ramfs_create_dir,
     .lookup = &ramfs_lookup,
@@ -67,6 +71,7 @@ int ramfs_init() {
 	root_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
 	root_ramfs_superblock->root = root_inode;
 	root_ramfs_superblock->ops = &ramfs_super_ops;
+	root_ramfs_superblock->bd = get_block_device_by_name("ram0");
 
 	root_inode->sb = root_ramfs_superblock;
 	root_inode->ops = &ramfs_operations;
@@ -114,6 +119,7 @@ int ramfs_init() {
 	proc_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
 	proc_ramfs_superblock->root = proc_mount->root;
 	proc_ramfs_superblock->ops = &ramfs_super_ops;
+	proc_ramfs_superblock->bd = get_block_device_by_name("ram0");
 
 	proc_mount->sb = proc_ramfs_superblock;
 	proc_mount->mounted = true;
@@ -141,6 +147,7 @@ int ramfs_init() {
 	dev_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
 	dev_ramfs_superblock->root = dev_mount->root;
 	dev_ramfs_superblock->ops = &ramfs_super_ops;
+	dev_ramfs_superblock->bd = get_block_device_by_name("ram0");
 
 	dev_mount->sb = dev_ramfs_superblock;
 

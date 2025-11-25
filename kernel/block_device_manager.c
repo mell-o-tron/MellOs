@@ -8,7 +8,7 @@
 #include "mellos/fs.h"
 #include "string.h"
 
-#include <dynamic_mem.h>
+#include "dynamic_mem.h"
 
 linked_list_t* block_devices;
 

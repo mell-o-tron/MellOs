@@ -11,6 +11,7 @@
 #include "gui.h"
 #include "vterm.h"
 #include "mouse_handler.h"
+#include "mellos/kernel/kernel_stdio.h"
 
 static CircularList* windows = NULL;
 static Window* mouse_window = NULL;
@@ -80,6 +81,9 @@ void _vell_draw(){
 
 FDEF(vell){
     if (fb == NULL) {
+    	if (fb2 != NULL) {
+    		kfprintf(kstderr, "fb1 is NULL but fb2 is not?\n");
+    	}
         fb = allocate_full_screen_framebuffer();
         fb2 = allocate_full_screen_framebuffer();
         _init_vterm();

@@ -3,8 +3,8 @@
 #include "mellos/fs.h"
 #include "mellos/kernel/kernel_stdio.h"
 
-#include "mellos/kernel/mount_manager.h"
 #include "dynamic_mem.h"
+#include "mellos/kernel/mount_manager.h"
 #include "shell/shell.h"
 
 FDEF(ls) {
@@ -36,46 +36,46 @@ bool filter(mount_t* m) {
 }
 
 void print_nodes_for(block_device_t* bd) {
-	if (bd == NULL) {
-		kfprintf(kstderr, "lsblk: Block device is null!\n");
-		return;
-	}
-	if (!are_mounts_initialized()) {
-		kfprintf(kstderr, "lsblk: Trying to access mounts while mounts are not initialized!\n");
+
+	linked_list_t* list = get_registered_filesystems();
+	if (list == NULL) {
+		kfprintf(kstderr, "lsblk: get_registered_filesystems() is null!\n");
 		return;
 	}
 
-	linked_list_t* mounts = get_mounts();
-	if (mounts == NULL) {
-		kfprintf(kstderr, "lsblk: get_mounts() is null!\n");
-		return;
-	}
-	if (linked_list_is_empty(mounts)) {
-		kfprintf(kstderr, "lsblk: No mounts found!\n");
-		return;
-	}
-	list_node_t* node = mounts->head;
-	if (node == NULL) {
-		return;
-	}
-	mount_t* m;
+	list_node_t* node = list->head;
 	statfs_t* statfs = kmalloc(sizeof(statfs_t));
-	char* path = kmalloc(256);
 	while (node) {
-		m = node->data;
-		if (!filter(m)) {
+		mount_t* m = node->data;
+		if (!m) {
+			kfprintf(kstderr, "lsblk: Corrupted mount node. Rebooting is advised.\n");
+			goto free;
+		}
+
+		if (m->sb == NULL) {
+			kfprintf(kstderr, "lsblk: fs is null\n");
+			goto free;
+		}
+
+		if (!m->root->dentry) {
+			kfprintf(kstderr, "lsblk: root dentry is null\n");
+			goto free;
+		}
+
+		if (m->sb->ops == NULL) {
+			kfprintf(kstderr, "lsblk: ops is null\n");
+			goto free;
+		}
+		if (m->sb->bd != bd) {
 			goto free;
 		}
 		m->sb->ops->statfs(m->sb, statfs);
-		//rebuild_path(m->sb->fs->name, path);
-		if (m->sb->bd == bd) {
-			kprintf("|-->%s %s %s %llu %s %s\n", m->sb->fs->name, NULL, bd->flags & 1 ? "yes" : "no",
-			        statfs->f_blocks * statfs->f_bsize, NULL, "part");
-		}
+		kprintf("%s%s %s %s %u %s\n", (m->sb->bd->parent == NULL ? "|-->" : ""), m->sb->fs->name,
+		        "part", m->sb->flags & 1 ? "true" : "false", RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS,
+		        m->sb->root->dentry->name);
 		node = node->next;
 	}
 free:
-	kfree(path);
 	kfree(statfs);
 }
 
@@ -99,57 +99,13 @@ FDEF(lsblk) {
 			return;
 		}
 		block_device_t* bd = node->data;
-		// todo: print mountpoint
-		kprintf("%s %s %s %u %s\n", bd->name, bd->parent == NULL ? "disk" : "part", bd->flags & 1 ? "true" : "false",
+		kprintf("%s%s %s %s %u %s\n", (bd->parent == NULL ? "" : "|-->"), bd->name,
+		        bd->parent == NULL ? "disk" : "part", bd->flags & 1 ? "true" : "false",
 		        bd->logical_block_size * bd->num_blocks, "");
 		print_nodes_for(bd);
 
 		node = node->next;
 	}
-
-	linked_list_t* list = get_registered_filesystems();
-	if (list == NULL) {
-		kfprintf(kstderr, "lsblk: get_registered_filesystems() is null!\n");
-		return;
-	}
-
-	node = list->head;
-	statfs_t* statfs = kmalloc(sizeof(statfs_t));
-	while (node) {
-		mount_t* m = node->data;
-		if (!m) {
-			kfprintf(kstderr, "lsblk: Corrupted mount node. Rebooting is advised.\n");
-			goto free;
-		}
-
-		if (m->sb == NULL) {
-			kfprintf(kstderr, "lsblk: fs is null\n");
-			goto free;
-		}
-
-		if (m->sb->bd != NULL) {
-			goto next;
-		}
-
-		if (!m->root->dentry) {
-			kfprintf(kstderr, "lsblk: root dentry is null\n");
-			goto free;
-		}
-
-		if (m->sb->ops == NULL) {
-			kfprintf(kstderr, "lsblk: ops is null\n");
-			goto free;
-		}
-		m->sb->ops->statfs(m->sb, statfs);
-		kprintf("%s %s %s %u %s\n", m->sb->fs->name, "part",
-			m->sb->flags & 1 ? "true" : "false",
-			RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS,
-			m->sb->root->dentry->name);
-	next:
-		node = node->next;
-	}
-free:
-	kfree(statfs);
 }
 
 FDEF(pwd) {
@@ -169,5 +125,11 @@ FDEF(cd) {
 		kprintf("cd: this is going to change in the future.\n");
 		return;
 	}
-	set_working_dir(get_inode_from_path(*get_root_mount(), s));
+	inode_t* inode = get_inode_from_path(*get_root_mount(), s);
+	if (!inode) {
+		kprintf("cd: directory not found");
+		return;
+	}
+	set_working_dir(inode);
+	refreshShell();
 }

@@ -25,7 +25,7 @@ extern Framebuffer* vga_fb;
 
 void _vesa_framebuffer_init(PIXEL pointer);
 
-Framebuffer* allocate_full_screen_framebuffer();
+Framebuffer* allocate_full_screen_framebuffer(void);
 Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height, uint8_t bpp);
 void deallocate_framebuffer(Framebuffer* fb);
 
@@ -34,7 +34,7 @@ void blit_all_at(Framebuffer* src, Framebuffer* dest, int x, int y);
 void blit_all_at_only(Framebuffer* src, Framebuffer* dest, int x, int y, int from_x, int from_y, int to_x, int to_y);
 void blit_all_at_only_square(Framebuffer* src, Framebuffer* dest, int x, int y, Recti square, int width);
 
-void clear_screen();
+void clear_screen(void);
 void clear_screen_col_VESA(VESA_Colour col);
 void clear_screen_col(Colour col);
 void fill_square(int x, int y, int size, VESA_Colour col);

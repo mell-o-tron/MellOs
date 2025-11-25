@@ -31,9 +31,9 @@
 
 #include "mellos/block_device.h"
 
-#include <mellos/kernel/mount_manager.h>
-#include <mellos/kernel/stdio_devices.h>
-#include <mellos/ramfs.h>
+#include "mellos/kernel/mount_manager.h"
+#include "mellos/kernel/stdio_devices.h"
+#include "mellos/ramfs.h"
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "vesa.h"

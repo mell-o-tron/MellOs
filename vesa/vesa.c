@@ -215,7 +215,7 @@ Framebuffer* allocate_full_screen_framebuffer() {
 
 void deallocate_framebuffer(Framebuffer* fb) {
 	kfree((void*)fb->fb);
-	kfree((void*)fb);
+	kfree(fb);
 }
 
 void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t width, uint32_t height,
