@@ -221,44 +221,4 @@ void* memcpy(void* restrict dest, const void* restrict src, uint32_t size) {
 	return dest;
 }
 
-int memcmp(const void* ptr1, const void* ptr2, uint32_t size) {
-	const uint8_t* p1 = (const uint8_t*)ptr1;
-	const uint8_t* p2 = (const uint8_t*)ptr2;
 
-	// 32-bit comparison for aligned data
-	if (size >= 4 && ((uintptr_t)p1 & 3) == 0 && ((uintptr_t)p2 & 3) == 0) {
-		const uint32_t* q1 = (const uint32_t*)p1;
-		const uint32_t* q2 = (const uint32_t*)p2;
-
-		while (size >= 4) {
-			if (*q1 != *q2) {
-				// Found difference, need to find which byte
-				p1 = (const uint8_t*)q1;
-				p2 = (const uint8_t*)q2;
-				for (int i = 0; i < 4; i++) {
-					if (p1[i] < p2[i])
-						return -1;
-					if (p1[i] > p2[i])
-						return 1;
-				}
-			}
-			q1++;
-			q2++;
-			size -= 4;
-		}
-		p1 = (const uint8_t*)q1;
-		p2 = (const uint8_t*)q2;
-	}
-
-	// Compare remaining bytes
-	while (size > 0) {
-		if (*p1 < *p2)
-			return -1;
-		if (*p1 > *p2)
-			return 1;
-		p1++;
-		p2++;
-		size--;
-	}
-	return 0;
-}

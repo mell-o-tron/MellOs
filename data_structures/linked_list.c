@@ -82,6 +82,9 @@ void* linked_list_pop_front(linked_list_t* list) {
     return data;
 }
 
+/**
+ * This only removes the node from the linked list, you need to free the data yourself.
+ */
 bool linked_list_remove(linked_list_t* list, void* data) {
     struct list_node* current = list->head;
 
@@ -140,9 +143,6 @@ list_node_t* linked_list_get_node(linked_list_t* list, void* filter_data, bool(*
         if (filter_func(current, filter_data)) {
             return current;
         }
-    	if (current->next == NULL) {
-    		return NULL;
-    	}
         current = current->next;
     }
     return NULL;

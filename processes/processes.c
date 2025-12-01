@@ -7,6 +7,9 @@
 #include "stddef.h"
 
 #include "mellos/kernel/kernel_stdio.h"
+#include "mellos/kernel/mount_manager.h"
+
+#include "mellos/kernel/kernel.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -160,13 +163,20 @@ void init_scheduler() {
 
 	init_stdio_devices(processes[0]);
 
-	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IWUSR, NULL);
-	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IRUSR, NULL);
-	processes[0]->stderr = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), processes[0], 0, S_IWUSR, NULL);
+	const vfs_mount_t* proc_mnt = get_proc_mount();
+
+	if (proc_mnt == NULL) {
+		kfprintf(kstderr, "%s",
+			"Failed to get /proc mount point. (Has /proc been initialized?)\n");
+		return;
+	}
+
+	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
+	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IRUSR, NULL);
+	processes[0]->stderr = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
 	open_pipe(processes[0]->stdin, NULL, 128);
 	open_pipe(NULL, processes[0]->stdout, 128);
 	open_pipe(NULL, processes[0]->stderr, 128);
-
 	max_pid = 1;
 }
 
@@ -218,7 +228,6 @@ void execute_next() {
 	}
 
 	switch_task(processes[prev_pid], processes[cur_pid]);
-	return;
 }
 
 void try_to_relinquish() {
@@ -265,9 +274,9 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
 	ksnprintf(stderr_str, 128, "/proc/%d/stderr\n", max_pid - 1);
 	ksnprintf(stdin_str, 128, "/proc/%d/stdin\n", max_pid - 1);
 
-	new_process->stdin = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IRUSR, stdin_str);
-	new_process->stdout = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IWUSR, stdout_str);
-	new_process->stderr = open_fd_standalone(FD_TYPE_PIPE, get_root_mount(), new_process, 0, S_IWUSR, stderr_str);
+	new_process->stdin = open_fd_standalone(FD_TYPE_PIPE, get_proc_mount()->root->dentry, new_process, 0, S_IRUSR, stdin_str);
+	new_process->stdout = open_fd_standalone(FD_TYPE_PIPE, get_proc_mount()->root->dentry, new_process, 0, S_IWUSR, stdout_str);
+	new_process->stderr = open_fd_standalone(FD_TYPE_PIPE, get_proc_mount()->root->dentry, new_process, 0, S_IWUSR, stderr_str);
 
 	open_pipe(new_process->stdin, stdin_target, 128);
 	open_pipe(stdout_target, new_process->stdout, 128);

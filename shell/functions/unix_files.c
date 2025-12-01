@@ -8,10 +8,11 @@
 #include "shell/shell.h"
 
 FDEF(ls) {
-	kprintf("searching directory: %s", s);
+	kprintf("searching directory: %s\n", s);
+	kprintf("todo: implement\n");
 }
 
-bool filter(mount_t* m) {
+bool filter(vfs_mount_t* m) {
 	if (m->sb == NULL) {
 		kfprintf(kstderr, "superblock is null!\n");
 		return false;
@@ -35,48 +36,44 @@ bool filter(mount_t* m) {
 	return true;
 }
 
-void print_nodes_for(block_device_t* bd) {
+void print_nodes_for(const block_device_t* bd) {
 
-	linked_list_t* list = get_registered_filesystems();
+	const linked_list_t* list = get_block_devices();
 	if (list == NULL) {
-		kfprintf(kstderr, "lsblk: get_registered_filesystems() is null!\n");
+		kfprintf(kstderr, "lsblk: get_mounts() is null!\n");
 		return;
 	}
 
-	list_node_t* node = list->head;
-	statfs_t* statfs = kmalloc(sizeof(statfs_t));
+	const list_node_t* node = list->head;
 	while (node) {
-		mount_t* m = node->data;
-		if (!m) {
+		const block_device_t* it = node->data;
+		if (!it) {
 			kfprintf(kstderr, "lsblk: Corrupted mount node. Rebooting is advised.\n");
-			goto free;
+			break;
+		}
+		if (!(it->flags & BLOCK_DEVICE_FLAG_PARTITION)) {
+			node = node->next;
+			continue;
 		}
 
-		if (m->sb == NULL) {
-			kfprintf(kstderr, "lsblk: fs is null\n");
-			goto free;
+		if (it->name == NULL) {
+			kfprintf(kstderr, "lsblk: block device name is null!\n");
+			break;
 		}
 
-		if (!m->root->dentry) {
-			kfprintf(kstderr, "lsblk: root dentry is null\n");
-			goto free;
-		}
+		if (it == bd) {
+			const vfs_mount_t* mnt = get_mount_for_bd(bd);
+			if (mnt == NULL) {
+				kfprintf(kstderr, "lsblk: get_mount_for_bd() is null!\n");
+				break;
+			}
 
-		if (m->sb->ops == NULL) {
-			kfprintf(kstderr, "lsblk: ops is null\n");
-			goto free;
+			kprintf("%s%s %s %s %u %s\n", "|-->", it->name, "part",
+			        it->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
+			        RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS, mnt->root->dentry);
 		}
-		if (m->sb->bd != bd) {
-			goto free;
-		}
-		m->sb->ops->statfs(m->sb, statfs);
-		kprintf("%s%s %s %s %u %s\n", (m->sb->bd->parent == NULL ? "|-->" : ""), m->sb->fs->name,
-		        "part", m->sb->flags & 1 ? "true" : "false", RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS,
-		        m->sb->root->dentry->name);
 		node = node->next;
 	}
-free:
-	kfree(statfs);
 }
 
 FDEF(lsblk) {
@@ -99,10 +96,23 @@ FDEF(lsblk) {
 			return;
 		}
 		block_device_t* bd = node->data;
-		kprintf("%s%s %s %s %u %s\n", (bd->parent == NULL ? "" : "|-->"), bd->name,
-		        bd->parent == NULL ? "disk" : "part", bd->flags & 1 ? "true" : "false",
-		        bd->logical_block_size * bd->num_blocks, "");
-		print_nodes_for(bd);
+
+		if (bd->parent == NULL) {
+
+			const vfs_mount_t* mnt = get_mount_for_bd(bd);
+			char* mount_point = NULL;
+			if (mnt != NULL) {
+				mount_point = mnt->root->dentry->name;
+			} else {
+				mount_point = "";
+			}
+
+			kprintf("%s%s %s %s %u %s\n", "", bd->name,
+		        "disk", bd->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
+		        bd->logical_block_size * bd->num_blocks, mount_point);
+		} else {
+			print_nodes_for(bd);
+		}
 
 		node = node->next;
 	}
@@ -125,7 +135,7 @@ FDEF(cd) {
 		kprintf("cd: this is going to change in the future.\n");
 		return;
 	}
-	inode_t* inode = get_inode_from_path(*get_root_mount(), s);
+	inode_t* inode = get_inode_from_path_relative(get_root_mount()->root, s);
 	if (!inode) {
 		kprintf("cd: directory not found");
 		return;

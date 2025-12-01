@@ -158,6 +158,33 @@ config GFX_BPP
 
 endmenu  # Display
 
+menu "Tuning"
+
+config HASHMAP_BUCKETS
+    int "HashMap default buckets"
+    default 16
+    range 1 2147483647
+    help 
+      This will grow as things get added to a HashMap instance.
+
+config HASHMAP_GROW_MULTIPLIER
+    int "HashMap grow multiplier (percent)"
+    default 100
+    range 1 4096
+    help
+      This will add up quickly if you set it to something very big.
+
+config HASHMAP_LOAD_FACTOR
+    int "HashMap grow load factor (percent)"
+    default 75
+    range 1 100
+    help
+      How filled should the hashmap be to grow,
+      setting this to 100 will slow down the
+      system as hash collisions happen.
+
+endmenu # Tuning
+
 menu "Console"
 
 config CONFIG_SERIAL

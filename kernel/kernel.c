@@ -3,6 +3,7 @@
  * GR.  MODE: 0xA000  *
  *********************/
 
+#include "disk.h"
 #include "mellos/kernel/memory_mapper.h"
 #include "mellos/kernel/multiboot_tags.h"
 #include "memory_area_spec.h"
@@ -31,9 +32,14 @@
 
 #include "mellos/block_device.h"
 
+#include "mellos/kernel/dentry.h"
 #include "mellos/kernel/mount_manager.h"
 #include "mellos/kernel/stdio_devices.h"
 #include "mellos/ramfs.h"
+#include "stdint.h"
+
+#include <mellos/kernel/kernel.h>
+#include <mem.h>
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "vesa.h"
@@ -237,8 +243,7 @@ void task_2() {
 	}
 }
 
-__attribute__((section(".low.bss")))
-MultibootTags mb_tags;
+__attribute__((section(".low.bss"))) MultibootTags mb_tags;
 
 // char test[0xe749] = {1};
 allocator_t allocator;
@@ -251,6 +256,16 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 	}
 
 	mb_tags = *((MultibootTags*)multiboot_tags_addr);
+	if (mb_tags.flags & (1 << 2)) {
+		for (int i = 0; i < 255; ++i) {
+			boot_cmdline[i] = ((const char*)mb_tags.cmdline)[i];
+			if (((const char*)mb_tags.cmdline)[i] == 0)
+				break;
+		}
+	} else {
+		memset(boot_cmdline, 0, sizeof(boot_cmdline));
+	}
+
 	fb_addr = (uint32_t)get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
 #ifdef CONFIG_GFX_VESA
 	init_memory_mapper((MultibootTags*)multiboot_tags_addr, (PIXEL*)fb_addr, CONFIG_GFX_BPP);
@@ -328,13 +343,20 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #ifdef CONFIG_CONFIG_SERIAL
 	uart_init();
 #endif
+
+#ifdef CONFIG_GFX_VESA
+	kclear_screen();
+#else
+	clear_screen_col(DEFAULT_COLOUR);
+#endif
 	init_kernel_devices();
 	init_stdio_files();
 
 	bdev_initialize_blockdevices();
 	init_fs_registry();
-	ramfs_init();
-	init_mount_manager();
+	// ramfs_init();
+	init_vfs();
+	dentry_manager_init();
 	asm volatile("sti");
 #ifdef MELLOS_ENABLE_TESTS
 	kprint("MellOS Debug mode:\n\n");
@@ -380,9 +402,10 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #endif
 
 	set_cursor_pos_raw(0);
-
-	kprintf(Fool);
-
+	kprintf("%s\n", Fool);
+#ifdef MELLOS_DEBUG
+	kprintf("boot command line: %s\n", boot_cmdline);
+#endif
 	// Initialize the process scheduler and set this as the first process
 	asm volatile("cli");
 	init_scheduler();

@@ -8,6 +8,8 @@
 
 #include "stdio.h"
 
+#include "unistd.h"
+
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -15,45 +17,45 @@
 #endif
 #include "dynamic_mem.h"
 #include "file_system.h"
+#include "memory_area_spec.h"
+#include "paging/paging.h"
+#include "process_memory.h"
 #include "shell/shell.h"
 #include "string.h"
 #include "syscalls.h"
-#include "paging/paging.h"
-#include "process_memory.h"
-#include "memory_area_spec.h"
 
 int syscall_stub(regs* r) {
 	switch (r->eax) {
-	case 1:
+	case SYS_EXIT:
 		// sys_exit
 		return sys_exit(r);
 
-	case 2:
+	case SYS_FORK:
 		// sys_fork
 		return sys_fork(r);
-	case 3:
+	case SYS_READ:
 		// sys_read
 		return sys_read(r);
-	case 4:
+	case SYS_WRITE:
 		// sys_write
 		return sys_write(r);
-	case 5:
+	case SYS_OPEN:
 		// sys_open
 		return sys_open(r);
-	case 6:
+	case SYS_CLOSE:
 		// sys_close
 		return sys_close(r);
-	case 7:
+	case SYS_GETPID:
 		return get_pid(r);
-	case 8:
+	case SYS_MMAP:
 		return sys_mmap(r);
-	case 9:
+	case SYS_MUNMAP:
 		return sys_munmap(r);
-	case 10:
+	case SYS_MPROTECT:
 		return sys_mprotect(r);
+	default:
+		return -ENOSYS;
 	}
-
-	return 0;
 }
 
 int sys_exit(regs* r) {
@@ -97,12 +99,7 @@ int sys_write(regs* r) {
 
 		if (stdout_local != NULL) {
 
-
-			const int written = kprintf("[KERNEL] %s", msg);
-
-			if (written < 0) {
-				return written;
-			}
+			return kprintf("[KERNEL] %s", msg);
 		}
 
 		return -EINVAL;
@@ -157,23 +154,30 @@ int sys_close(regs* r) {
 	return -1;
 }
 
+// todo: add proper error codes from errno
 int sys_mmap(regs* r) {
 	// ebx: subop (0=alloc, 1=free)
 	// ecx: size (bytes) for alloc, or base address for free
 	// edx: unused for alloc (can be hint/flags), or size for free (optional)
 	process_t* proc = get_current_process();
-	if (!proc) return -1;
+	if (!proc) {
+		return -1;
+	}
 	uint32_t subop = r->ebx;
 	if (subop == 0) {
 		// allocate N bytes for this process without using kernel allocator
-		size_t size = (size_t)r->ecx;
-		if (size == 0) return 0;
-		size_t pages = (size + (PAGE_SIZE - 1)) / PAGE_SIZE;
-		uintptr_t base = allocate_user_pages_return_base(proc->pid, pages, 0);
-		if (base == 0) return 0; // failure -> return 0 like mmap
+		const size_t size = r->ecx;
+		if (size == 0) {
+			return 0;
+		}
+		const size_t pages = (size + (PAGE_SIZE - 1)) / PAGE_SIZE;
+		const uintptr_t ret = allocate_user_pages_return_base(proc->pid, pages, 0);
+		if (ret == 0) {
+			return 0; // failure -> return 0 like mmap
+		}
 		// store region
-		process_memory_add_region(proc->page_list, base, pages);
-		return (int)base;
+		process_memory_add_region(proc->page_list, ret, pages);
+		return (int)ret;
 	}
 	if (subop == 1) {
 		// free region; if size provided in edx==0 then look up region by base
@@ -183,13 +187,16 @@ int sys_mmap(regs* r) {
 			pages = ((size_t)r->edx + (PAGE_SIZE - 1)) / PAGE_SIZE;
 		} else {
 			if (!process_memory_find_region(proc->page_list, base, &pages)) {
+				// todo: properly signal the process that it is trying to access invalid memory
 				return -1;
 			}
 		}
-		if (pages == 0)
+		if (pages == 0) {
 			return -1;
-		if (!free_user_pages(proc->pid, base, pages))
+		}
+		if (!free_user_pages(proc->pid, base, pages)) {
 			return -1;
+		}
 		process_memory_remove_region(proc->page_list, base);
 		return 0;
 	}
@@ -199,12 +206,15 @@ int sys_mmap(regs* r) {
 int sys_munmap(regs* r) {
 	// compatibility wrapper: munmap(base, size)
 	process_t* proc = get_current_process();
-	if (!proc) return -1;
+	if (!proc)
+		return -1;
 	uintptr_t base = (uintptr_t)r->ebx;
 	size_t size = (size_t)r->ecx;
 	size_t pages = (size + (PAGE_SIZE - 1)) / PAGE_SIZE;
-	if (pages == 0) return -1;
-	if (!free_user_pages(proc->pid, base, pages)) return -1;
+	if (pages == 0)
+		return -1;
+	if (!free_user_pages(proc->pid, base, pages))
+		return -1;
 	process_memory_remove_region(proc->page_list, base);
 	return 0;
 }

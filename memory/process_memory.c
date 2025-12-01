@@ -128,6 +128,7 @@ uintptr_t process_memory_get_page_at(const process_page_list_t* page_list, size_
 	return page_list->pages[index];
 }
 
+// todo: make this a linked_list_t instead of having a separate linked list impl for processes
 bool process_memory_add_region(process_page_list_t* page_list, uintptr_t base, size_t page_count) {
 	if (page_list == NULL || page_count == 0) return false;
 	if (page_list->region_count >= page_list->region_capacity) {

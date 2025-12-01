@@ -49,3 +49,5 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
                             fd_t* stderr_target);
 void add_child(process_t* parent, process_t* child);
 void remove_child(process_t* parent, process_t* child);
+
+void scheduler_daemon();

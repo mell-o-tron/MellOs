@@ -186,14 +186,16 @@ __attribute__((section(".low.text"))) bool allocate_pages_with_offset(uint32_t o
 	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
 		for (uint32_t j = 0; j < 1024; ++j) {
 			uint32_t max_pages_left_in_dir = 1024 - j + (dir_hi - i) * 1024;
-			if ((size_t)max_pages_left_in_dir < count)
+			if ((size_t)max_pages_left_in_dir < count) {
 				break;
+			}
 
-			if (!run_is_free(i, j, dir_lo, dir_hi, count))
+			if (!run_is_free(i, j, dir_lo, dir_hi, count)) {
 				continue;
+			}
 
 			void* phys_base = alloc_frame(owner, (uint32_t)count);
-			if (phys_base == 0) {
+			if (phys_base == NULL) {
 				if (owner == 0) {
 					kpanic_message("Out of memory (kernel pages)");
 				} else {
@@ -371,7 +373,6 @@ higher_half_init(MultibootTags* multiboot_addr) {
 	memset(page_directories, 0, sizeof(page_directories));
 	memset(heap_page_table, 0, sizeof(heap_page_table));
 	memset(kernel_heap_page_table, 0, sizeof(kernel_heap_page_table));
-
 
 	uint32_t heap_pages = HEAP_SIZE / 0x1000; // Calculate actual page count
 

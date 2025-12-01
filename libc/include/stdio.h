@@ -170,7 +170,7 @@ int ferror(FILE* stream)
 void perror(const char* s);
 
 // File operations (filesystem level)
-int remove(const char* filename)
+int hash_map_remove(const char* filename)
     __attribute__((nonnull(1)));
 
 int rename(const char* old, const char* new)

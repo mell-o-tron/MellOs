@@ -26,7 +26,7 @@ size_t kstream_flush(FILE* stream) {
 		return 0;
 	}
 	file_t* f = stream->device;
-	f->ops->ioctl(f, 0, 0);
+	f->ops->ioctl(f, 0, NULL);
 	return 0;
 }
 size_t kstream_close(FILE* stream) {

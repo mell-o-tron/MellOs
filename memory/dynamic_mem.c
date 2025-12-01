@@ -375,6 +375,15 @@ void* kmalloc(size_t size) {
 	return result;
 }
 
+void* kzalloc(size_t size) {
+	void* result = kmalloc(size);
+	if (!result) {
+		return NULL;
+	}
+	memset(result, 0, size);
+	return result;
+}
+
 void kfree(void* loc) {
 	spinlock_lock(&kmalloc_lock);
 	// To free a location, we need to check if it was allocated with slab or buddy
@@ -396,6 +405,7 @@ void kfree(void* loc) {
 void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
 	spinlock_lock(&kmalloc_lock);
 	// switch this to 1 to change realloc mode
+	// todo: config opt
 #if 0
     void* newloc = kmalloc(newsize);
     if (newloc == NULL) return NULL;

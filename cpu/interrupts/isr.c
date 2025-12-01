@@ -104,7 +104,9 @@ extern void _fault_handler(struct regs* r) {
 			}
 
 			probing = false;
+			return;
 		}
+		asm("cli");
 		// kprint("Received interrupt: ");
 		// kprint_dec(r->int_no);
 		// unsigned int cr2;

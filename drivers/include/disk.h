@@ -29,6 +29,10 @@ typedef struct{
 }
 raw_disk_info;
 
+typedef struct {
+    uint8_t drive;
+} hd_disk_info_t;
+
 
 uint16_t* identify_ata(uint8_t drive);
 void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr);

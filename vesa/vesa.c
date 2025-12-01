@@ -205,7 +205,7 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height, uint8_t bpp) 
 	}
 	out->width = width;
 	out->height = height;
-	out->pitch = width * bpp / 8;
+	out->pitch = width * (bpp / 8);
 	return out;
 }
 

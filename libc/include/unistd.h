@@ -12,7 +12,8 @@
 #define SYS_MMAP 8
 #define SYS_MUNMAP 9
 #define SYS_MPROTECT 10
-#define SYS_MEMORY 8 // legacy alias to SYS_MMAP
+
+#define SYS_MMAP_MAP 0x01
 
 // Generic syscall helpers with different argument counts (use long-sized args)
 long syscall0(long number);

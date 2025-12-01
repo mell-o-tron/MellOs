@@ -4,10 +4,11 @@
 #include "mellos/ramfs.h"
 #include "processes.h"
 #include "string.h"
+#include "mellos/kernel/kernel_stdio.h"
 
 fd_t open_file_descriptors[FD_MAX_TOTAL];
 
-fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int flags, int permissions, char* path) {
+fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, int flags, int permissions, char* path) {
 	const int fdid = find_first_free_fd();
 	if (fdid < 0) {
 		errno = ENFILE; // system wide limit reached
@@ -17,6 +18,7 @@ fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int
 		errno = EBUSY;
 		return NULL;
 	}
+	file_t* file;
 
 	char* fd_name;
 
@@ -28,21 +30,21 @@ fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int
 			errno = EINVAL;
 			return NULL;
 		}
-		file_t* null_file = ramfs_open_file_handle(NULL_FILE, FD_TYPE_NULL);
-		if (null_file == NULL) {
-			null_file = kmalloc(sizeof(file_t));
-			null_file->inode->mode = S_IFCHR | permissions;
-			null_file->inode->dentry->name = strdup(NULL_FILE);
-			null_file->inode->ref_count = 1;
+		file = ramfs_open_file_handle(NULL_FILE, FD_TYPE_NULL);
+		if (file == NULL) {
+			file = kmalloc(sizeof(file_t));
+			file->inode->mode = S_IFCHR | permissions;
+			file->inode->dentry->name = strdup(NULL_FILE);
+			file->inode->ref_count = 1;
 
 
-			open_file_descriptors[fdid].private_data = null_file;
+			open_file_descriptors[fdid].private_data = file;
 		}
 
 		fd_name = "null_fd";
 		open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
-		open_file_descriptors[fdid].private_data = null_file;
+		open_file_descriptors[fdid].private_data = file;
 		break;
 	case FD_TYPE_PIPE:
 		fd_name = "pipe_fd";
@@ -54,9 +56,11 @@ fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int
 		fd_name = "file_fd";
 		open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
-		open_file_descriptors[fdid].private_data = kmalloc(sizeof(file_t));
-		((file_t*)open_file_descriptors[fdid].private_data)->inode->mode = S_IFREG | permissions;
-		((file_t*)open_file_descriptors[fdid].private_data)->inode->ref_count += 1;
+		file = kmalloc(sizeof(file_t));
+		open_file_descriptors[fdid].private_data = file;
+		file->inode->mode = S_IFREG | permissions;
+		file->inode->ref_count += 1;
+
 		break;
 	case FD_TYPE_DEVICE:
 		fd_name = "device_fd";
@@ -70,7 +74,7 @@ fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int
 		open_file_descriptors[fdid].name = kmalloc(strlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		open_file_descriptors[fdid].private_data = kmalloc(sizeof(file_t));
-		file_t *file = ramfs_open_file_handle(path, FD_TYPE_CHAR);
+		file = ramfs_open_file_handle(path, FD_TYPE_CHAR);
 		((file_t*)open_file_descriptors[fdid].private_data)->inode =
 		    file->inode;
 		file->inode->ref_count--;
@@ -79,6 +83,12 @@ fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int
 		((file_t*)open_file_descriptors[fdid].private_data)->inode->mode = S_IFCHR | permissions;
 		((file_t*)open_file_descriptors[fdid].private_data)->inode->ref_count += 1;
 	default:
+		return NULL;
+	}
+	inode_t** in = kmalloc(sizeof(inode_t*));
+	const int r = dentry->inode->ops->create(dentry->inode, path, flags, in);
+	if (r < 0) {
+		kfprintf(kstderr, "Could not create file! %u", r);
 		return NULL;
 	}
 	process->open_files_count++;

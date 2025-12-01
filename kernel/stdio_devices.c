@@ -5,6 +5,7 @@
 #include "dynamic_mem.h"
 
 #include "errno.h"
+#include "stddef.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -31,11 +32,11 @@ ssize_t stdout_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 		return -EINVAL;
 	}
 
-	char buffer[size + 1];
-	buffer[size] = 0;
+	char *buffer = kmalloc(size + 1);
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
+	buffer[size] = 0;
 
 	kprint_col(buffer, DEFAULT_COLOUR);
 	return size;
@@ -47,10 +48,11 @@ ssize_t stderr_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 		return -EINVAL;
 	}
 
-	char buffer[size + 1];
+	char *buffer = kmalloc(size + 1);
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
+	buffer[size] = 0;
 
 	kprint_col(buffer, ERROR_COLOUR);
 	return size;
@@ -66,17 +68,17 @@ size_t file_write(FILE* stream, const char* buf, size_t size) {
 	return f->ops->write(f, buf, size, 0);
 }
 
-file_ops stdout_fops = {
+file_ops_t stdout_fops = {
 	.read = NULL,
 	.write = stdout_write,
 };
 
-file_ops stderr_fops = {
+file_ops_t stderr_fops = {
 	.read = NULL,
 	.write = stderr_write,
 };
 
-file_ops stdin_fops = {
+file_ops_t stdin_fops = {
 	.read = stdin_read,
 	.write = NULL,
 };
@@ -119,6 +121,20 @@ void init_stdio_files() {
 	kstdin = kmalloc(sizeof(FILE));
 	kstdout = kmalloc(sizeof(FILE));
 	kstderr = kmalloc(sizeof(FILE));
+	if (kstdin == NULL) {
+		kprint("kstdin is null.");
+		asm("hlt");
+	}
+	if (kstdout == NULL) {
+		kprint("kstdout is null.");
+		asm("hlt");
+	}
+	if (kstderr == NULL) {
+		kprint("kstderr is null.");
+		asm("hlt");
+	}
+
+
 	kstdin->device = kernel_stdin_device;
 	kstdout->device = kernel_stdout_device;
 	kstderr->device = kernel_stderr_device;

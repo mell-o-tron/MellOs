@@ -24,6 +24,7 @@
 #define FD_CLOSED 0x800  // File descriptor is closed
 #define FD_OPEN 0x1000   // File descriptor is actively open
 #define FD_LOCKED 0x2000 // File descriptor is locked (exclusive access)
+#include "fs.h"
 
 typedef enum {
 	FD_TYPE_FILE,
@@ -78,9 +79,9 @@ typedef struct {
 
 // process includes this alr
 typedef struct process process_t;
-typedef struct mount mount_t;
+typedef struct mount vfs_mount_t;
 
-fd_t* open_fd_standalone(fd_type_t type, mount_t* mount, process_t* process, int flags,
+fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, int flags,
                          int permissions, char* path);
 fd_t* get_file_descriptor(int fd);
 int find_first_free_fd_PID(unsigned int process);

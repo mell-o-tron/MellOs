@@ -1,10 +1,9 @@
 #pragma once
 #include "fs.h"
-#include "mellos/fd.h"
-#include "stddef.h"
 #include "stdbool.h"
+#include "statfs.h"
 
-int ramfs_create_dir(inode_t* dir, const char* name, uint32_t mode, inode_t** out);
+int ramfs_create_file(inode_t* dir, const char* name, uint32_t mode, inode_t** out);
 
 /**
  * Reads a directory
@@ -41,15 +40,18 @@ dentry_t* ramfs_get_root_dentry(void);
 
 ssize_t ramfs_read(file_t* f, void* buf, size_t size, uint64_t offset);
 ssize_t ramfs_write(file_t* f, const void* buf, size_t size, uint64_t offset);
-int ramfs_readdir(file_t* f, void* dirent_out);
-int ramfs_ioctl(file_t* f, unsigned long cmd, void* arg);
-int ramfs_mmap(file_t* f, void* addr, size_t length, int prot, int flags);
+size_t ramfs_readdir(file_t* f, void* dirent_out);
+size_t ramfs_ioctl(file_t* f, unsigned long cmd, void* arg);
+size_t ramfs_mmap(file_t* f, void* addr, size_t length, int prot, int flags);
 
 file_t* ramfs_open_file_handle(char* path, int type);
 int ramfs_set_file_mode(file_t* file, int mode);
 file_t* ramfs_get_file(const char* path);
 void ramfs_list_dir(inode_t* path);
 void read_file(inode_t* path, size_t size);
+
+vfs_mount_t* ramfs_mount(superblock_t* sb, block_device_t* dev, void* data);
+int ramfs_unmount(superblock_t* mount);
 
 struct ramfs_dir_entry {
 	char* name;

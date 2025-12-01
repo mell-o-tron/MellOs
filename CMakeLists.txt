@@ -384,7 +384,7 @@ add_custom_target(
 add_custom_target(
   debug
   COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-  COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -S -vga std -cpu
+  COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -gdb tcp::1234 -S -vga std -cpu
           ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
   DEPENDS iso hda
   USES_TERMINAL

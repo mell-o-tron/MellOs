@@ -14,7 +14,10 @@ auto.conf
 cmake/
 include/
 scripts/kconfig-py/__pycache__/
-
+out/
+Debug/
+qemucpulog.log
+/.venv/
 
 # binaries
 wee_bins/
