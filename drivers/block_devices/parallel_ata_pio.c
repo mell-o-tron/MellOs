@@ -37,7 +37,7 @@ void wait_BSY(uint8_t drive_num) {
 	start_bsy_ms = get_ms_since_boot();
 	while (inb(0x1F7) & STATUS_BSY) {
 		if (get_ms_since_boot() - start_bsy_ms > 100) {
-			kprintf("ATA%i: BSY timeout\n", drive_num);
+			kprintf("ATA%X: BSY timeout\n", drive_num);
 			return;
 		}
 	};
@@ -86,13 +86,13 @@ uint16_t* identify_ata(uint8_t drive) {
 
 	// check, in case drive does not follow spec
 	if ((inb(0x1F4) | inb(0x1F5)) != 0) {
-		kprint("Error: drive is not ATA\n");
+		kprintf("Error: drive is not ATA: %X\n", drive);
 		return NULL;
 	}
 	wait_DRQ(drive);
 
 	if (check_ERR()) {
-		kprint("ATA Identify Error\n");
+		kprintf("ATA Identify Error: %X\n", drive);
 		return NULL;
 	}
 
@@ -210,15 +210,3 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t* 
 	check_ata_error();
 }
 
-raw_disk_info retrieve_disk_info() {
-	raw_disk_info* dinfo = (raw_disk_info*)0x5200;
-	return *dinfo;
-}
-
-void decode_raw_disk_info(raw_disk_info dinfo, disk_info* result) {
-	result->drivetype = dinfo.bl;
-	result->sectors = dinfo.cl & 0b00111111;
-	result->cylinders = ((dinfo.cl & 0b11000000) << 2) | dinfo.ch;
-	result->heads = dinfo.dh;
-	result->drives = dinfo.dl;
-}

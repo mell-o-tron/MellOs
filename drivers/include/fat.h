@@ -95,8 +95,8 @@ typedef struct {
 	// power of 2, 1..128
 	uint8_t sectors_per_cluster;
 	// this is usually used to align the sectors, must be non 0
-	// number of sectors reserved after ther first sector
-	// also known as first fat sector
+	// number of sectors reserved after the first sector,
+	// also known as "first_fat_sector"
 	uint16_t reserved_sector_count;
 	// 2 is recommended, could be 1
 	uint8_t table_count;

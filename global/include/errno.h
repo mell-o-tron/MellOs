@@ -3,6 +3,8 @@
 
 extern int errno;
 
+// see libc/include/errno.h for what these mean
+
 #define EPERM 1
 #define ENOENT 2
 #define ESRCH 3

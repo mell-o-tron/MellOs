@@ -154,10 +154,22 @@ ssize_t fat12_read(file_t* f, void* buf, size_t size, uint64_t offset) {
 
 	size_t to_read = umin(size, ffile->size / ffile->block_size);
 
-	return f->inode->sb->bd->ops->read_blocks(f->inode->sb->bd, ffile->first_block,
-	                                   to_read, buf);
+	return f->inode->sb->bd->ops->read_blocks(f->inode->sb->bd, ffile->first_block, to_read, buf);
 }
 ssize_t fat12_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
+	fat12_file_t* ffile = f->private;
+
+	if (f->inode->sb->bd->flags & BDEV_FLAG_READONLY) {
+		return -EROFS;
+	}
+
+	if (f->inode->mode & S_IFDIR) {
+		return -EISDIR;
+	}
+
+	if (offset >= ffile->size) {
+		return -E2BIG;
+	}
 	return -ENOSYS;
 }
 size_t fat12_readdir(file_t* f, void* dirent_out) {

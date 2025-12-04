@@ -52,6 +52,7 @@ typedef struct block_device_ops {
 
 	/**
 	 * Flush any cached writes to stable storage.
+	 *
 	 * May be a no-op for some devices like the ramdisk. Returns 0 on success, <0 on error.
 	 */
 	int (*flush)(block_device_t* dev);
