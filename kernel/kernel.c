@@ -1,7 +1,7 @@
-/**********************
- * TEXT MODE: 0xB8000 *
- * GR.  MODE: 0xA000  *
- *********************/
+/*********************
+* TEXT MODE: 0xB8000 *
+* GR.  MODE: 0xA000  *
+*********************/
 
 #include "disk.h"
 #include "mellos/kernel/memory_mapper.h"
@@ -81,7 +81,11 @@ static void vga_kclear_screen(void) {
 
 // TESTS
 #include "../test/fs_test.h"
+#include "../test/mem_test.h"
 #include "uart.h"
+#ifdef AUDIO_ENABLED
+#include "drivers/pc_speaker.h"
+#endif
 
 #ifdef CONFIG_GFX_VESA
 __attribute__((section(".multiboot")))
@@ -120,8 +124,10 @@ void khang() {
 		;
 }
 
+#if !defined(__clang__)
 #pragma GCC push_options
-#pragma GCC optimize("O0")
+#pragma GCC optimize ("O0")
+#endif
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
 _Noreturn void _kpanic(const char* msg, unsigned int int_no, regs* r);
@@ -212,7 +218,9 @@ __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, un
 		;
 }
 
+#if !defined(__clang__)
 #pragma GCC pop_options
+#endif
 
 PD_FLAGS page_directory_flags = PD_PRESENT | PD_READWRITE;
 PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
@@ -242,6 +250,28 @@ void task_2() {
 		sleep(1);
 	}
 }
+
+#ifdef CONFIG_AUDIO_ENABLED
+void play_startup_jingle(){
+    double base = 110;
+    double time = 10;
+    double note_duration = time * 0.75;
+    double pause_duration = time * 0.25;
+
+    beep((uint32_t)base, note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 1.33), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 1.66), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 2), note_duration);
+    sleep(pause_duration + note_duration + pause_duration);
+    beep((uint32_t)(base * 1.66), note_duration);
+    sleep(pause_duration);
+    beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
+    sleep(pause_duration);
+}
+#endif
 
 __attribute__((section(".low.bss"))) MultibootTags mb_tags;
 
@@ -372,19 +402,20 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	kprint(tostring_inplace(failed_mem_tests, 16));
 	kprint(" failed\n");
 
-	kprint("\n\n ENTERING COMMAND MODE...\n");
-	if (failed_fs_tests != 0 || failed_mem_tests != 0) {
-		kprint_col("TESTS FAILED!!", DEFAULT_COLOUR);
+    // IMPORTANT: Leave the following messages as they are
+    // The automatic test GH action detects these strings
+    // If it is needed to change them, contact mantainers
+    if (failed_fs_tests != 0 || failed_mem_tests != 0){
+        kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
+        for (;;){;}
+    } else {
+        kprint_col("All tests passed!\n", DEFAULT_COLOUR);
+    }
 
-		for (;;) {
-			;
-		}
-	} else {
-		kprint_col("All tests passed!", DEFAULT_COLOUR);
-	}
-#endif
-	asm volatile("cli");
-	kprintf("\n\n ENTERING COMMAND MODE...\n");
+    printf("\n ENTERING COMMAND MODE...\n");
+
+    sleep(100);
+    #endif
 
 	void* code_loc2 = kmalloc(10);
 
@@ -411,8 +442,14 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	init_scheduler();
 	asm volatile("sti");
 
-	load_shell();
-	// init_text_editor("test_file");
-	while (1) {
-	}
+    #ifdef AUDIO_ENABLED
+    // Victory!
+    play_startup_jingle();
+    #endif
+
+    load_shell();
+    // init_text_editor("test_file");
+
+
+    return;
 }

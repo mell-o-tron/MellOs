@@ -7,7 +7,8 @@
 #include "mellos/fs.h"
 
 typedef struct task_state {
-	void* stack;
+    void* stack;
+    void* stack_base;
 } state_t;
 
 typedef struct process {

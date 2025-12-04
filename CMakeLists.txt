@@ -25,6 +25,46 @@ set(CMAKE_ASM_NASM_COMPILER
 set(OBJCOPY
         "${I386_PREFIX}/i386-elf-objcopy"
         CACHE FILEPATH "objcopy tool")
+option(USE_CLANG "Use Clang as the compiler" OFF)
+
+if(USE_CLANG)
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_ASM_NASM_COMPILER "nasm")
+    set(OBJCOPY "llvm-objcopy")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=i386-unknown-none-elf -march=i386")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=i386-unknown-none-elf -march=i386")
+    set(CMAKE_LINKER "ld.lld" CACHE FILEPATH "Linker")
+else()
+    # Toolchain (can be overridden by -D on configure)
+    set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
+    set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
+    # We let the gcc driver do the link but still pass linker script via link options
+    set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
+    set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
+endif()
+
+project(MellOs
+ LANGUAGES C ASM_NASM
+ HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
+)
+enable_language(ASM_NASM)
+set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
+set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
+set(HRES "600" CACHE STRING "Horizontal resolution")
+set(VRES "400" CACHE STRING "Vertical resolution")
+set(BPP  "32"   CACHE STRING "Bits per pixel")
+set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
+set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
+set(AUDIO_BACKEND "NONE" CACHE STRING "Audio backend to use: NONE or PULSEAUDIO")
+set(ADDITIONAL_QEMU_FLAGS "" CACHE STRING "Additional flags to pass to QEMU when running")
+#if (VGA STREQUAL "VESA")
+#    add_compile_definitions(VGA_VESA)
+#endif ()
+
+#if (WINDOW_DRAG STREQUAL "BOX")
+#    add_compile_definitions(BOX_WINDOW_DRAG)
+#endif ()
+
 
 # Output directory compatible with Makefile
 set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
@@ -116,6 +156,27 @@ add_custom_target(
         --config $<CONFIG>
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target kconfig_all
         --config $<CONFIG>)
+
+# Build flags similar to Makefile
+set(COMMON_DEFS VGA_${VGA} HRES=${HRES} VRES=${VRES} BPP=${BPP} WINDOW_DRAG_${WINDOW_DRAG})
+set(COMMON_DEFS_WITH_D)
+foreach (def ${COMMON_DEFS})
+    list(APPEND COMMON_DEFS_WITH_D "-D${def}")
+endforeach ()
+if (MACHINE STREQUAL "PRESARIO")
+    list(APPEND COMMON_DEFS_WITH_D "-DDISABLE_SSE")
+    set(DISABLE_SSE 1)
+    set(TARGET_CPU "486")
+else ()
+    set(DISABLE_SSE 0)
+    set(TARGET_CPU "qemu32")
+endif()
+#Add audio backend flags to qemu
+if (AUDIO_BACKEND STREQUAL "PULSEAUDIO")
+    list(APPEND ADDITIONAL_QEMU_FLAGS "-audiodev" "pa,id=snd0" "-machine" "pcspk-audiodev=snd0")
+    list(APPEND COMMON_DEFS_WITH_D "-DAUDIO_ENABLED")
+endif()
+list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
 
 set_property(
         DIRECTORY
@@ -277,6 +338,14 @@ get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
 target_link_options(
         kernel.elf
         PRIVATE
+
+if(USE_CLANG)
+    target_link_options(kernel.elf PRIVATE
+        -T${LDSCRIPT}
+        -nostdlib
+    )
+else()
+    target_link_options(kernel.elf PRIVATE
         -Wl,-T,${LDSCRIPT}
         -Wl,--start-group
         -no-pie
@@ -285,6 +354,14 @@ target_link_options(
         -nostartfiles
         -Wl,-m,elf_i386
         -Wl,--end-group)
+endif()
+
+# Freestanding kernel style build
+# add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
+target_compile_options(kernel.elf PRIVATE
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
+        )
 # Freestanding kernel style build add '-DCMAKE_BUILD_TYPE=Debug' to your
 # arguments for debug build
 set(MELLOS_COMPILE_OPTIONS
@@ -292,10 +369,12 @@ set(MELLOS_COMPILE_OPTIONS
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g3>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<BOOL:${USE_CLANG}>>>:-m32>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
         $<$<COMPILE_LANGUAGE:C>:-nostdlib>
         $<$<COMPILE_LANGUAGE:C>:-nostdinc>
         $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
-        $<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>
+        $<$<COMPILE_LANGUAGE:C>:-fstack-protector-strong>
         $<$<COMPILE_LANGUAGE:C>:-fno-pic>
         $<$<COMPILE_LANGUAGE:C>:-fno-strict-aliasing>
         $<$<COMPILE_LANGUAGE:C>:-fno-omit-frame-pointer>
@@ -437,6 +516,8 @@ add_custom_target(
         COMMENT "Extracting debug symbols to kernel.sym")
 
 # Run targets (mirroring Makefile)
+add_custom_target(run
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
 add_custom_target(
         run
         COMMAND
@@ -450,6 +531,7 @@ add_custom_target(
 add_custom_target(
         debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
         COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -gdb tcp::1234 -S -vga std -cpu
         ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
@@ -459,6 +541,7 @@ add_custom_target(
 add_custom_target(
         novga_telnet
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -serial telnet:127.0.0.1:4444,server -nographic
         COMMAND
         qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu
         ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw -serial

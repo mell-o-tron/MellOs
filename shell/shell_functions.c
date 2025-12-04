@@ -13,6 +13,7 @@
 
 #include "functions/functions.h"
 #include "shell/shell_functions.h"
+#include "drivers/rtc.h"
 
 extern uint16_t CursorPos;
 
@@ -34,6 +35,8 @@ shellfunction CMDs[] = {
     CMDENTRY(&read_file, "readfile", "Reads string from file", "readfile [filename]"),
     CMDENTRY(&texted, "texted", "Opens text editor", "texted [filename]"),
     CMDENTRY(&exec, "exec", "Runs an executable", "exec [filename]"),
+    CMDENTRY(&kill, "kill", "Kills a process", "kill [PID]"),
+    CMDENTRY(&ps, "ps", "Lists running processes", "ps"),
     CMDENTRY(&erase_files, "erasefiles", "Erases the file bitmap", "erasefiles"),
 #ifdef CONFIG_GFX_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
@@ -48,6 +51,10 @@ shellfunction CMDs[] = {
 	CMDENTRY(&lsblk, "lsblk", "Lists block devices", "lsblk"),
 	CMDENTRY(&pwd, "pwd", "Prints current working directory", "pwd"),
 	CMDENTRY(&cd, "cd", "Changes current working directory", "cd [directory]"),
+	CMDENTRY(&print_time, "time", "Displays current time", "time"),
+#ifdef CONFIG_AUDIO_ENABLED
+	CMDENTRY(&roll, "roll", "Get rolled", "roll"),
+#endif
 };
 
 void helpCMD(const char* s) {

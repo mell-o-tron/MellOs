@@ -5,6 +5,7 @@
 #include "vga_text.h"
 #endif
 #include "cpu/idt.h"
+#include "utils/bit_manip.h"
 
 extern void irq0();
 extern void irq1();
@@ -23,19 +24,39 @@ extern void irq13();
 extern void irq14();
 extern void irq15();
 
+static uint16_t interrupt_mask;
 
 void *irq_routines[16] =
-        {
-                0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0
-        };
+{
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0
+};
 
-void irq_install_handler(int irq, void (*handler)(regs* r)) {
-	irq_routines[irq] = (void*)handler;
+void write_pic_mask() {
+    outb(0x21, LO_8(interrupt_mask));
+    outb(0xA1, HI_8(interrupt_mask));
 }
 
-void irq_uninstall_handler(int irq) {
-	irq_routines[irq] = 0;
+void set_pic_mask(uint8_t flag) {
+    interrupt_mask = SET_FLAG(interrupt_mask, flag);
+    write_pic_mask();
+}
+
+void clear_pic_mask(uint8_t flag) {
+    interrupt_mask = CLR_FLAG(interrupt_mask, flag);
+    write_pic_mask();
+}
+
+void irq_install_handler(uint8_t irq, void (*handler)(regs *r)) {
+    if (irq > 15) { return; }
+    clear_pic_mask(irq);
+    irq_routines[irq] = (void*)handler;
+}
+
+void irq_uninstall_handler(uint8_t irq) {
+    if (irq > 15) { return; }
+    set_pic_mask(irq);
+    irq_routines[irq] = 0;
 }
 
 void irq_remap(void) {
@@ -47,12 +68,13 @@ void irq_remap(void) {
 	outb(0xA1, 0x02); // tell Slave PIC its cascade identity (0000 0010)
 	outb(0x21, 0x01); // have the PICs use 8086 mode (and not 8080 mode)
 	outb(0xA1, 0x01);
-	outb(0x21, 0x0); // set masks
-	outb(0xA1, 0x0);
+	// Mask all interrupts except IRQ2 (interrupts coming from the slave PIC)
+	interrupt_mask = CLR_FLAG(0xFFFF, 2);
+	write_pic_mask();
 }
 
 // Originally this was an array with size 15, but I have strong
-// reasons to believe it should be 16. If this causes issues, revert this change.
+//reasons to believe it should be 16. If this causes issues, revert this change.
 // - Perk
 static volatile int currentInterrupts[16];
 

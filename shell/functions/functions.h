@@ -39,6 +39,10 @@ FHDR(texted);
 
 FHDR(exec);
 
+// kill.c
+FHDR(kill);
+FHDR(ps);
+
 #ifdef CONFIG_GFX_VESA
 // vell.c
 FHDR(vell);
@@ -49,3 +53,7 @@ FHDR(sperkaster);
 FHDR(displayinfo);
 FHDR(meminfo);
 FHDR(mountcmd);
+
+#ifdef CONFIG_AUDIO_ENABLED
+FHDR(roll);
+#endif

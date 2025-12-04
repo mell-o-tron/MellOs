@@ -1,0 +1,64 @@
+name: Run Tests
+
+on:
+    push:
+        branches: main
+    pull_request:
+        branches: main
+
+jobs:
+    run-tests:
+        runs-on: ubuntu-latest
+        container:
+            image: alex23087/mellos-build-arch-clang:latest
+        strategy:
+            matrix:
+                machine: ['PRESARIO', 'OTHER']
+                vga_mode: ['TEXT', 'VESA']
+        
+        steps:
+            - name: Checkout source repository
+              uses: actions/checkout@v4
+
+            - name: Patch CMakeFile to disable kvm
+              run: |
+                sed -i '/COMMAND qemu/ s/-enable-kvm //g' CMakeLists.txt
+
+            - name: Patch CMakeFile to disable gdb stub
+              run: |
+                sed -i '/COMMAND qemu/ s/-s //g' CMakeLists.txt
+
+            - name: Patch CMakeFile to redirect serial to a file
+              run: |
+                sed -i 's/-serial telnet:127.0.0.1:4444,server/-serial file:mellos_output.log/g' CMakeLists.txt
+
+            - name: Patch CMakeFile to make qemu run in the background
+              run: |
+                sed -i '/COMMAND qemu/ s/$/\&/g' CMakeLists.txt
+
+            - name: Patch CMakeFile to disable generation of debug symbols
+              run: |
+                sed -i '/COMMAND \${CMAKE_COMMAND}/ s/^.*debug_symbols.*$//g' CMakeLists.txt
+
+            - name: Build MellOS
+              run: |
+                mkdir build
+                cd build
+                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug -DUSE_CLANG=ON ..
+                make    
+            
+            - name: Run
+              run: |
+                cd build
+                make novga_telnet
+                sleep 0.1
+                tail -f mellos_output.log | while read line; do
+                    if [[ "$line" == *"All tests passed!"* ]]; then
+                        pkill qemu
+                        exit 0
+                    elif [[ "$line" == *"TESTS FAILED!!"* ]]; then
+                        pkill qemu
+                        cat mellos_output.log
+                        exit 1
+                    fi
+                done

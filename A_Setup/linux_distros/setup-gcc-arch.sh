@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-sudo pacman -S nasm qemu virt-manager virt-viewer dnsmasq vde2 bridge-utils openbsd-netcat base-devel bison flex gmp libmpc mpfr texinfo mtools
+sudo pacman -S nasm qemu cmake dnsmasq vde2 bridge-utils openbsd-netcat base-devel bison flex gmp libmpc mpfr texinfo mtools grub libisoburn
 export PREFIX="/usr/local/i386elfgcc"
 export TARGET=i386-elf
 export PATH="$PREFIX/bin:$PATH"
@@ -40,4 +40,3 @@ sudo make install-target-libgcc
 echo HERE U GO MAYBE:
 ls /usr/local/i386elfgcc/bin
 export PATH="$PATH:/usr/local/i386elfgcc/bin"
-

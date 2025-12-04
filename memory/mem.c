@@ -94,8 +94,7 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
 #ifdef CONFIG_CPU_FEAT_SSE2
 	/*
 	if (cpuid_has_sse() && count >= 16 && false) {
-	    irqflags_t irqf = local_irq_save();
-	    local_irq_disable();
+        irqflags_t irqf = local_irq_save_and_cli();
 
 	    // Align dest to 16 bytes
 	    while (((uintptr_t)dest & 15) != 0 && count > 0) {

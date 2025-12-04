@@ -18,3 +18,12 @@ bitmap_t create_bitmap(void* loc, size_t n) {
         
     return (bitmap_t)loc;
 }
+
+uint32_t get_free(bitmap_t b) {
+	for (size_t i = 0; 1; i++) {
+		if (!get_bitmap(b, i)) {
+			return i;
+		}
+	}
+	return -1; // No free bit found
+}

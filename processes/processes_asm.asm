@@ -7,6 +7,7 @@ ebx_buffer:
 
 ; typedef struct task_state {
 ;     void* stack;
+;     void* stack_base;
 ; } state_t;
 
 struc process
@@ -18,6 +19,7 @@ endstruc
 
 struc task_state
     .stack resd 1
+    .stack_base resd 1
 endstruc
 
 global switch_task

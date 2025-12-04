@@ -1,6 +1,6 @@
 [bits 32]
 
-; (Shamelessely stolen | Adapted) from http://www.osdever.net/ 
+; (Shamelessely stolen | Adapted) from http://www.osdever.net/
 
 
 global _idt_load
@@ -289,7 +289,7 @@ irq3:
 	push dword 35
 	jmp irq_common_stub
 irq4:
-	cli	
+	cli
 	push dword 0
 	push dword 36
 	jmp irq_common_stub

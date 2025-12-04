@@ -20,8 +20,8 @@ extern  void irq13();
 extern  void irq14();
 extern  void irq15();
 
-void irq_install_handler(int irq, void (*handler)(regs *r));
-void irq_uninstall_handler(int irq);
+void irq_install_handler(uint8_t irq, void (*handler)(regs *r));
+void irq_uninstall_handler(uint8_t irq);
 void irq_remap(void);
 void irq_install();
 extern  void _irq_handler(regs *r);
@@ -56,7 +56,8 @@ static inline bool local_irq_enabled(irqflags_t flags) {
     return !!(flags & CPU_FLAG_INTERRUPT);
 }
 
-static inline irqflags_t local_irq_save(void) {
+// Save current IRQ state AND disable IRQs
+static inline irqflags_t local_irq_save_and_cli(void) {
     irqflags_t flags = read_cpu_flags();
     local_irq_disable();
     return flags;
