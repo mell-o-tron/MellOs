@@ -1,12 +1,8 @@
 #include "processes.h"
 
-#include "utils/format.h"
 #include "spinlock.h"
-#include "memory/dynamic_mem.h"
-#include "memory/mem.h"
-#include "utils/typedefs.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "dynamic_mem.h"
+#include "mem.h"
 #include "stdio.h"
 
 #include "dynamic_mem.h"
@@ -305,9 +301,7 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
 void kill_task(uint32_t pid) {
     // Check whether the PID is valid
     if (pid >= allocated_processes || processes[pid] == NULL) {
-        kprint("Invalid PID: ");
-        kprint(tostring_inplace(pid, 10));
-        kprint("\n");
+        kprintf("Invalid PID: %u\n", pid);
         return;
     }
 
@@ -343,9 +337,7 @@ void kill_task(uint32_t pid) {
     // Remove the entry from the process array
     processes[pid] = NULL;
 
-    kprint("Task ");
-    kprint(tostring_inplace(pid, 10));
-    kprint(" killed successfully\n");
+    kprintf("Task %u killed successfully\n", pid);
 }
 
 void list_processes() {
@@ -355,14 +347,7 @@ void list_processes() {
 
     for (uint32_t i = 0; i < max_pid; i++) {
         if (processes[i] != NULL) {
-            kprint(tostring_inplace(i, 10));
-            kprint("\t");
-            if (i == cur_pid) {
-                kprint("RUNNING");
-            } else {
-                kprint("READY");
-            }
-            kprint("\n");
+            kprintf("%u\t%s\n", i, cur_pid == i ? "RUNNING" : "READY");
         }
     }
 
@@ -377,6 +362,10 @@ process_t* get_current_process() {
 		return NULL;
 	}
 	return processes[cur_pid];
+}
+
+uint32_t get_current_pid() {
+	return cur_pid;
 }
 
 process_t* get_process_by_pid(uint32_t pid) {

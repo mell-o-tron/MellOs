@@ -5,6 +5,9 @@
 #include "errno.h"
 #include "stdbool.h"
 
+#include <processes.h>
+#include <random.h>
+
 pipe_t* open_pipe(fd_t* read_fd, fd_t* write_fd, int buffer_size) {
 	pipe_t* pipe = kmalloc(sizeof(pipe_t));
 
@@ -44,7 +47,7 @@ ssize_t pipe_write(fd_t* fd, const void* buf, size_t count) {
 
 	pipe_t* pipe = fd->private_data;
 
-	spinlock_lock(&pipe->lock);
+	SpinLock(&pipe->lock);
 
 	ssize_t bytes_written = 0;
 	for (size_t i = 0; i < count; i++) {
@@ -55,7 +58,7 @@ ssize_t pipe_write(fd_t* fd, const void* buf, size_t count) {
 		bytes_written++;
 	}
 
-	spinlock_unlock(&pipe->lock);
+	SpinUnlock(&pipe->lock);
 
 	return bytes_written;
 }
@@ -70,7 +73,7 @@ ssize_t pipe_read(fd_t* fd, void* buf, size_t count) {
 
 	pipe_t* pipe = fd->private_data;
 
-	spinlock_lock(&pipe->lock);
+	SpinLock(&pipe->lock);
 
 	ssize_t bytes_read = 0;
 	for (size_t i = 0; i < count; i++) {
@@ -83,7 +86,7 @@ ssize_t pipe_read(fd_t* fd, void* buf, size_t count) {
 
 cleanup:
 
-	spinlock_unlock(&pipe->lock);
+	SpinUnlock(&pipe->lock);
 
 	return bytes_read;
 }
@@ -97,12 +100,14 @@ ssize_t pipe_read_nonblocking(fd_t* fd, void* buf, size_t count) {
 		return 0;
 	}
 
-	if (!spinlock_try_lock(&pipe->lock)) {
+	if (__atomic_load_n(&pipe->lock, __ATOMIC_ACQUIRE) != 0) {
 		return 0;
 	}
+	SpinLock(&pipe->lock);
+
 
 	if (pipe->buffer->top == pipe->buffer->bot) {
-		spinlock_unlock(&pipe->lock);
+		SpinUnlock(&pipe->lock);
 		return 0;
 	}
 
@@ -113,6 +118,6 @@ ssize_t pipe_read_nonblocking(fd_t* fd, void* buf, size_t count) {
 		buffer[bytes_read++] = get_from_cbuffer(pipe->buffer);
 	}
 
-	spinlock_unlock(&pipe->lock);
+	SpinUnlock(&pipe->lock);
 	return bytes_read;
 }

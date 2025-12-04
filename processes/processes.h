@@ -39,6 +39,7 @@ extern void __attribute__((__cdecl__)) switch_task(process_t* current, process_t
 process_t* create_task(void* code);
 
 process_t* get_current_process();
+uint32_t get_current_pid();
 process_t* get_process_by_pid(uint32_t pid);
 
 void init_scheduler();
@@ -46,9 +47,12 @@ void begin_execution();
 
 void try_to_relinquish();
 void try_to_terminate();
+void kill_task(uint32_t pid);
+
 process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, fd_t* stdout_target,
                             fd_t* stderr_target);
 void add_child(process_t* parent, process_t* child);
 void remove_child(process_t* parent, process_t* child);
 
 void scheduler_daemon();
+void list_processes();

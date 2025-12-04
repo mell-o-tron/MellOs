@@ -1,10 +1,10 @@
 /// Ported from VoidFrame by assembler-0
 /// Public domain as of 11-10-25 (dd-mm-yy)
-#ifndef SPINLOCK_H
-#define SPINLOCK_H
+#pragma once
 
 #include "stdbool.h"
 #include "cpu/irq.h"
+#include "stddef.h"
 
 #define DEADLOCK_TIMEOUT_CYCLES 100000000ULL
 #define MAX_BACKOFF_CYCLES 1024
@@ -161,5 +161,3 @@ static inline void SpinUnlockIrqRestore(volatile int* lock, irqflags_t flags) {
     __atomic_clear(lock, __ATOMIC_RELEASE);
     local_irq_restore(flags);
 }
-
-#endif // SPINLOCK_H

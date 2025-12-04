@@ -1,11 +1,11 @@
 #include "shell/shell_functions.h"
-#include "processes/processes.h"
-#include "utils/conversions.h"
-#include "utils/string.h"
+#include "processes.h"
+#include "conversions.h"
+#include "string.h"
 #ifdef VGA_VESA
 #include "drivers/vesa/vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 
 void kill(const char* s) {

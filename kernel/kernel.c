@@ -40,6 +40,7 @@
 
 #include <mellos/kernel/kernel.h>
 #include <mem.h>
+#include <stack_guard.h>
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "vesa.h"

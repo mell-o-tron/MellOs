@@ -2,6 +2,7 @@
 
 #include "idt.h"
 #include "stdbool.h"
+#include "stdint.h"
 
 extern  void irq0();
 extern  void irq1();

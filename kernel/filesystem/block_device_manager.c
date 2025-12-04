@@ -11,7 +11,7 @@
 #include "errno.h"
 #include "mellos/kernel/kernel.h"
 
-spinlock_t bdev_lock;
+volatile int32_t bdev_lock = 0;
 
 linked_list_t* block_devices;
 
@@ -71,14 +71,13 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
  * @return 0 for success
  */
 int bdev_initialize_blockdevices() {
-	spinlock_init(&bdev_lock);
 	if (block_devices != NULL) {
 		return -1;
 	}
 
-	spinlock_lock(&bdev_lock);
+	SpinLock(&bdev_lock);
 	block_devices = linked_list_create();
-	spinlock_unlock(&bdev_lock);
+	SpinUnlock(&bdev_lock);
 	void* ramdisk = kmalloc(RAMDISK_BLOCK_SIZE * RAMDISK_BLOCK_COUNT);
 
 	block_device_t* ramdisk_device =
@@ -110,9 +109,9 @@ int bdev_register(block_device_t* dev) {
 	}
 	kprintf("Registering block device %s\n", dev->name);
 	kprintf("flags: %016lu\n", dev->flags);
-	spinlock_lock(&bdev_lock);
+	SpinLock(&bdev_lock);
 	linked_list_push_back(block_devices, dev);
-	spinlock_unlock(&bdev_lock);
+	SpinUnlock(&bdev_lock);
 	return 0;
 }
 

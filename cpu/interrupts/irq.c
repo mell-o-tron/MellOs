@@ -5,7 +5,7 @@
 #include "vga_text.h"
 #endif
 #include "cpu/idt.h"
-#include "utils/bit_manip.h"
+#include "bit_manip.h"
 
 extern void irq0();
 extern void irq1();

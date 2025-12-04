@@ -1,8 +1,9 @@
 /* RTC driver */
 
-#include "drivers/rtc.h"
-#include "drivers/port_io.h"
-#include "utils/format.h"
+#include "rtc.h"
+#include "port_io.h"
+
+#include "mellos/kernel/kernel_stdio.h"
 
 uint8_t bcd_to_bin(uint8_t bcd) {
     return (bcd & 0x0F) + ((bcd >> 4) * 10);
@@ -72,7 +73,7 @@ void print_time(const char* s){
     unsigned char yvalue = inb(0x71);
     yvalue = ((yvalue / 16) * 10) + (yvalue & 0xf);
 
-    printf("RTC time:  %02u:%02u:%02u %02u/%02u/20%02u, today is a %s!\n", hvalue, mvalue, svalue, dvalue, movalue, yvalue, doomsday_algorithm(2000 + yvalue, movalue - 1, dvalue));
+    kprintf("RTC time:  %02u:%02u:%02u %02u/%02u/20%02u, today is a %s!\n", hvalue, mvalue, svalue, dvalue, movalue, yvalue, doomsday_algorithm(2000 + yvalue, movalue - 1, dvalue));
     // printf("POSIX time: %u\n", posix_time());
 }
 

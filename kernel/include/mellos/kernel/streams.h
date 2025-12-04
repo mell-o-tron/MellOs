@@ -13,7 +13,7 @@ typedef struct {
 
 typedef struct _FILE { // NOLINT(*-reserved-identifier)
 	stream_ops_t* ops;
-	spinlock_t lock;
+	rwlock_t lock;
 	int fd;       // Which stream (0=stdin, 1=stdout, 2=stderr)
 	void* device; // Optional device pointer
 } FILE;

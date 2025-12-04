@@ -1,6 +1,6 @@
-#include "kernel/kernel.h"
+#include "mellos/kernel/kernel.h"
 #include "stack_guard.h"
-#include "utils/typedefs.h"
+#include "stdint.h"
 
 uint64_t __stack_chk_guard = STACK_CANARY_VALUE;
 

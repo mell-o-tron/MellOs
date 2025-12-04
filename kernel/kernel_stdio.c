@@ -213,16 +213,16 @@ static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s
 	if (!s || len == 0)
 		return 0;
 
-	spinlock_lock(&stream->lock);
+	WriteLock(&stream->lock, get_current_pid());
 
 	file_t* dev = get_device_from_stream(stream);
 	if (dev && dev->ops && dev->ops->write) {
 		int written = dev->ops->write(dev, (void*)s, (int)len, 0);
-		spinlock_unlock(&stream->lock);
+		WriteUnlock(&stream->lock);
 		return written < 0 ? -1 : written;
 	}
 
-	spinlock_unlock(&stream->lock);
+	WriteUnlock(&stream->lock);
 	kprint_col((char*)s, DEFAULT_COLOUR);
 	return (int32_t)len;
 }

@@ -10,14 +10,13 @@
 #include "hash_map.h"
 
 hash_map_t* dentry_map;
-spinlock_t dentry_lock;
+volatile int32_t dentry_lock = 0;
 
 #define FS_ROOT "/"
 
 void dentry_manager_init() {
 	kprintf("Initializing dentries...");
 	dentry_map = hash_map_create();
-	spinlock_init(&dentry_lock);
 }
 
 void destroy_dentry(dentry_t* dentry) {
@@ -68,9 +67,9 @@ dentry_t* get_or_create_dentry_unsafe(char* name) {
 }
 
 dentry_t* get_or_create_dentry(char* name) {
-	spinlock_lock(&dentry_lock);
+	SpinLock(&dentry_lock);
 	dentry_t* ent = get_or_create_dentry_unsafe(name);
-	spinlock_unlock(&dentry_lock);
+	SpinUnlock(&dentry_lock);
 	return ent;
 }
 

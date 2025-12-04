@@ -21,7 +21,7 @@ typedef struct {
 	cbuffer_t* buffer;
 	int flags;
 	char is_open;
-	spinlock_t lock;
+	volatile int32_t lock;
 } pipe_t;
 
 ssize_t pipe_write(fd_t* fd, const void* buf, size_t count);

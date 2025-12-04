@@ -13,7 +13,7 @@
 
 #include "functions/functions.h"
 #include "shell/shell_functions.h"
-#include "drivers/rtc.h"
+#include "rtc.h"
 
 extern uint16_t CursorPos;
 

@@ -287,13 +287,13 @@ set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
 # ${CMAKE_SOURCE_DIR}/kernel/include)
 target_link_libraries(
         kernel.elf
+        memory
         kernel
         drivers
         shell_objs
         gui_objs
         vesa_objects
         text_editor_objs
-        memory
         cpu_api
         processes
         filesystem
@@ -335,10 +335,6 @@ endforeach ()
 get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
 # Linker script and options (similar to: ld -T kernel/kernel.ld ...) Use gcc
 # driver to link with script and without standard libs
-target_link_options(
-        kernel.elf
-        PRIVATE
-
 if(USE_CLANG)
     target_link_options(kernel.elf PRIVATE
         -T${LDSCRIPT}
@@ -518,12 +514,6 @@ add_custom_target(
 # Run targets (mirroring Makefile)
 add_custom_target(run
         COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
-add_custom_target(
-        run
-        COMMAND
-        qemu-system-i386 -cdrom ${ISO_PATH} -serial
-        file:${CMAKE_BINARY_DIR}/serial.log -monitor stdio -d int,cpu_reset -D
-        ${CMAKE_BINARY_DIR}/qemu_debug.log -cpu ${TARGET_CPU}
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
@@ -531,7 +521,6 @@ add_custom_target(
 add_custom_target(
         debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
         COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -gdb tcp::1234 -S -vga std -cpu
         ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
         DEPENDS iso hda
@@ -542,10 +531,6 @@ add_custom_target(
         novga_telnet
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
         COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -serial telnet:127.0.0.1:4444,server -nographic
-        COMMAND
-        qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu
-        ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw -serial
-        telnet:127.0.0.1:4444,server -nographic
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet"

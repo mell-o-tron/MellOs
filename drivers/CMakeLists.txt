@@ -7,6 +7,7 @@ add_library(drivers STATIC
         filesystems/fat/12/fat12_rw.c
         private_utils/pata/pata_disk_info.c
         private_utils/pata/pata_disk_interface.c
+        rtc.c
 )
 #target_link_libraries(drivers PUBLIC mellos_libc)
 target_include_directories(drivers PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
