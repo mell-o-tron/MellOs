@@ -165,14 +165,16 @@ __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, un
 
 	int psidx = 0; // Index to access panicscreen
 	int idx = 0;
-	snprintf(buf, 255,
-	         "\n\nEAX=%08x  EBX=%08x  ECX=%08x  EDX=%08x\n"
-	         "ESI=%08x  EDI=%08x  EBP=%08x  ESP=%08x\n"
-	         "EIP=%08x  EFLAGS=%08x CR2=%08x\n"
-	         "CS=%04x  DS=%04x  ES=%04x  FS=%04x  GS=%04x  SS=%04x\n"
-	         "INT=%02x ERR=%08x",
-	         r->eax, r->ebx, r->ecx, r->edx, r->esi, r->edi, r->ebp, r->esp, r->eip, r->eflags,
-	         r->cr2, r->cs, r->ds, r->es, r->fs, r->gs, r->ss, int_no, r->err_code);
+	if (is_buddy_inited()) {
+		snprintf(buf, 255,
+		         "\n\nEAX=%08x  EBX=%08x  ECX=%08x  EDX=%08x\n"
+		         "ESI=%08x  EDI=%08x  EBP=%08x  ESP=%08x\n"
+		         "EIP=%08x  EFLAGS=%08x CR2=%08x\n"
+		         "CS=%04x  DS=%04x  ES=%04x  FS=%04x  GS=%04x  SS=%04x\n"
+		         "INT=%02x ERR=%08x",
+		         r->eax, r->ebx, r->ecx, r->edx, r->esi, r->edi, r->ebp, r->esp, r->eip, r->eflags,
+		         r->cr2, r->cs, r->ds, r->es, r->fs, r->gs, r->ss, int_no, r->err_code);
+	}
 
 	for (int x = 0; x < sizeof(components) / sizeof(char*); x++) {
 		idx = 0;

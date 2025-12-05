@@ -20,7 +20,6 @@
 #define BUDDY_DEFAULT_GROW (1u << 16)
 #define BUDDY_GROW_ALIGN PAGE_LENGTH
 
-
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
 
 /** The padding in this struct is used to signal that the
@@ -40,6 +39,10 @@ bool buddy_inited = false;
 static void* allocator_base = NULL;
 static size_t allocator_size = 0;
 static bool buddy_grow(size_t min_bytes);
+
+bool is_buddy_inited() {
+	return buddy_inited;
+}
 
 bool buddy_init(size_t size) {
 	if (size < 1UL << 7)
@@ -73,14 +76,12 @@ bool buddy_init(size_t size) {
 	return true;
 }
 
-
 /**
  * Add a region of memory to the buddy allocator
  * @param base The start of the memory region
  * @param size The size of the memory region in bytes, calculated as <code>1 << size</code>
  */
 void buddy_add_region(void* base, size_t size) {
-
 
 	Block* block = base;
 	Block* last = free_list[size];
@@ -111,7 +112,8 @@ static bool buddy_grow(size_t min_bytes) {
 	uintptr_t start = (uintptr_t)allocator_base + allocator_size;
 	uintptr_t end = start + grow_bytes;
 
-	uintptr_t new_start = (uintptr_t)alloc_frame(0, ALIGN_UP((end / PAGE_LENGTH), PAGE_LENGTH) / PAGE_LENGTH);
+	uintptr_t new_start =
+	    (uintptr_t)alloc_frame(0, ALIGN_UP((end / PAGE_LENGTH), PAGE_LENGTH) / PAGE_LENGTH);
 
 	if (!new_start) {
 		return false;
