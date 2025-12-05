@@ -23,10 +23,8 @@ uint32_t Vres;
 uint32_t Pitch;
 
 Framebuffer* vga_fb;
-bool framebuffer_init = false;
 
 void _vesa_framebuffer_init(PIXEL addr) {
-	framebuffer_init = true;
 	vga_fb = kmalloc(sizeof(Framebuffer));
 	if (vga_fb == NULL) {
 		kpanic_message("Failed to allocate memory for framebuffer\n");
@@ -51,18 +49,12 @@ void fb_clear_screen_col_VESA(VESA_Colour col, Framebuffer* fb) {
 	if (fb == NULL) {
 		return;
 	}
-
-	size_t size = (fb->pitch * fb->height);
-	if (sizeof(col.val) == sizeof(uint8_t)) {
-		memset(fb->fb, col.val, size);
-	}
 	uint32_t offset = 0;
-
 	for (int i = 0; i < fb->height; i++) {
 		for (int j = 0; j < fb->width; j++) {
 			fb->fb[offset + j] = col.val;
 		}
-		offset += fb->width;
+		offset += fb->pitch;
 	}
 }
 
@@ -138,7 +130,7 @@ void fb_fill_rect_at_only(int x, int y, int width, int height, VESA_Colour col, 
 
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			fb->fb[(y + i) * fb->width + (x + j)] = col.val;
+			fb->fb[(y + i) * fb->pitch + (x + j)] = col.val;
 		}
 	}
 }
@@ -172,7 +164,7 @@ void fb_draw_char(uint16_t x, uint16_t y, char c, VESA_Colour colour, float scal
 		uint8_t pixels = font_char[(int)(row / scaleY)];
 		for (int col = 0; col < FONT_WIDTH * scaleX; col++) {
 			if (pixels & (1 << (int)(col / scaleX))) { // Check if the bit is set
-				fb->fb[((y + row) * fb->width) + (x + col)] = colour.val;
+				fb->fb[((y + row) * fb->pitch) + (x + col)] = colour.val;
 			}
 		}
 	}
@@ -205,7 +197,7 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height, uint8_t bpp) 
 	}
 	out->width = width;
 	out->height = height;
-	out->pitch = width * (bpp / 8);
+	out->pitch = width;
 	return out;
 }
 
@@ -288,7 +280,12 @@ void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t wid
 			src_offset += srcptr->pitch;
 		}
 	} else {
-		memcp(srcptr->fb, destptr->fb, srcptr->height * srcptr->pitch);
+		// TODO: Optimization if pitches are equal
+		for (uint32_t i = 0; i < height; i++) {
+			memcp(srcptr->fb + src_offset, destptr->fb + dest_offset, width * 4);
+			dest_offset += destptr->pitch;
+			src_offset += srcptr->pitch;
+		}
 	}
 }
 

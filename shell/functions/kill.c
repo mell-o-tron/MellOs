@@ -1,9 +1,11 @@
+#include "autoconf.h"
+
 #include "shell/shell_functions.h"
 #include "processes.h"
 #include "conversions.h"
 #include "string.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif

@@ -1,3 +1,4 @@
+#include "autoconf.h"
 #include "processes.h"
 
 #include "spinlock.h"

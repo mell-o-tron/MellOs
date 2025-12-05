@@ -1,7 +1,7 @@
 /*********************
-* TEXT MODE: 0xB8000 *
-* GR.  MODE: 0xA000  *
-*********************/
+ * TEXT MODE: 0xB8000 *
+ * GR.  MODE: 0xA000  *
+ *********************/
 
 #include "disk.h"
 #include "mellos/kernel/memory_mapper.h"
@@ -127,7 +127,7 @@ void khang() {
 
 #if !defined(__clang__)
 #pragma GCC push_options
-#pragma GCC optimize ("O0")
+#pragma GCC optimize("O0")
 #endif
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
@@ -253,24 +253,24 @@ void task_2() {
 }
 
 #ifdef CONFIG_AUDIO_ENABLED
-void play_startup_jingle(){
-    double base = 110;
-    double time = 10;
-    double note_duration = time * 0.75;
-    double pause_duration = time * 0.25;
+void play_startup_jingle() {
+	double base = 110;
+	double time = 10;
+	double note_duration = time * 0.75;
+	double pause_duration = time * 0.25;
 
-    beep((uint32_t)base, note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 1.33), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 1.66), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 2), note_duration);
-    sleep(pause_duration + note_duration + pause_duration);
-    beep((uint32_t)(base * 1.66), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
-    sleep(pause_duration);
+	beep((uint32_t)base, note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 1.33), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 1.66), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 2), note_duration);
+	sleep(pause_duration + note_duration + pause_duration);
+	beep((uint32_t)(base * 1.66), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
+	sleep(pause_duration);
 }
 #endif
 
@@ -324,7 +324,7 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	if (mb_tags.flags & (1 << 12)) {
 		Hres = mb_tags.framebuffer_width;
 		Vres = mb_tags.framebuffer_height;
-		Pitch = mb_tags.framebuffer_pitch; // Convert to pixels
+		Pitch = mb_tags.framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
 	} else {
 		Hres = CONFIG_GFX_HRES;
 		Vres = CONFIG_GFX_VRES;
@@ -403,20 +403,22 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	kprint(tostring_inplace(failed_mem_tests, 16));
 	kprint(" failed\n");
 
-    // IMPORTANT: Leave the following messages as they are
-    // The automatic test GH action detects these strings
-    // If it is needed to change them, contact mantainers
-    if (failed_fs_tests != 0 || failed_mem_tests != 0){
-        kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
-        for (;;){;}
-    } else {
-        kprint_col("All tests passed!\n", DEFAULT_COLOUR);
-    }
+	// IMPORTANT: Leave the following messages as they are
+	// The automatic test GH action detects these strings
+	// If it is needed to change them, contact mantainers
+	if (failed_fs_tests != 0 || failed_mem_tests != 0) {
+		kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
+		for (;;) {
+			;
+		}
+	} else {
+		kprint_col("All tests passed!\n", DEFAULT_COLOUR);
+	}
 
-    printf("\n ENTERING COMMAND MODE...\n");
+	printf("\n ENTERING COMMAND MODE...\n");
 
-    sleep(100);
-    #endif
+	sleep(100);
+#endif
 
 	void* code_loc2 = kmalloc(10);
 
@@ -443,14 +445,13 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	init_scheduler();
 	asm volatile("sti");
 
-    #ifdef AUDIO_ENABLED
-    // Victory!
-    play_startup_jingle();
-    #endif
+#ifdef AUDIO_ENABLED
+	// Victory!
+	play_startup_jingle();
+#endif
 
-    load_shell();
-    // init_text_editor("test_file");
+	load_shell();
+	// init_text_editor("test_file");
 
-
-    return;
+	return;
 }
