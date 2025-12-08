@@ -316,7 +316,7 @@ extern void main(uint32_t multiboot_tags_addr){
 
     // Initialize dynamic memory allocation
     init_allocators((void*)memory_area.start, memory_area.length);
-    
+
     #ifdef VGA_VESA
     //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
     Hres = multiboot_tags->framebuffer_width;
@@ -353,9 +353,9 @@ extern void main(uint32_t multiboot_tags_addr){
     } else {
         kprint_col("All tests passed!\n", DEFAULT_COLOUR);
     }
-    
+
     printf("\n ENTERING COMMAND MODE...\n");
-    
+
     sleep(100);
     #endif
 

@@ -11,6 +11,8 @@ typedef struct process {
     state_t * state;
     uint32_t * page_directory;
     bool must_relinquish;
+    uint32_t weight; // D-WRR weight
+    uint32_t quantum_left; // Remaining quantum for this round
 } process_t;
 
 
