@@ -1,3 +1,9 @@
+/**
+ * @file processes.c
+ * @brief D-WRR scheduler implementation
+ * @author assembler-0
+ */
+
 #include "processes.h"
 
 #include "utils/format.h"
@@ -178,7 +184,7 @@ void scheduler_daemon () {
     return;
 }
 
-// D-WRR: Dynamic Weighted Round Robin
+// D-WRR: Dynamic Weighted Round Robin with dynamic adjustment
 void execute_next () {
     SpinLock(&process_table_lock);
     uint32_t prev_pid = cur_pid;
@@ -192,6 +198,16 @@ void execute_next () {
         SpinUnlock(&process_table_lock);
         kprint("no next process found");
         return;
+    }
+    // Dynamic adjustment: increase weight for processes that were skipped, decrease for those that ran
+    for (uint32_t i = 0; i < max_pid; i++) {
+        if (processes[i] != NULL) {
+            if (i == cur_pid) {
+                if (processes[i]->weight > 1) processes[i]->weight--;
+            } else {
+                if (processes[i]->weight < 10) processes[i]->weight++;
+            }
+        }
     }
     uint32_t attempts = 0;
     while (attempts < max_pid) {
