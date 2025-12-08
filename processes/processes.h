@@ -6,6 +6,13 @@ typedef struct task_state {
     void* stack_base;
 } state_t;
 
+typedef enum {
+    PROC_READY,
+    PROC_RUNNING,
+    PROC_BLOCKED,
+    PROC_TERMINATED
+} proc_state_t;
+
 typedef struct process {
     uint32_t pid;
     state_t * state;
@@ -13,6 +20,8 @@ typedef struct process {
     bool must_relinquish;
     uint32_t weight; // D-WRR weight
     uint32_t quantum_left; // Remaining quantum for this round
+    proc_state_t status;
+    // Future extensibility: resource table, IPC, etc.
 } process_t;
 
 
@@ -30,3 +39,4 @@ void try_to_terminate();
 process_t* schedule_process(void * code);
 void kill_task(uint32_t pid);
 void list_processes();
+// Extensible: add block/wake, IPC, resource management, etc.

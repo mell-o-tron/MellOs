@@ -63,7 +63,7 @@ volatile int process_table_lock = 0;
 // }
 
 process_t* create_empty_task(){
-    SpinLock(&process_table_lock);
+    irqflags_t flags = SpinLockIrqSave(&process_table_lock);
     process_t* res = kmalloc(sizeof(process_t));
     assert_msg(res != NULL, "Failed to allocate memory for new process");
     state_t* s = kmalloc(sizeof(state_t));
@@ -75,7 +75,7 @@ process_t* create_empty_task(){
     res->quantum_left = 1;
 
     memset(s, 0, sizeof(state_t));
-    SpinUnlock(&process_table_lock);
+    SpinUnlockIrqRestore(&process_table_lock, flags);
     return res;
 }
 
@@ -144,6 +144,7 @@ process_t* create_task(void* code){
     res->state->stack = cur_stack; // Point to top of stack
     res->weight = 1; // Default weight, can be set dynamically
     res->quantum_left = res->weight;
+    res->status = PROC_READY;
 
     return res;
 }
@@ -169,24 +170,9 @@ void init_scheduler() {
     max_pid = 1;
 }
 
-void scheduler_daemon () {
-    if (scheduler_active) {
-        SpinLock(&process_table_lock);
-        process_t *cur_proc = processes[cur_pid];
-        if (cur_proc == NULL){
-            SpinUnlock(&process_table_lock);
-            return;
-        }
-        cur_proc->must_relinquish = true;
-        SpinUnlock(&process_table_lock);
-        try_to_relinquish();
-    }
-    return;
-}
-
 // D-WRR: Dynamic Weighted Round Robin with dynamic adjustment
 void execute_next () {
-    SpinLock(&process_table_lock);
+    irqflags_t flags = SpinLockIrqSave(&process_table_lock);
     uint32_t prev_pid = cur_pid;
     uint32_t total_weight = 0;
     for (uint32_t i = 0; i < max_pid; i++) {
@@ -236,17 +222,34 @@ void execute_next () {
             }
         }
     }
-    SpinUnlock(&process_table_lock);
+    SpinUnlockIrqRestore(&process_table_lock, flags);
     switch_task(processes[prev_pid], processes[cur_pid]);
     return;
 }
 
+void scheduler_daemon () {
+    if (scheduler_active) {
+        irqflags_t flags = SpinLockIrqSave(&process_table_lock);
+        process_t *cur_proc = processes[cur_pid];
+        if (cur_proc == NULL || cur_proc->status == PROC_TERMINATED) {
+            SpinUnlockIrqRestore(&process_table_lock, flags);
+            execute_next();
+            return;
+        }
+        cur_proc->must_relinquish = true;
+        cur_proc->status = PROC_READY;
+        SpinUnlockIrqRestore(&process_table_lock, flags);
+        try_to_relinquish();
+    }
+    return;
+}
 
 void try_to_relinquish(){
     SpinLock(&process_table_lock);
     process_t * cur_proc = processes[cur_pid];
-    if (cur_proc -> must_relinquish) {
-        cur_proc -> must_relinquish = false;
+    if (cur_proc && cur_proc->must_relinquish) {
+        cur_proc->must_relinquish = false;
+        cur_proc->status = PROC_READY;
         SpinUnlock(&process_table_lock);
         execute_next();
         return;
@@ -256,11 +259,23 @@ void try_to_relinquish(){
 }
 
 void try_to_terminate(){
+    SpinLock(&process_table_lock);
     process_t * cur_proc = processes[cur_pid];
-    if (cur_proc -> must_relinquish) {
+    if (cur_proc && cur_proc->must_relinquish) {
+        cur_proc->status = PROC_TERMINATED;
+        if(cur_proc->state) {
+            if(cur_proc->state->stack_base) {
+                kfree(cur_proc->state->stack_base);
+            }
+            kfree(cur_proc->state);
+        }
+        kfree(cur_proc);
         processes[cur_pid] = NULL;
+        SpinUnlock(&process_table_lock);
         execute_next();
+        return;
     }
+    SpinUnlock(&process_table_lock);
 }
 
 process_t* schedule_process(void * code){
@@ -331,18 +346,20 @@ void kill_task(uint32_t pid) {
 }
 
 void list_processes() {
-    kprint("Running processes:\n");
-    kprint("PID\tStatus\n");
+    kprint("Processes:\n");
+    kprint("PID\tState\n");
     kprint("---\t------\n");
 
     for (uint32_t i = 0; i < max_pid; i++) {
         if (processes[i] != NULL) {
             kprint(tostring_inplace(i, 10));
             kprint("\t");
-            if (i == cur_pid) {
-                kprint("RUNNING");
-            } else {
-                kprint("READY");
+            switch (processes[i]->status) {
+                case PROC_READY: kprint("READY"); break;
+                case PROC_RUNNING: kprint("RUNNING"); break;
+                case PROC_BLOCKED: kprint("BLOCKED"); break;
+                case PROC_TERMINATED: kprint("TERMINATED"); break;
+                default: kprint("UNKNOWN"); break;
             }
             kprint("\n");
         }
