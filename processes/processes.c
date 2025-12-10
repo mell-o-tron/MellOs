@@ -1,3 +1,9 @@
+/**
+ * @file processes.c
+ * @brief D-WRR scheduler implementation
+ * @author assembler-0
+ */
+
 #include "processes.h"
 
 #include "utils/format.h"
@@ -19,9 +25,7 @@
 
 extern void save_task_state(struct task_state *state, void* new_eip);
 extern void load_task_state(struct task_state *state);
-
-volatile int* process_lock = 0;
-
+volatile int process_table_lock = 0;
 
 // void kprint_task_state(struct task_state *state) {
 //     char tmp[10];
@@ -59,17 +63,19 @@ volatile int* process_lock = 0;
 // }
 
 process_t* create_empty_task(){
-    // SpinLock(process_lock);
+    irqflags_t flags = SpinLockIrqSave(&process_table_lock);
     process_t* res = kmalloc(sizeof(process_t));
     assert_msg(res != NULL, "Failed to allocate memory for new process");
     state_t* s = kmalloc(sizeof(state_t));
     assert_msg(s != NULL, "Failed to allocate memory for new process state");
 
-    res -> state = s;
-    res -> must_relinquish = false;
+    res->state = s;
+    res->must_relinquish = false;
+    res->weight = 1;
+    res->quantum_left = 1;
 
     memset(s, 0, sizeof(state_t));
-    // SpinUnlock(process_lock);
+    SpinUnlockIrqRestore(&process_table_lock, flags);
     return res;
 }
 
@@ -136,6 +142,9 @@ process_t* create_task(void* code){
     *(--cur_stack) = (uint32_t)stack; // ebp
 
     res->state->stack = cur_stack; // Point to top of stack
+    res->weight = 1; // Default weight, can be set dynamically
+    res->quantum_left = res->weight;
+    res->status = PROC_READY;
 
     return res;
 }
@@ -156,66 +165,117 @@ void init_scheduler() {
     processes = kmalloc(sizeof(process_t *) * MAX_PROCESSES);
 
     processes[0] = create_empty_task();
+    processes[0]->weight = 1;
+    processes[0]->quantum_left = 1;
     max_pid = 1;
 }
 
+// D-WRR: Dynamic Weighted Round Robin with dynamic adjustment
+void execute_next () {
+    irqflags_t flags = SpinLockIrqSave(&process_table_lock);
+    uint32_t prev_pid = cur_pid;
+    uint32_t total_weight = 0;
+    for (uint32_t i = 0; i < max_pid; i++) {
+        if (processes[i] != NULL) {
+            total_weight += processes[i]->weight;
+        }
+    }
+    if (total_weight == 0) {
+        SpinUnlock(&process_table_lock);
+        kprint("no next process found");
+        return;
+    }
+    // Dynamic adjustment: increase weight for processes that were skipped, decrease for those that ran
+    for (uint32_t i = 0; i < max_pid; i++) {
+        if (processes[i] != NULL) {
+            if (i == cur_pid) {
+                if (processes[i]->weight > 1) processes[i]->weight--;
+            } else {
+                if (processes[i]->weight < 10) processes[i]->weight++;
+            }
+        }
+    }
+    uint32_t attempts = 0;
+    while (attempts < max_pid) {
+        cur_pid = (cur_pid + 1) % max_pid;
+        process_t* proc = processes[cur_pid];
+        if (proc && proc->quantum_left > 0) {
+            proc->quantum_left--;
+            break;
+        }
+        attempts++;
+    }
+    // Reset quantum for all if exhausted
+    if (attempts == max_pid) {
+        for (uint32_t i = 0; i < max_pid; i++) {
+            if (processes[i] != NULL) {
+                processes[i]->quantum_left = processes[i]->weight;
+            }
+        }
+        // Try again
+        for (uint32_t i = 0; i < max_pid; i++) {
+            cur_pid = (cur_pid + 1) % max_pid;
+            process_t* proc = processes[cur_pid];
+            if (proc && proc->quantum_left > 0) {
+                proc->quantum_left--;
+                break;
+            }
+        }
+    }
+    SpinUnlockIrqRestore(&process_table_lock, flags);
+    switch_task(processes[prev_pid], processes[cur_pid]);
+    return;
+}
+
 void scheduler_daemon () {
-
     if (scheduler_active) {
-        // printf("Telling current process to shut up... ");
+        irqflags_t flags = SpinLockIrqSave(&process_table_lock);
         process_t *cur_proc = processes[cur_pid];
-
-        // check if no process running
-        if (cur_proc == NULL){
-            // printf(" ...No process currently running\n");
+        if (cur_proc == NULL || cur_proc->status == PROC_TERMINATED) {
+            SpinUnlockIrqRestore(&process_table_lock, flags);
+            execute_next();
             return;
         }
-
-        // printf(" ... Process 0x%x notified", cur_pid);
-        //kprint(tostring_inplace(cur_pid, 16));
-        //kprint(" notified\n");
-
-        // save_task_state(cur_proc -> state, cur_proc -> state -> eip);
         cur_proc->must_relinquish = true;
+        cur_proc->status = PROC_READY;
+        SpinUnlockIrqRestore(&process_table_lock, flags);
         try_to_relinquish();
     }
     return;
 }
 
-void execute_next () {
-    uint32_t i = 0;
-    uint32_t prev_pid = cur_pid;
-    do {
-        cur_pid = (cur_pid + 1) % 1000;
-        i++;
-
-        if (i > 1000){
-            kprint("no next process found");
-            return;
-        }
-    }
-    while (processes [cur_pid] == NULL);
-
-    switch_task(processes[prev_pid], processes[cur_pid]);
-    return;
-}
-
-
 void try_to_relinquish(){
+    SpinLock(&process_table_lock);
     process_t * cur_proc = processes[cur_pid];
-    if (cur_proc -> must_relinquish) {
-        cur_proc -> must_relinquish = false;
+    if (cur_proc && cur_proc->must_relinquish) {
+        cur_proc->must_relinquish = false;
+        cur_proc->status = PROC_READY;
+        SpinUnlock(&process_table_lock);
         execute_next();
+        return;
     }
+    SpinUnlock(&process_table_lock);
     return;
 }
 
 void try_to_terminate(){
+    SpinLock(&process_table_lock);
     process_t * cur_proc = processes[cur_pid];
-    if (cur_proc -> must_relinquish) {
+    if (cur_proc && cur_proc->must_relinquish) {
+        cur_proc->status = PROC_TERMINATED;
+        if(cur_proc->state) {
+            if(cur_proc->state->stack_base) {
+                kfree(cur_proc->state->stack_base);
+            }
+            kfree(cur_proc->state);
+        }
+        kfree(cur_proc);
         processes[cur_pid] = NULL;
+        SpinUnlock(&process_table_lock);
         execute_next();
+        return;
     }
+    SpinUnlock(&process_table_lock);
 }
 
 process_t* schedule_process(void * code){
@@ -286,18 +346,20 @@ void kill_task(uint32_t pid) {
 }
 
 void list_processes() {
-    kprint("Running processes:\n");
-    kprint("PID\tStatus\n");
+    kprint("Processes:\n");
+    kprint("PID\tState\n");
     kprint("---\t------\n");
 
     for (uint32_t i = 0; i < max_pid; i++) {
         if (processes[i] != NULL) {
             kprint(tostring_inplace(i, 10));
             kprint("\t");
-            if (i == cur_pid) {
-                kprint("RUNNING");
-            } else {
-                kprint("READY");
+            switch (processes[i]->status) {
+                case PROC_READY: kprint("READY"); break;
+                case PROC_RUNNING: kprint("RUNNING"); break;
+                case PROC_BLOCKED: kprint("BLOCKED"); break;
+                case PROC_TERMINATED: kprint("TERMINATED"); break;
+                default: kprint("UNKNOWN"); break;
             }
             kprint("\n");
         }
