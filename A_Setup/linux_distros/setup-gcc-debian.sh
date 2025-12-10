@@ -3,8 +3,13 @@ sudo apt-get install nasm
 sudo apt-get install qemu
 sudo apt-get install qemu-kvm
 
-# GCC cross compiler for i386 systems (might take quite some time, prepare food)
+# POP_os additional grub dependency
+[ -f /etc/os-release ] && . /etc/os-release
+if [[ "$ID" = "pop" ]]; then
+    sudo apt install grub-pc-bin
+fi
 
+# GCC cross compiler for i386 systems (might take quite some time, prepare food)
 sudo apt update
 sudo apt install build-essential
 sudo apt install bison
