@@ -1,10 +1,12 @@
 #include "../utils/typedefs.h"
 #include "rbtree.h"
 
-/*
- * Red-Black Tree Implementation
- * Based on Linux Kernel lib/rbtree.c
- */
+/**
+* @file rbtree.c
+* @author assembler-0
+* @note THIS FILE IS PORTED FROM THE VOIDFRAMEX KERNEL LICENSED UNDER GPLv2
+* PUBLIC DOMAIN AS OF 13-12-25 (dd-mm-yy)
+*/
 
 static void __rb_rotate_left(struct rb_node *node, struct rb_root *root) {
   struct rb_node *right = node->rb_right;
