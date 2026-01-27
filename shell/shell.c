@@ -16,7 +16,14 @@
 #include "memory/dynamic_mem.h"
 #include "drivers/uart.h"
 
-char command_buffer[128];
+#define COMMAND_BUFFER_LENGTH 128
+#define COMMAND_HISTORY_SIZE  32
+
+char command_buffer[COMMAND_BUFFER_LENGTH];
+uint32_t command_buffer_index = 0;
+
+char command_history[COMMAND_HISTORY_SIZE][COMMAND_BUFFER_LENGTH];
+uint8_t command_history_index = 0xFF;
 
 cbuffer_t shell_tasks;
 
@@ -54,22 +61,23 @@ void load_shell(){
     //     cmd->fptr("");
     // }
     
-    uint32_t i = 0;
     while (true){
+        handleHistoryKeys(get_from_act_buffer());
+
         char c = get_from_kb_buffer();
         if(c == 0) {c = read_any_serial_non_blocking();}
 		switch (c) {
 			case 0: break; // buffer is empty
             case '\n':
                 parseCommand();
-                i = 0;
-                for (uint32_t j = 0; j < 128; j++)
+                command_buffer_index = 0;
+                for (uint32_t j = 0; j < COMMAND_BUFFER_LENGTH; j++)
                     command_buffer[j] = 0;
                 break;
 			case 8: // backspace
-                if(i > 0) {
-                    command_buffer[i] = 0;
-                    i--;
+                if(command_buffer_index > 0) {
+                    command_buffer[command_buffer_index] = 0;
+                    command_buffer_index--;
                     move_cursor_LR(-1);
                     kprint_char(' ', 0);
                     move_cursor_LR(-1);
@@ -77,8 +85,8 @@ void load_shell(){
                 break;
 			default:
                 kprint_char(c, 0);
-                command_buffer[i] = c;
-                if(i < 128) i++;
+                command_buffer[command_buffer_index] = c;
+                if(command_buffer_index < COMMAND_BUFFER_LENGTH) command_buffer_index++;
 		}
 		
 		while (shell_tasks.bot != shell_tasks.top){
@@ -135,9 +143,72 @@ void parseCommand(){
             cmd->fptr(str_decapitate(command_buffer, strlen(cmd->alias)));
         }
         else {kprint("\""); kprint(command_buffer); kprint("\" is not a command\n");}
+        
+        saveCommand(command_buffer, command_buffer_index);
     }
 
     //SetCursorPosRaw(1920);
     refreshShell();
     
+}
+
+void eraseCurrentCommand() {
+    for(int i = 0; i < command_buffer_index; i++) {
+        move_cursor_LR(-1);
+        kprint_char(' ', 0);
+        move_cursor_LR(-1);
+    }
+
+    command_buffer_index = 0;
+}
+
+void typeCommand(char* command, uint32_t length) {
+    for(int i = 0; i < length; i++) {
+        kprint_char(command[i], 0);
+    }
+}
+
+void saveCommand(char* command, uint32_t length) {
+    for(int i = COMMAND_HISTORY_SIZE - 1; i >= 1; i--) {
+        memcpy(command_history[i], command_history[i - 1], COMMAND_BUFFER_LENGTH);
+    }
+    memset(command_history[0], 0, COMMAND_BUFFER_LENGTH);
+    memcpy(command_history[0], command, length);
+    command_history_index = 0xFF;
+}
+
+void restoreCommand(uint8_t index) {
+    eraseCurrentCommand();
+
+    memcpy(command_buffer, command_history[index], COMMAND_BUFFER_LENGTH);
+    command_buffer_index = strlen(command_buffer);
+    
+    typeCommand(command_buffer, strlen(command_buffer));
+}
+
+void handleHistoryKeys(char action) {
+    bool do_restore = false;
+
+    if(action == 'U') {
+        if(command_history_index < COMMAND_HISTORY_SIZE - 1) {
+            if(command_history[command_history_index + 1][0]) {
+                command_history_index++;
+                do_restore = true;
+            }
+        } else if(command_history_index == 0xFF) {
+            if(command_history[0][0]) {
+                command_history_index = 0;
+                do_restore = true;
+            }
+        }
+    } else if(action == 'D') {
+        if(command_history_index > 0 && command_history_index != 0xFF) {
+            command_history_index--;
+            do_restore = true;
+        }
+    }
+
+    if(do_restore) {
+        restoreCommand(command_history_index);
+    }
 }
