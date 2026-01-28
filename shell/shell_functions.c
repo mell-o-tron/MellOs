@@ -43,6 +43,7 @@ shellfunction CMDs[] = {
     CMDENTRY(&kill, "kill", "Kills a process", "kill [PID]"),
     CMDENTRY(&ps, "ps", "Lists running processes", "ps"),
     CMDENTRY(&erase_files, "erasefiles", "Erases the file bitmap", "erasefiles"),
+    CMDENTRY(&kbSetLayout, "kblayout", "Selects a keyboard layout", "kblayout [name]"),
     #ifdef VGA_VESA
     CMDENTRY(&vell, "vell", "VESA graphic shell", "vell"),
     CMDENTRY(&frogues, "frogues", "Frog viewing program", "frogues"),

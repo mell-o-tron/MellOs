@@ -11,6 +11,9 @@ FHDR(clear);
 // misc.c
 FHDR(hcf);
 
+// keyboard.c
+FHDR(kbSetLayout)
+
 // disk.c
 FHDR(diskinfo);
 FHDR(diskread);
