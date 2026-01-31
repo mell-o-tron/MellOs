@@ -126,24 +126,26 @@ const kblayout* selected_layout = &layout_us;
 
 enum scan_codes 
 {
-    UP_ARROW_PRESSED    = 0x48,
-    DOWN_ARROW_PRESSED  = 0x50,
-    LEFT_ARROW_PRESSED  = 0x4b,
-    RIGHT_ARROW_PRESSED = 0x4d,
+    UP_ARROW_PRESSED     = 0x48,
+    DOWN_ARROW_PRESSED   = 0x50,
+    LEFT_ARROW_PRESSED   = 0x4b,
+    RIGHT_ARROW_PRESSED  = 0x4d,
 
-    EXTENDED_PREFIX     = 0xE0,
+    EXTENDED_PREFIX      = 0xE0,
 
-    CAPS_LOCK_PRESSED   = 0x3a,
-    RETURN_PRESSED      = 0x1c,
-    F5_PRESSED          = 0x3f,
+    CAPS_LOCK_PRESSED    = 0x3a,
+    RETURN_PRESSED       = 0x1c,
+    F5_PRESSED           = 0x3f,
 
-    LEFT_SHIFT_PRESSED  = 0x2a,
-    CTRL_PRESSED        = 0x1d,
-    ALT_PRESSED         = 0x38,
+    LEFT_SHIFT_PRESSED   = 0x2a,
+    RIGHT_SHIFT_PRESSED  = 0x36,
+    CTRL_PRESSED         = 0x1d,
+    ALT_PRESSED          = 0x38,
 
-    LEFT_SHIFT_RELEASED = 0xaa,
-    CTRL_RELEASED       = 0x9d,
-    ALT_RELEASED        = 0xB8
+    LEFT_SHIFT_RELEASED  = 0xaa,
+    RIGHT_SHIFT_RELEASED = 0xB6,
+    CTRL_RELEASED        = 0x9d,
+    ALT_RELEASED         = 0xB8
 };
 
 /* COMMANDS */
@@ -245,8 +247,9 @@ void keyboard_handler(struct regs *r) {
             // kprint(tostring_inplace((int)scancode, 16));		// for testing
             
             switch(scancode) {
-                case LEFT_SHIFT_RELEASED: shift_pressed = false; break;
-                case CTRL_RELEASED:       ctrl_pressed = false;  break;
+                case LEFT_SHIFT_RELEASED:
+                case RIGHT_SHIFT_RELEASED: shift_pressed = false; break;
+                case CTRL_RELEASED:        ctrl_pressed = false;  break;
                 case ALT_RELEASED: {
                     if(prev_scancode == EXTENDED_PREFIX) {
                         altgr_pressed = false;
@@ -266,7 +269,8 @@ void keyboard_handler(struct regs *r) {
                 case DOWN_ARROW_PRESSED:  add_to_act_buffer('D'); break;
                 case UP_ARROW_PRESSED:    add_to_act_buffer('U'); break;
 
-                case LEFT_SHIFT_PRESSED:  shift_pressed = true;   break;
+                case LEFT_SHIFT_PRESSED:
+                case RIGHT_SHIFT_PRESSED: shift_pressed = true;   break;
                 case CTRL_PRESSED:        ctrl_pressed = true;    break;
                 case CAPS_LOCK_PRESSED:   caps_lock = !caps_lock; break;
                 case ALT_PRESSED: {
