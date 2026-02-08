@@ -2,15 +2,14 @@
 #include "stdint.h"
 
 #ifndef asmlinkage
-# if defined(__i386__) && (defined(__GNUC__) || defined(__clang__))
-#  define asmlinkage __attribute__((regparm(0)))
-# else
-#  define asmlinkage extern
-# endif
+#if defined(__i386__) && (defined(__GNUC__) || defined(__clang__))
+#define asmlinkage __attribute__((regparm(0)))
+#else
+#define asmlinkage extern
+#endif
 #endif
 
-__attribute__((section(".low.bss")))
-static char boot_cmdline[256];
+__attribute__((section(".low.bss"))) static char boot_cmdline[256];
 
 /**
  * get a kernel command line argument
@@ -22,6 +21,13 @@ static char boot_cmdline[256];
  */
 const char* cmdline_get(const char* key, const char* default_value);
 
-extern  void kpanic(struct regs *r);
+extern void kpanic(struct regs* r);
+
+/**
+ * Prefix the message with the name of the function that the panic was called from, example:
+ * "example_function: x is NULL"
+ * so that it is easy to grep "example_function("
+ * @param msg the message to provide in the panic screen
+ */
 void kpanic_message(const char* msg);
 _Noreturn void higher_half_main(uintptr_t multiboot_tags_addr);

@@ -239,7 +239,7 @@ int32_t kfprintf(FILE* stream, const char* format, ...) {
 	va_list va;
 	va_start(va, format);
 	char buf[256];
-	const int rval = vsnprintf(buf, sizeof buf, format, va);
+	const int rval = kvsnprintf(buf, sizeof buf, format, va);
 	va_end(va);
 	if (rval <= 0)
 		return rval;

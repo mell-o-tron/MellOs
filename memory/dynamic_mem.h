@@ -6,6 +6,11 @@
 
 void init_allocators();
 
+extern uintptr_t kernel_heap_phys_start;
+extern uintptr_t kernel_heap_phys_end;
+extern uintptr_t heap_phys_start;
+extern uintptr_t heap_phys_end;
+
 bool is_buddy_inited();
 /**
  * allocates memory for kernel purposes

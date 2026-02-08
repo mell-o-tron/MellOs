@@ -7,9 +7,13 @@
 #include "stdint.h"
 #include "string.h"
 #include "unistd.h"
+#include "stdio.h"
 
-#include <stdio.h>
-
+#ifdef CONFIG_VESA
+#include "vesa.h"
+#else
+#include "vesa_text.h"
+#endif
 union arg {
 	long long ll;
 	unsigned long long ull;
@@ -575,30 +579,30 @@ int snprintf(char* dest, size_t dsize, const char* fmt, ...) {
 
 // todo: formatted kernel printing and some kernel log
 
-__attribute__((format(printf, 1, 2))) int printf(const char* s, ...) {
+__attribute__((format(printf, 1, 2))) int printf(const char* format, ...) {
 	va_list va;
-	va_start(va, s);
+	va_start(va, format);
 	char buf[256];
-	const int rval = vsnprintf(buf, sizeof buf, s, va);
+	const int char_count = vsnprintf(buf, sizeof buf, format, va);
 	va_end(va);
-	syscall_write(FD_STDOUT, buf, rval);
+	syscall_write(FD_STDOUT, buf, char_count);
 	// kprint(buf);
-	return rval;
+	return char_count;
 }
 
-int fputs(const char* __restrict s, FILE* __restrict stream) {
-	const uint32_t len = strlen(s); // todo return how many bytes written from int
-	syscall_write(stream->fd, s, len);
-	return (int32_t)len;
+int fputs(const char* __restrict str, FILE* __restrict stream) {
+	const uint32_t length = strlen(str); // todo return how many bytes written from int
+	syscall_write(stream->fd, str, length);
+	return (int32_t)length;
 }
 
 int fprintf(FILE* stream, const char* format, ...) {
 	va_list va;
 	va_start(va, format);
 	char buf[256];
-	const int rval = vsnprintf(buf, sizeof buf, format, va);
+	const int char_count = vsnprintf(buf, sizeof buf, format, va);
 	va_end(va);
-	syscall_write(stream->fd, buf, rval);
+	syscall_write(stream->fd, buf, char_count);
 	errno = ENOSYS;
 	return -1;
 }
