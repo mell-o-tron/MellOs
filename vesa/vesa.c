@@ -189,8 +189,8 @@ Framebuffer* allocate_framebuffer(uint32_t width, uint32_t height, uint8_t bpp) 
 		kpanic_message("Unable to allocate framebuffer.");
 		return NULL;
 	}
-	const uint32_t size = width * height * BYTES_PER_PIXEL;
-	out->fb = kmalloc(size);
+	const uint32_t size = width * height * bpp;
+	out->fb = kzalloc(size);
 	if (out->fb == NULL) {
 		kpanic_message("Unable to allocate framebuffer memory.");
 		return NULL;
@@ -244,14 +244,14 @@ void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t wid
 
 	uint32_t dest_offset = y * destptr->pitch + x;
 
-	uint32_t xdiff = max(0, from_x - x);
-	uint32_t ydiff = max(0, from_y - y);
-	src_offset += xdiff;
-	dest_offset += xdiff;
-	src_offset += ydiff * srcptr->pitch;
-	dest_offset += ydiff * destptr->pitch;
-	width -= xdiff;
-	height -= ydiff;
+	uint32_t x_offset = max(0, from_x - x);
+	uint32_t y_offset = max(0, from_y - y);
+	src_offset += x_offset;
+	dest_offset += x_offset;
+	src_offset += y_offset * srcptr->pitch;
+	dest_offset += y_offset * destptr->pitch;
+	width -= x_offset;
+	height -= y_offset;
 
 	width = min(width, to_x - from_x);
 	height = min(height, to_y - from_y);
@@ -264,16 +264,16 @@ void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t wid
 
 	if (srcptr->transparent) { // If transparency is enabled, blitting will be faster, as we have to
 		                       // check alpha for each byte. TODO: Improve performance
-		for (uint32_t i = 0; i < height; i++) {
-			for (uint32_t j = 0; j < width; j++) {
-				if (((VESA_Colour)(srcptr->fb[src_offset + j]))
+		for (uint32_t row = 0; row < height; row++) {
+			for (uint32_t col = 0; col < width; col++) {
+				if (((VESA_Colour)(srcptr->fb[src_offset + col]))
 				        .a) { // For now, only 0x00 and 0xFF transparency values are supported
 					/* This is some test code to check if width and height are set properly. */
 					// if (from_x != 0){
-					//     destptr->fb[dest_offset + j] = (src_offset / srcptr->pitch) << 16 | (j)
+					//     destptr->fb[dest_offset + col] = (src_offset / srcptr->pitch) << 16 | (col)
 					//     << 8 | 0xFF; continue;
 					// }
-					destptr->fb[dest_offset + j] = srcptr->fb[src_offset + j];
+					destptr->fb[dest_offset + col] = srcptr->fb[src_offset + col];
 				}
 			}
 			dest_offset += destptr->pitch;
@@ -281,7 +281,7 @@ void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t wid
 		}
 	} else {
 		// TODO: Optimization if pitches are equal
-		for (uint32_t i = 0; i < height; i++) {
+		for (uint32_t row = 0; row < height; row++) {
 			memcp(srcptr->fb + src_offset, destptr->fb + dest_offset, width * 4);
 			dest_offset += destptr->pitch;
 			src_offset += srcptr->pitch;

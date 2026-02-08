@@ -107,21 +107,6 @@ extern void _fault_handler(struct regs* r) {
 			return;
 		}
 		asm("cli");
-		// kprint("Received interrupt: ");
-		// kprint_dec(r->int_no);
-		// unsigned int cr2;
-		// asm volatile("mov %%cr2, %0" : "=r" (cr2));
-		// kprint("\nCR2 Register: ");
-		// kprint_hex(cr2);
-		// unsigned int stack_value;
-		// asm volatile("movl 4(%%ebp), %0" : "=r" (stack_value));
-		// kprint("\nValue on stack: ");
-		// kprint_hex(stack_value);
-		// unsigned int return_pointer;
-		// asm volatile("movl 8(%%ebp), %0" : "=r" (return_pointer));
-		// kprint("\nReturn Pointer: ");
-		// kprint_hex(return_pointer);
-		// while(1);
 		kpanic(r);
 	}
 }

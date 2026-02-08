@@ -122,13 +122,12 @@ bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_table, s
 	if (owner != 0) {
 		// We'll ensure PDE present for any directory we touch.
 		// Remember the last dir we set to avoid redundant calls.
-		bool dir_present = false;
 		uint32_t last_dir = 0;
 		uint32_t tmpd = start_dir, tmpt = start_table;
 		for (size_t k = 0; k < count; ++k) {
 			if (tmpd != last_dir) {
 				put_page_table_to_directory(page_directories[currently_selected_directory],
-				                            page_directories[currently_selected_directory][tmpd],
+				                            (uint32_t*)page_directories[currently_selected_directory][tmpd],
 				                            tmpd, pd_flags);
 				last_dir = tmpd;
 			}
@@ -148,16 +147,16 @@ bool map_run_and_own(uint32_t owner, uint32_t start_dir, uint32_t start_table, s
 	}
 
 	for (uint32_t k = 0; k < count; ++k) {
-		uint32_t phys = phys_base + (uint32_t)(k * PAGE_SIZE);
-		uintptr_t virt_addr = ((uintptr_t)dir << 22) | ((uintptr_t)table << 12);
+		uint32_t page_physical_address = phys_base + k * PAGE_SIZE;
+		uintptr_t page_relative_virtual_address = ((uintptr_t)dir << 22) | ((uintptr_t)table << 12);
 
 		((uint32_t*)page_directories[currently_selected_directory][dir])[table] =
-		    (phys & ~0xFFFu) | (pte_flags | PT_PRESENT);
+		    (page_physical_address & ~0xFFFu) | (pte_flags | PT_PRESENT);
 
 		// Track page in process's page list
 		if (proc != NULL) {
-			if (!process_memory_add_page(proc->page_list, virt_addr)) {
-				kprintf("WARNING: Failed to add page %p to process %u's page list\n", virt_addr,
+			if (!process_memory_add_page(proc->page_list, page_relative_virtual_address)) {
+				kprintf("WARNING: Failed to add page %p to process %u's page list\n", page_relative_virtual_address,
 				        owner);
 			}
 		}
@@ -178,10 +177,10 @@ __attribute__((section(".low.text"))) bool allocate_pages_with_offset(uint32_t o
 	}
 	offset = PAGE_ALIGN_DOWN(offset);
 
-	const uint32_t dir_lo = (owner == 0) ? (((uint32_t)KERNEL_HEAP_PHYS_START >> 12) & 0x3FF)
-	                                     : ((HEAP_PHYS_START >> 12) & 0x3FF);
-	const uint32_t dir_hi = (owner == 0) ? (((uint32_t)KERNEL_HEAP_PHYS_END >> 12) & 0x3FF)
-	                                     : (((HEAP_PHYS_START + 4096 * 1024) >> 12) & 0x3FF);
+	const uint32_t dir_lo = (owner == 0) ? (((uint32_t)kernel_heap_phys_start >> 12) & 0x3FF)
+	                                     : (((uint32_t)heap_phys_start >> 12) & 0x3FF);
+	const uint32_t dir_hi = (owner == 0) ? (((uint32_t)kernel_heap_phys_end >> 12) & 0x3FF)
+	                                     : ((((uint32_t)heap_phys_start + 4096 * 1024) >> 12) & 0x3FF);
 
 	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
 		for (uint32_t j = 0; j < 1024; ++j) {
@@ -194,7 +193,7 @@ __attribute__((section(".low.text"))) bool allocate_pages_with_offset(uint32_t o
 				continue;
 			}
 
-			void* phys_base = alloc_frame(owner, (uint32_t)count);
+			void* phys_base = alloc_frame(owner == 0, (uint32_t)count);
 			if (phys_base == NULL) {
 				if (owner == 0) {
 					kpanic_message("Out of memory (kernel pages)");
@@ -227,8 +226,8 @@ uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t
 	if (owner == 0 || count == 0)
 		return 0;
 	offset = PAGE_ALIGN_DOWN(offset);
-	const uint32_t dir_lo = ((HEAP_PHYS_START >> 12) & 0x3FF);
-	const uint32_t dir_hi = (((HEAP_PHYS_START + 4096 * 1024) >> 12) & 0x3FF);
+	const uint32_t dir_lo = (((uint32_t)heap_phys_start >> 12) & 0x3FF);
+	const uint32_t dir_hi = ((((uint32_t)heap_phys_start + 4096 * 1024) >> 12) & 0x3FF);
 
 	for (uint32_t i = dir_lo; i <= dir_hi; ++i) {
 		for (uint32_t j = 0; j < 1024; ++j) {
@@ -237,7 +236,7 @@ uintptr_t allocate_user_pages_return_base(uint32_t owner, size_t count, uint32_t
 				break;
 			if (!run_is_free(i, j, dir_lo, dir_hi, count))
 				continue;
-			void* phys_base = alloc_frame(owner, (uint32_t)count);
+			void* phys_base = alloc_frame(owner == 0, (uint32_t)count);
 			if (phys_base == 0) {
 				kpanic_message("Out of memory (process pages)");
 				return 0;
@@ -314,7 +313,7 @@ pagedata_t* set_page_ownership(unsigned int** page_directory_table,
 			uintptr_t virt_addr = ((uintptr_t)page_directory_index << 22) |
 			                      ((uintptr_t)page_table_index << 12) |
 			                      ((uintptr_t)page_index * PAGE_SIZE);
-			process_memory_add_page(&proc->page_list, virt_addr);
+			process_memory_add_page(proc->page_list, virt_addr);
 		}
 	}
 
@@ -377,7 +376,7 @@ higher_half_init(MultibootTags* multiboot_addr) {
 	uint32_t heap_pages = HEAP_SIZE / 0x1000; // Calculate actual page count
 
 	for (uint32_t i = 0; i < heap_pages; i++) {
-		heap_page_table[i] = (HEAP_PHYS_START + i * 0x1000) | (PT_PRESENT | PT_READWRITE | PT_USER);
+		heap_page_table[i] = ((uint32_t)heap_phys_start + i * 0x1000) | (PT_PRESENT | PT_READWRITE | PT_USER);
 	}
 
 	uint32_t kernel_heap_pd_entry = KERNEL_HEAP_VIRT_START >> 22;
@@ -385,7 +384,7 @@ higher_half_init(MultibootTags* multiboot_addr) {
 	for (uint32_t i = 0; i < KERNEL_HEAP_PAGE_TABLES; i++) {
 		for (uint32_t j = 0; j < 1024; j++) {
 			kernel_heap_page_table[i][j] =
-			    (KERNEL_HEAP_PHYS_START + i * 0x400000 + j * 0x1000) | (PT_PRESENT | PT_READWRITE);
+			    (kernel_heap_phys_start + i * 0x400000 + j * 0x1000) | PT_READWRITE;
 		}
 
 		// Map each page table into the page directory

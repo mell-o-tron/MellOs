@@ -361,9 +361,11 @@ target_compile_options(kernel.elf PRIVATE
 # Freestanding kernel style build add '-DCMAKE_BUILD_TYPE=Debug' to your
 # arguments for debug build
 set(MELLOS_COMPILE_OPTIONS
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g3>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
+        $<$<COMPILE_LANGUAGE:C>:${CONFIG_OPTIMIZATION_LVL}>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:${CONFIG_DEBUG_LVL}>
+#        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-O0>
+#        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g3>
+#        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
         $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<BOOL:${USE_CLANG}>>>:-m32>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
@@ -384,6 +386,19 @@ set(MELLOS_COMPILE_OPTIONS
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
         $<$<COMPILE_LANGUAGE:C>:${CPU_FLAGS}>)
 
+set(_SRC_ROOT "${CMAKE_SOURCE_DIR}")
+set(_BIN_ROOT "${CMAKE_BINARY_DIR}")
+
+set(_MAPPED_PATH_FLAGS
+        $<$<COMPILE_LANGUAGE:C>:-fdebug-prefix-map=${_SRC_ROOT}=.>
+        $<$<COMPILE_LANGUAGE:C>:-fdebug-prefix-map=${_BIN_ROOT}=.>
+        $<$<COMPILE_LANGUAGE:C>:-ffile-prefix-map=${_SRC_ROOT}=.>
+        $<$<COMPILE_LANGUAGE:C>:-ffile-prefix-map=${_BIN_ROOT}=.>
+        $<$<COMPILE_LANGUAGE:C>:-fmacro-prefix-map=${_SRC_ROOT}=.>
+        $<$<COMPILE_LANGUAGE:C>:-fmacro-prefix-map=${_BIN_ROOT}=.>
+)
+
+list(APPEND MELLOS_COMPILE_OPTIONS ${_MAPPED_PATH_FLAGS})
 target_compile_options(kernel.elf PRIVATE ${MELLOS_COMPILE_OPTIONS})
 
 foreach (
