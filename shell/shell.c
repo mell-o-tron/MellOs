@@ -76,8 +76,7 @@ void load_shell(){
                 break;
 			case 8: // backspace
                 if(command_buffer_index > 0) {
-                    command_buffer[command_buffer_index] = 0;
-                    command_buffer_index--;
+                    command_buffer[--command_buffer_index] = 0;
                     move_cursor_LR(-1);
                     kprint_char(' ', 0);
                     move_cursor_LR(-1);
