@@ -49,7 +49,7 @@ void receive_packet () {
     uint8_t* rx = rtl_rx_buf;
 
     while (1) {
-        uint16_t cur = (capr + 16) & (RX_BUF_SIZE - 1);
+        uint16_t cur = capr + 16;
         uint16_t cbr = inw(RTL_IO_BASE + RTL_CBR);
 
         if (cur == cbr)
@@ -84,22 +84,21 @@ void receive_packet () {
             printf("Broadcast addr recvd: %x\n", bar);
             printf("Physical addr recvd: %x\n", pam);
             printf("Multicast addr recvd: %x\n", mar);
-            break;
+        } else {
+            uint8_t* data = (uint8_t*)(header + 2);
+            
+            EthernetFrame* frame = populate(data, length);
+    
+            printf("Packet received! Payload: %s\n", frame -> payload);
+    
+            for (int i = 0; i < length / 2 + 2; i++){
+                printf("%04X  ", header[i]);
+            }
+            kprint("\n");
         }
-
-        uint8_t* data = (uint8_t*)(header + 2);
-        
-        EthernetFrame* frame = populate(data, length);
-
-        printf("Packet received! Payload: %s\n", frame -> payload);
-
-        for (int i = 0; i < length / 2 + 2; i++){
-            printf("%x  ", header[i]);
-        }
-        kprint("\n");
 
         // advance
-        capr = capr + length + 2;
+        capr = ((capr + length + 4 + 3) & ~3) % (RX_BUF_SIZE - 16);
         outw(RTL_IO_BASE + RTL_CAPR, capr);
 
         break;
@@ -127,8 +126,8 @@ void rtl8139_handler(regs* r) {
         //     kprint("Link is DOWN - no network connection\n");
         // }
 
-        uint16_t CAPR = inw(RTL_IO_BASE + 0x38);
-        uint16_t CBPR = inw(RTL_IO_BASE + 0x3A);
+        uint16_t CAPR = inw(RTL_IO_BASE + RTL_CAPR);
+        uint16_t CBPR = inw(RTL_IO_BASE + RTL_CBR);
         printf("CAPR is: %x\n", CAPR);
         printf("CBPR is: %x\n", CBPR);
 
