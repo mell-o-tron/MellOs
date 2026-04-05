@@ -67,6 +67,16 @@ SECTIONS
         _bss_end = .;
     }
 
+    /* RTL8139 RX ring (phys-contiguous buffer: reserve 16 pages ~ 64 KiB) */
+    .rt_ring ALIGN(PAGE_SIZE) :
+    {
+        _rt_ring_start = .;
+        KEEP(*(.rt_ring))
+        . = . + (16 * PAGE_SIZE); /* reserve 16 pages */
+        . = ALIGN(PAGE_SIZE);
+        _rt_ring_end = .;
+    }
+
     /* Kernel end marker */
     . = ALIGN(PAGE_SIZE);
     _kernel_phys_end = .;

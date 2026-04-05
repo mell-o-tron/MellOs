@@ -58,6 +58,12 @@
 // TEXT_EDITOR
 #include "../text_editor/text_editor.h"
 
+// PCI
+#include "../drivers/pci.h"
+
+// NETWORK INTERFACE CARD
+#include "../drivers/rtl8139.h"
+
 // TESTS
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
@@ -65,7 +71,6 @@
 #ifdef AUDIO_ENABLED
 #include "drivers/pc_speaker.h"
 #endif
-
 
 #ifdef VGA_VESA
 __attribute__((section(".multiboot")))
@@ -272,14 +277,12 @@ extern void main(uint32_t multiboot_tags_addr){
 #elif VGA_TEXT
     init_memory_mapper(multiboot_tags, NULL, BPP);
 #endif
+
     MemoryArea memory_area = get_largest_free_block();
-
-
     // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
-
     // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
     init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
-
+    
     // Sets up the Page Attribute Table
     setup_pat();
 
@@ -307,7 +310,6 @@ extern void main(uint32_t multiboot_tags_addr){
     isrs_install();
     irq_install();
     // asm volatile("hlt");
-
 
     asm volatile ("sti");
     timer_phase(60);
@@ -377,9 +379,16 @@ extern void main(uint32_t multiboot_tags_addr){
     play_startup_jingle();
     #endif
 
-    load_shell();
-    // init_text_editor("test_file");
+    //load_shell();
+    //checkAllBuses();
+    //checkBARs(0,3);
 
+    uint8_t mac [6];
+    RTL_readMAC(mac);
+
+    printf("%x:%x:%x:%x:%x:%x\n", mac [0], mac [1], mac [2], mac [3], mac [4], mac [5]);
+
+    init_rtl8139 ();
 
     return;
 }

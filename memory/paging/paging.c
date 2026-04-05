@@ -41,7 +41,7 @@ void init_paging(unsigned int * page_directory, unsigned int * first_page_table,
 
     add_page_directory(page_directory, first_page_table,  0, 0, first_page_table_flags, page_directory_flags);
     
-    // For now, since the kernel is mapped at 0x400000, we identity-map from 0x0 to 0x800000. Eventually, it would be nice to have a proper "kernel on the high memory"
+    // For now we identity-map from 0x0 to 0x800000. Eventually, it would be nice to have a proper "kernel on the high memory"
     add_page_directory(page_directory, second_page_table,  1, 0x400000, first_page_table_flags, page_directory_flags);
 
     loadPageDirectory(page_directory);
@@ -54,4 +54,22 @@ void stop_paging(){
 void switch_page_directory(unsigned int * page_directory){
     loadPageDirectory(page_directory);
     enablePaging();
+}
+
+void* get_physaddr(void *virtualaddr, unsigned int *page_directory) {
+    unsigned long vaddr = (unsigned long)virtualaddr;
+
+    unsigned long pdindex = vaddr >> 22;
+    unsigned long ptindex = (vaddr >> 12) & 0x3FF;
+
+    unsigned int pde = page_directory[pdindex];
+    if (!(pde & 1))
+        return (void*)0x6969; // PD entry not present
+
+    unsigned int *pt = (unsigned int *)(pde & ~0xFFF);
+    unsigned int pte = pt[ptindex];
+    if (!(pte & 1))
+        return (void*)0x7070; // PT entry not present
+
+    return (void *)((pte & ~0xFFF) | (vaddr & 0xFFF));
 }

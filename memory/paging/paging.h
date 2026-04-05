@@ -35,3 +35,5 @@ void add_page_directory(unsigned int * page_directory, unsigned int * page_table
 
 void initialize_page_directory(unsigned int* page_directory);
 void switch_page_directory(unsigned int * page_directory);
+
+void* get_physaddr(void *virtualaddr, unsigned int *page_directory);
