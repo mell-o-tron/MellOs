@@ -1,10 +1,10 @@
-#include "pci.h"
-#include "port_io.h"
+#include "drivers/pci.h"
+#include "drivers/port_io.h"
 #include "rtl8139.h"
-#include "../memory/dynamic_mem.h"
-#include "../memory/mem.h"
-#include "../memory/paging/paging.h"
-#include "../cpu/interrupts/irq.h"
+#include "memory/dynamic_mem.h"
+#include "memory/mem.h"
+#include "memory/paging/paging.h"
+#include "cpu/interrupts/irq.h"
 #include "utils/format.h"
 #ifdef VGA_VESA
 #include "drivers/vesa/vesa_text.h"
@@ -70,7 +70,7 @@ void receive_packet () {
         uint8_t pam = (status & (0b1 << 7)) != 0;
         uint8_t mar = (status & (0b1 << 8)) != 0;
         
-        printf("cur=%x len=%x status=%x\n", cur, length, status);
+        // printf("cur=%x len=%x status=%x\n", cur, length, status);
 
         if (!(status & 0x01)) {
             kprint("Bad packet\n");
@@ -87,14 +87,16 @@ void receive_packet () {
         } else {
             uint8_t* data = (uint8_t*)(header + 2);
             
-            EthernetFrame* frame = populate(data, length);
+            EthernetFrame* frame = eth_populate_frame(data, length);
     
-            printf("Packet received! Payload: %s\n", frame -> payload);
+            printf("\n[RTL] Packet received! Payload: %s\n", frame -> payload);
     
             for (int i = 0; i < length / 2 + 2; i++){
                 printf("%04X  ", header[i]);
             }
             kprint("\n");
+
+            eth_handle_frame(frame);
         }
 
         // advance
@@ -115,9 +117,9 @@ void rtl8139_handler(regs* r) {
 	outw(RTL_IO_BASE + RTL_ISR, status);
 
 	if(status & 0x1) {
-        kprint("recvd\n");
+        // kprint("recvd\n");
         uint16_t phy_status = inw(RTL_IO_BASE + 0x6C);
-        printf("PHY Status: %04x\n", phy_status);
+        // printf("PHY Status: %04x\n", phy_status);
 
         // // Bit 2 = link up
         // if (phy_status & 0x04) {
@@ -128,8 +130,8 @@ void rtl8139_handler(regs* r) {
 
         uint16_t CAPR = inw(RTL_IO_BASE + RTL_CAPR);
         uint16_t CBPR = inw(RTL_IO_BASE + RTL_CBR);
-        printf("CAPR is: %x\n", CAPR);
-        printf("CBPR is: %x\n", CBPR);
+        // printf("CAPR is: %x\n", CAPR);
+        // printf("CBPR is: %x\n", CBPR);
 
         receive_packet();
 	}
@@ -160,7 +162,7 @@ void init_rtl8139 () {
     // Identity mapped, so not reeeally needed
     uintptr_t phys = get_physaddr(rtl_rx_buf, page_directory);
     
-    printf("RX: virt %x, phys %x\n", rtl_rx_buf, phys);
+    // printf("RX: virt %x, phys %x\n", rtl_rx_buf, phys);
 
     // setup rx buffer
     memset(rtl_rx_buf, 0, 8192 + 16 + 1500);
@@ -174,7 +176,8 @@ void init_rtl8139 () {
           RCR_WRAP 
         | RCR_RX_8 
         | RCR_FIFO_TR_16 
-        | RCR_ACCEPT_PHYS 
+        | RCR_ACCEPT_PHYS
+        | RCR_ACCEPT_MATCH
         | RCR_ACCEPT_MC 
         | RCR_ACCEPT_BC
     );

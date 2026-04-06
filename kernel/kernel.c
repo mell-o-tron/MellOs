@@ -62,7 +62,10 @@
 #include "../drivers/pci.h"
 
 // NETWORK INTERFACE CARD
-#include "../drivers/rtl8139.h"
+// #include "../drivers/rtl8139.h"
+
+// Network task
+#include "../drivers/network/internet.h"
 
 // TESTS
 #include "../test/fs_test.h"
@@ -378,17 +381,10 @@ extern void main(uint32_t multiboot_tags_addr){
     // Victory!
     play_startup_jingle();
     #endif
-
-    //load_shell();
-    //checkAllBuses();
-    //checkBARs(0,3);
-
-    uint8_t mac [6];
-    RTL_readMAC(mac);
-
-    printf("%x:%x:%x:%x:%x:%x\n", mac [0], mac [1], mac [2], mac [3], mac [4], mac [5]);
-
-    init_rtl8139 ();
+    
+    schedule_process(network_task);
+    // network_task();
+    load_shell();
 
     return;
 }

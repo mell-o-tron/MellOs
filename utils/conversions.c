@@ -287,3 +287,7 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
     *p = '\0';
     return 0; // Success
 }
+
+uint16_t ntohs(uint16_t n) {
+    return (n >> 8) | (n << 8);
+}

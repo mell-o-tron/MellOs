@@ -1,5 +1,10 @@
 #pragma once // shame on you
-#include "../utils/typedefs.h"
+#include "utils/typedefs.h"
+
+#define ETH_MAX_SIZE 0x0600
+#define ETH_IPv4     0x0800
+#define ETH_ARP      0x0806
+#define ETH_IPv6     0x86DD
 
 typedef struct {
     uint8_t mac_dest [6];
@@ -12,4 +17,5 @@ typedef struct {
     uint32_t CRC;
 } __attribute__((packed)) EthernetFrame;
 
-EthernetFrame* populate(uint8_t* data, uint16_t length);
+EthernetFrame* eth_populate_frame(uint8_t* data, uint16_t length);
+void eth_handle_frame(EthernetFrame* frame);

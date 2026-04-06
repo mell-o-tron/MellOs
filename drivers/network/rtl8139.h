@@ -1,5 +1,5 @@
 #pragma once
-#include "../utils/typedefs.h"
+#include "utils/typedefs.h"
 
 void RTL_readMAC(uint8_t mac[6]);
 void init_rtl8139 ();
@@ -14,7 +14,7 @@ void init_rtl8139 ();
 
 
 /* RCR: Receive Configuration Register */
-#define RCR_ACCEPT_PHYS     (0b1)  // Accept packets with physical destination address?
+#define RCR_ACCEPT_PHYS     (0b1 << 0)  // Accept all packets with physical destination address? (Promiscuous mode)
 #define RCR_ACCEPT_MATCH    (0b1 << 1)  // Accept physical match packets?
 #define RCR_ACCEPT_MC       (0b1 << 2)  // Accept physical multicast packets?
 #define RCR_ACCEPT_BC       (0b1 << 3)  // Accept broadcast packets?

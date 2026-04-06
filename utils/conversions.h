@@ -14,3 +14,6 @@ const char* tostring_unsigned(uint32_t n, int base, char* dest);
 int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize);
 int klltostr(char* dest, long long x, unsigned int base, size_t dsize);
 int dtostr(char* dest, double value, int precision, size_t dsize);
+
+// Convert a 16bit integer from network byte order to host byte order
+uint16_t ntohs(uint16_t n);
