@@ -13,8 +13,10 @@ typedef struct ARP_Packet {
     uint32_t recv_proto_addr;
 } __attribute__((packed)) ARP_Packet;
 
-#define ARP_HTYPE_ETHERNET 1
-#define ARP_PROTO_IPv4     0x0800
+#define ARP_HTYPE_ETHERNET   1
+#define ARP_PROTO_IPv4       0x0800
+#define ARP_OPERATION_REQ    0x1
+#define ARP_OPERATION_REPLY  0x2
 
 void arp_queue_packet(uint8_t* data);
 void arp_handle_packet();

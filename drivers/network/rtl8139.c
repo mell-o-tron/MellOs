@@ -12,7 +12,6 @@
 #else
 #include "drivers/vga_text.h"
 #endif
-#include "ethernet.h"
 
 
 static uint32_t RTL_IO_BASE = 0;
@@ -206,7 +205,7 @@ void init_rtl8139 () {
     init_tx_buffers();
 }
 
-void rtl_transmit_frame(void* data, size_t len) {
+void rtl_transmit_data(void* data, size_t len) {
     static uint8_t tx_round_robin_index = 0;
 
     memcp(data, rtl_tx_bufs[tx_round_robin_index], len);
@@ -218,6 +217,27 @@ void rtl_transmit_frame(void* data, size_t len) {
 
     printf("[RTL] Transmitting: ");
     for(int i = 0; i < len; i++) {
+        printf("%02X ", rtl_tx_bufs[tx_round_robin_index][i]);
+    }
+    printf("\nTCR: 0x%04X\n", tcr.value);
+
+    outl(RTL_IO_BASE + RTL_TCR(tx_round_robin_index), tcr.value);
+
+    tx_round_robin_index = (tx_round_robin_index + 1) % RTL_TX_BUFNUM;
+}
+
+void rtl_transmit_eth_frame(EthernetFrame* frame) {
+    static uint8_t tx_round_robin_index = 0;
+
+    eth_unpack_frame(frame, rtl_tx_bufs[tx_round_robin_index]);
+
+    RTL_TCR tcr;
+    tcr.size = ETH_PAYLOAD_TO_FRAME_SIZE(frame->length);
+    tcr.own_bit = 0;
+    tcr.threshold = 1;
+
+    printf("[RTL] Transmitting: ");
+    for(int i = 0; i < tcr.size; i++) {
         printf("%02X ", rtl_tx_bufs[tx_round_robin_index][i]);
     }
     printf("\nTCR: 0x%04X\n", tcr.value);

@@ -1,5 +1,6 @@
 #pragma once
 #include "utils/typedefs.h"
+#include "drivers/network/ethernet.h"
 
 void RTL_readMAC(uint8_t mac[6]);
 void init_rtl8139 ();
@@ -101,4 +102,5 @@ typedef union RTL_TCR {
     };
 } RTL_TCR;
 
-void rtl_transmit_frame(void* data, size_t len);
+void rtl_transmit_data(void* data, size_t len);
+void rtl_transmit_eth_frame(EthernetFrame* frame);

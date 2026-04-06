@@ -17,3 +17,5 @@ int dtostr(char* dest, double value, int precision, size_t dsize);
 
 // Convert a 16bit integer from network byte order to host byte order
 uint16_t ntohs(uint16_t n);
+// Convert a 16bit integer from host byte order to network byte order
+uint16_t htons(uint16_t n);

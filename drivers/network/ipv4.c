@@ -2,6 +2,8 @@
 #include "utils/format.h"
 #include "data_structures/circular_list.h"
 
+uint32_t IPv4_HOST_ADDRESS = IPv4_ADDR(192,168,100,2);
+
 static CircularList* packets = NULL;
 
 void ipv4_queue_packet(uint8_t* data){

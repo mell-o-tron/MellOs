@@ -2,6 +2,10 @@
 #include "data_structures/circular_list.h"
 #include "utils/format.h"
 #include "utils/conversions.h"
+#include "drivers/network/ethernet.h"
+#include "drivers/network/rtl8139.h"
+#include "drivers/network/ipv4.h"
+#include "memory/mem.h"
 
 static CircularList* packets = NULL;
 
@@ -15,6 +19,8 @@ void arp_ntoh(ARP_Packet* packet) {
     packet->proto_type = ntohs(packet->proto_type);
     packet->operation = ntohs(packet->operation);
 }
+
+void arp_reply(uint8_t sender_mac[6], uint32_t sender_proto);
 
 void arp_handle_packet() {
     if (packets == NULL) return;
@@ -44,4 +50,25 @@ void arp_handle_packet() {
         ((uint8_t*)&packet->recv_proto_addr)[2],
         ((uint8_t*)&packet->recv_proto_addr)[3]
     );
+
+    if(packet->recv_proto_addr == IPv4_HOST_ADDRESS){
+        arp_reply(packet->sender_hw_addr, packet->sender_proto_addr);
+    }
+}
+
+void arp_reply(uint8_t sender_mac[6], uint32_t sender_proto) {
+    ARP_Packet packet;
+    packet.hw_type = htons(ARP_HTYPE_ETHERNET);
+    packet.proto_type = htons(ARP_PROTO_IPv4);
+    packet.hw_addr_len = 6;
+    packet.proto_addr_len = 4;
+    packet.operation = htons(ARP_OPERATION_REPLY);
+
+    packet.sender_proto_addr = IPv4_HOST_ADDRESS;
+    packet.recv_proto_addr = sender_proto;
+
+    RTL_readMAC(packet.sender_hw_addr);
+    memcp(sender_mac, packet.recv_hw_addr, 6);
+
+    eth_send_frame(sender_mac, ETH_ARP, &packet, sizeof(ARP_Packet));
 }

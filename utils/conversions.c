@@ -291,3 +291,7 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
 uint16_t ntohs(uint16_t n) {
     return (n >> 8) | (n << 8);
 }
+
+uint16_t htons(uint16_t n) {
+    return (n >> 8) | (n << 8);
+}
