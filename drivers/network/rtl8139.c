@@ -6,6 +6,7 @@
 #include "memory/paging/paging.h"
 #include "cpu/interrupts/irq.h"
 #include "utils/format.h"
+#include "utils/conversions.h"
 #ifdef VGA_VESA
 #include "drivers/vesa/vesa_text.h"
 #else
@@ -20,6 +21,7 @@ static uint32_t RTL_IO_BASE = 0;
 extern char _rt_ring_start[];
 extern char _rt_ring_end[];
 
+__attribute__((section(".rt_tx_bufs"), aligned(32))) static uint8_t rtl_tx_bufs[4][16384];
 __attribute__((section(".rt_ring"), aligned(32))) static uint8_t rtl_rx_buf[8192 + 16 + 1500];
 
 void get_RTL_IO_BASE () {
@@ -92,7 +94,7 @@ void receive_packet () {
             printf("\n[RTL] Packet received! Payload: %s\n", frame -> payload);
     
             for (int i = 0; i < length / 2 + 2; i++){
-                printf("%04X  ", header[i]);
+                printf("%04X  ", ntohs(header[i]));
             }
             kprint("\n");
 
@@ -116,7 +118,7 @@ void rtl8139_handler(regs* r) {
 	uint16_t status = inw(RTL_IO_BASE + RTL_ISR);
 	outw(RTL_IO_BASE + RTL_ISR, status);
 
-	if(status & 0x1) {
+	if(status & RTL_ISR_ROK) {
         // kprint("recvd\n");
         uint16_t phy_status = inw(RTL_IO_BASE + 0x6C);
         // printf("PHY Status: %04x\n", phy_status);
@@ -135,12 +137,22 @@ void rtl8139_handler(regs* r) {
 
         receive_packet();
 	}
-	if (status & 0x4) {
-        kprint("sent\n");
+	if (status & RTL_ISR_TOK) {
+        kprint("[RTL] Packet sent!\n");
 	}
 }
 
 extern uint32_t page_directory[1024];
+
+void init_tx_buffers() {
+    for(int i = 0; i < RTL_TX_BUFNUM; i++) {
+        uintptr_t bufaddr = get_physaddr(rtl_tx_bufs[i], page_directory);
+        printf("[RTL] Init transmit buf %d with addr(virt/phys) 0x%X/0x%X\n", i, rtl_tx_bufs[i], bufaddr);
+        outl(RTL_IO_BASE + RTL_TX_S(i), bufaddr);
+        // printf("0x%X\n", RTL_TX_S(i));
+        // printf("0x%X\n", RTL_TCR(i));
+    }
+}
 
 void init_rtl8139 () {
     pci_enable_busmaster(0, 3, 0);
@@ -190,4 +202,27 @@ void init_rtl8139 () {
 
     uint8_t irq_num = PCI_GetInterruptLine(0, 3);
     irq_install_handler(irq_num, rtl8139_handler);
+
+    init_tx_buffers();
+}
+
+void rtl_transmit_frame(void* data, size_t len) {
+    static uint8_t tx_round_robin_index = 0;
+
+    memcp(data, rtl_tx_bufs[tx_round_robin_index], len);
+
+    RTL_TCR tcr;
+    tcr.size = len;
+    tcr.own_bit = 0;
+    tcr.threshold = 1;
+
+    printf("[RTL] Transmitting: ");
+    for(int i = 0; i < len; i++) {
+        printf("%02X ", rtl_tx_bufs[tx_round_robin_index][i]);
+    }
+    printf("\nTCR: 0x%04X\n", tcr.value);
+
+    outl(RTL_IO_BASE + RTL_TCR(tx_round_robin_index), tcr.value);
+
+    tx_round_robin_index = (tx_round_robin_index + 1) % RTL_TX_BUFNUM;
 }

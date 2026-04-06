@@ -20,6 +20,9 @@ void network_task() {
 
     init_rtl8139 ();
 
+    rtl_transmit_frame((uint8_t[]){0x42, 0x42, 0x42, 0x42, 0x42}, 5);
+    rtl_transmit_frame((uint8_t[]){0x42, 0x42, 0x42, 0x42, 0x42}, 5);
+
     handle_packets_loop();
 }
 

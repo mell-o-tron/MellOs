@@ -26,7 +26,7 @@ EthernetFrame* eth_populate_frame(uint8_t* data, uint16_t length) {
 void eth_handle_frame(EthernetFrame* frame) {
     switch(frame->ethertype_or_len) {
         case ETH_IPv4: {
-            printf("[ETH] Passing frame to IP layer\n");
+            printf("[ETH] Passing frame to IPv4 layer\n");
             ipv4_queue_packet(frame->payload);
             break;
         }

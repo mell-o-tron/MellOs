@@ -4,6 +4,19 @@
 void RTL_readMAC(uint8_t mac[6]);
 void init_rtl8139 ();
 
+#define RTL_TCR_0  0x10 // TX Command Register 0
+#define RTL_TCR_1  0x14 // TX Command Register 1
+#define RTL_TCR_2  0x18 // TX Command Register 2
+#define RTL_TCR_3  0x1C // TX Command Register 3
+#define RTL_TX_S_0 0x20 // TX Start Buffer 0
+#define RTL_TX_S_1 0x24 // TX Start Buffer 1
+#define RTL_TX_S_2 0x28 // TX Start Buffer 2
+#define RTL_TX_S_3 0x2C // TX Start Buffer 3
+
+#define RTL_TX_BUFNUM 4
+#define RTL_TCR(x) (RTL_TCR_0 + x * sizeof(uint32_t))
+#define RTL_TX_S(x) (RTL_TX_S_0 + x * sizeof(uint32_t))
+
 #define RTL_RX 0x30     // RX Buffer Start
 #define RTL_CR 0x37     // Command Register
 #define RTL_CBR 0x3A    // Current Buffer Address
@@ -67,3 +80,25 @@ typedef enum {
 #define CR_TE   (0b1 << 2)  // transmit enable
 #define CR_RE   (0b1 << 3)  // receive enable
 #define CR_RST  (0b1 << 4)  // software reset, cleared on completion
+
+#define RTL_ISR_TOK 0x04
+#define RTL_ISR_ROK 0x01
+
+typedef union RTL_TCR {
+    uint32_t value;
+    struct {
+        uint16_t size           : 13;
+        bool  own_bit           :  1;
+        bool      tun           :  1;
+        bool      tok           :  1;
+        uint8_t threshold       :  6;
+        uint8_t resv            :  2;
+        uint8_t collision_count :  4;
+        bool heart_beat         :  1;
+        bool out_of_window_coll :  1;
+        bool transmit_abort     :  1;
+        bool carrier_sense_lost :  1;
+    };
+} RTL_TCR;
+
+void rtl_transmit_frame(void* data, size_t len);
