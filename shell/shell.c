@@ -15,6 +15,7 @@
 #include "file_system/file_system.h"
 #include "memory/dynamic_mem.h"
 #include "drivers/uart.h"
+#include "functions/functions.h"
 
 #define COMMAND_BUFFER_LENGTH 128
 #define COMMAND_HISTORY_SIZE  32
@@ -48,6 +49,7 @@ void add_filewrite_task(char* str, char* filename, uint32_t len){
 }
 
 void load_shell(){
+    init_fs();
 	refreshShell();
     shell_tasks.size = 1000;
     shell_tasks.array = kmalloc(shell_tasks.size);

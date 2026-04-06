@@ -5,6 +5,9 @@
 #define CEILING_NEG(X) (int)(X)
 #define CEILING(X) ( ((X) > 0) ? CEILING_POS(X) : CEILING_NEG(X) )
 
+#define ROUND_UP(value, multiple) (((value) + (multiple) - 1) / (multiple) * (multiple))
+#define ROUND_DOWN(value, multiple) ((value) / (multiple) * (multiple))
+
 typedef struct Vector2i {
     int x;
     int y;

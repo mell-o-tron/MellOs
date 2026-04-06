@@ -123,7 +123,10 @@ void check_ata_error(void) {
 }
 
 void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr){
+	LBA += 1;
 	identify_ata(drive);
+
+	//printf("Attempting to read from drive %x, LBA %x, sector %x\n", drive, LBA, sector);
 
 	LBA = LBA & 0x0FFFFFFF;
 

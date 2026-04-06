@@ -34,6 +34,7 @@ shellfunction CMDs[] = {
     CMDENTRY(&diskinfo,  "diskinfo",  "Shows disk info", "diskinfo"),
     CMDENTRY(&diskread,  "diskread",  "Reads from disk", "diskread [LBA] [num_sectors]"),
     CMDENTRY(&ls, "ls", "Lists files", "ls"),
+    CMDENTRY(&cd, "cd", "change_directory", "cd"),
     CMDENTRY(&newfile, "newfile", "Creates new file", "newfile [name]"),
     CMDENTRY(&rmfile, "rmfile", "Removes file", "rmfile [name]"),
     CMDENTRY(&write_file, "writefile", "Writes string to file", "writefile [filename] [string]"),

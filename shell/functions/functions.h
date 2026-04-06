@@ -20,7 +20,9 @@ FHDR(diskread);
 
 // file_sys.c
 
+void init_fs ();
 FHDR(ls);
+FHDR(cd);
 FHDR(newfile);
 FHDR(write_file);
 FHDR(read_file);

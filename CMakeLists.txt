@@ -174,20 +174,20 @@ set(ISO_NAME "mellos.iso")
 set(ISO_PATH "${CMAKE_BINARY_DIR}/${ISO_NAME}")
 set(KERNEL_DEST "${CMAKE_BINARY_DIR}/iso/boot/kernel.elf")
 set(GRUB_DIR "${CMAKE_BINARY_DIR}/iso/boot/grub")
-set(TEST_IMG_SOURCE "${CMAKE_SOURCE_DIR}/test_disk.img")
-set(TEST_IMG_BINARY "${CMAKE_BINARY_DIR}/test_disk.img")
+set(TEST_IMG_SOURCE "${CMAKE_SOURCE_DIR}/drive1.img")
+set(TEST_IMG_BINARY "${CMAKE_BINARY_DIR}/drive1.img")
 
 add_custom_target(prepare_grub_dir
         COMMAND ${CMAKE_COMMAND} -E make_directory ${GRUB_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/grub.cfg ${GRUB_DIR}/grub.cfg
 )
 
-# Copy test_disk.img to build dir. Doing this to avoid situations where
+# Copy drive1.img to build dir. Doing this to avoid situations where
 # it is accidentally committed. This behaviour will change in the future
 add_custom_command(
         OUTPUT ${TEST_IMG_BINARY}
         COMMAND ${CMAKE_COMMAND} -E copy ${TEST_IMG_SOURCE} ${TEST_IMG_BINARY}
-        COMMENT "Copying test_disk.img to build directory"
+        COMMENT "Copying drive1.img to build directory"
 )
 
 add_custom_command(
