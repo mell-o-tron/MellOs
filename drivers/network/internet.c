@@ -5,6 +5,7 @@
 #include "drivers/network/rtl8139.h"
 #include "drivers/network/arp.h"
 #include "drivers/network/ipv4.h"
+#include "drivers/network/udp.h"
 
 void handle_packets_loop();
 

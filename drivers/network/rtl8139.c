@@ -219,7 +219,7 @@ void rtl_transmit_data(void* data, size_t len) {
     for(int i = 0; i < len; i++) {
         printf("%02X ", rtl_tx_bufs[tx_round_robin_index][i]);
     }
-    printf("\nTCR: 0x%04X\n", tcr.value);
+    // printf("\nTCR: 0x%04X\n", tcr.value);
 
     outl(RTL_IO_BASE + RTL_TCR(tx_round_robin_index), tcr.value);
 

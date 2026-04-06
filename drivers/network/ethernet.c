@@ -40,6 +40,7 @@ void eth_handle_frame(EthernetFrame* frame) {
         }
         case ETH_IPv6: {
             printf("[ETH] IPv6 layer packet got. Ignoring...\n");
+            kfree(frame->payload);
             break;
         }
         case ETH_ARP: {
@@ -52,9 +53,11 @@ void eth_handle_frame(EthernetFrame* frame) {
             for(int i = 0; i < 256; i++) {
                 printf("%02X ", ((uint8_t*)frame)[i]);
             }
+            kfree(frame->payload);
             break;
         }
     }
+    kfree(frame);
 }
 
 void eth_unpack_frame(EthernetFrame* frame, uint8_t* buffer) {

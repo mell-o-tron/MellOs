@@ -6,6 +6,7 @@
 #include "drivers/network/rtl8139.h"
 #include "drivers/network/ipv4.h"
 #include "memory/mem.h"
+#include "memory/dynamic_mem.h"
 
 static CircularList* packets = NULL;
 
@@ -54,6 +55,8 @@ void arp_handle_packet() {
     if(packet->recv_proto_addr == IPv4_HOST_ADDRESS){
         arp_reply(packet->sender_hw_addr, packet->sender_proto_addr);
     }
+
+    kfree(packet);
 }
 
 void arp_reply(uint8_t sender_mac[6], uint32_t sender_proto) {
