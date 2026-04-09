@@ -220,5 +220,4 @@ void ext2_list_files_in_dir (struct ext2_inode* dir);
 struct ext2_inode_indexed find_file_by_name (struct ext2_inode* dir, const char* target_name);
 uint32_t ext2_append(uint8_t drive, struct ext2_inode_indexed inode, uint32_t size, uint8_t* buffer);
 uint32_t ext2_write(uint8_t drive, struct ext2_inode_indexed inode, uint32_t offset, uint32_t size, uint8_t* buffer);
-
 void ext2_init ();

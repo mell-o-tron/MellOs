@@ -8,6 +8,8 @@
 #include "../../memory/dynamic_mem.h"
 #include "../../memory/mem.h"
 #include "../../utils/format.h"
+#include "../../utils/string.h"
+
 
 #define FDEF(name) void name(const char *s)
 
@@ -43,9 +45,6 @@ FDEF(cd){
 }
 
 FDEF(newfile) {
-  kprint("Not implemented\n");
-  return;
-
   const char *t = s;
 
   while ((*t == ' ' || *t == '\t') && (t - s < 128)) {
@@ -57,7 +56,12 @@ FDEF(newfile) {
     return;
   }
 
-  // new_file((char *)t, 1);
+  if (strlen(t) == 0) {
+    kprint("File name cannot be empty.\n");
+    return;
+  }
+
+  ext2_create_inode(0xA0, EXT2_S_IFREG | EXT2_S_IRUSR | EXT2_S_IWUSR | EXT2_S_IRGRP | EXT2_S_IROTH, cur_dir, t);
 }
 
 FDEF(rmfile) {
@@ -79,9 +83,6 @@ FDEF(rmfile) {
 }
 
 FDEF(write_file) {
-  kprint("Not implemented\n");
-  return;
-
   const char *t = s;
 
   char filename[10];
@@ -97,19 +98,12 @@ FDEF(write_file) {
   }
 
   uint32_t i = 0;
-  while (*t != ' ' && *t != '\t' && *t != 0 && *t > 33 && *t < 126 && i < 10) {
+  while (*t != ' ' && *t != '\t' && *t != 0 && *t > 33 && *t < 126) {
     filename[i] = *t;
     t++;
     i++;
   }
-
-  if (i < 10)
-    filename[i] = 0;
-
-  if (*t != ' ' && *t != '\t' && *t > 33 && *t < 126) {
-    kprint("Either filename too long or no second argument.\n");
-    return;
-  }
+  filename[i] = 0;
 
   // skip spaces again
   while ((*t == ' ' || *t == '\t') && (t - s < 128)) {
@@ -130,7 +124,8 @@ FDEF(write_file) {
   // kprint(str);
   // kprint("\n");
 
-  // write_string_to_file((char *)str, filename);
+  struct ext2_inode_indexed aa = find_file_by_name(cur_dir.inode, filename);
+  ext2_write(0xA0, aa, 0, strlen(str), (uint8_t*)str);
 }
 
 FDEF(read_file) {
@@ -147,9 +142,12 @@ FDEF(read_file) {
 	}
 
 	char* file_block = kmalloc(file.inode->i_size + 1);
-	memcpy(file_block, ext2_read_from_inode(0xA0, file.inode, 0, file.inode->i_size), file.inode->i_size);
-	file_block[ file.inode->i_size ] = 0; // null terminate the string
-	printf("File content:\n%s\n", (char*)file_block);
+  uint8_t* res = ext2_read_from_inode(0xA0, file.inode, 0, file.inode->i_size);
+  if (res) {
+    memcpy(file_block, res, file.inode->i_size);
+    file_block[ file.inode->i_size ] = 0; // null terminate the string
+    printf("File content:\n%s\n", (char*)file_block);
+  }
 	kfree(file_block);
 	kfree(file.inode);
 }

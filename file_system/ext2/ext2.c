@@ -25,12 +25,12 @@ void ext2_init () {
 
 struct ext2_superblock* ext2_read_superblock (uint8_t drive){
     uint16_t* res = kmalloc (SUPERBLOCK_SIZE);
-	printf("reading supablock\n");
+	// printf("reading supablock\n");
     LBA28_read_sector(drive, 2, 2, res);
-	printf("read supablock\n");
+	// printf("read supablock\n");
 	superblock = (struct ext2_superblock*)res;
-	printf("inode count: %d\n", superblock -> s_inodes_count);
-	printf("log2 block size - 10: %d\n", superblock -> s_log_block_size);
+	// printf("inode count: %d\n", superblock -> s_inodes_count);
+	// printf("log2 block size - 10: %d\n", superblock -> s_log_block_size);
     return (struct ext2_superblock*)res;
 }
 
@@ -249,7 +249,7 @@ static uint32_t ext2_read_blocks_from_blocklist (uint8_t drive, uint32_t blocks[
 		}
 		default: {
 			//TODO: SCASS TUTT COS; SHE'S TURNED THE WEANS AGAINST US
-			printf("error: Tried to read n-ly indirect block with n > 3\n");
+			eprintf("Error: Tried to read n-ly indirect block with n > 3\n");
 		}
 	}
 	return 0;
@@ -283,6 +283,11 @@ uint8_t* ext2_read_from_inode (uint8_t drive, struct ext2_inode* inode, uint32_t
 	uint32_t start_block = offset / BLOCK_SIZE;
 	uint32_t end_block = (offset + size) / BLOCK_SIZE - ( ((offset + size) % BLOCK_SIZE) == 0 ? 1 : 0 );
 	uint32_t block_offset = offset % BLOCK_SIZE;
+
+	if ((int32_t)end_block - (int32_t)start_block < 0) {
+		eprintf("Size to be read is negative. Whatt.. athefuck?\n");
+		return NULL;
+	}
 
 	// printf("start block: %d, end block: %d, block offset: %d\n", start_block, end_block, block_offset);
 
@@ -354,7 +359,7 @@ void ext2_list_files_in_dir (struct ext2_inode* dir) {
 
 	if(!dir) {printf("directory is null\n"); return;}
 
-	printf("type and permissions: %d\n", dir -> i_mode);
+	//printf("type and permissions: %d\n", dir -> i_mode);
 	if(!ext2_is_directory(dir)) {
 		printf("Tried to list files in a non-directory.\n");
 		return;
@@ -365,23 +370,46 @@ void ext2_list_files_in_dir (struct ext2_inode* dir) {
 	struct ext2_directory_entry* entry = (struct ext2_directory_entry*)block0;
 	//print_hex(block0, 64);	
 	while ((uint8_t*)entry < (uint8_t*)block0 + BLOCK_SIZE) {
-		printf("Entry inode: %d\n", entry->inode);
+		// printf("Entry inode: %d\n", entry->inode);
 		if (entry == 0) { // TODO: why does this work???
 			break;
 		}
 		char name[256];
 
-		printf("length: %d\n", entry -> name_length);
+		// printf("length: %d\n", entry -> name_length);
 		memcpy(name, &(entry->name), entry->name_length);
 		name[entry->name_length] = 0;
-        printf("Inode: %d, Rec Len: %d, Name Len: %d, Name: %s, Type: %s, Mode: %o\n",
+
+		char info [256];
+
+		struct ext2_inode_indexed filza = ext2_read_inode(0xA0, entry->inode);
+
+		snprintf(info, 256, "Inode: %d, Rec Size: %d, Type: %s, Mode: %o", 
 			entry->inode,
 			entry->size_of_entry,
-			entry->name_length,
-			name,
-			ext2_is_directory(ext2_read_inode(0xA0, entry->inode).inode) ? "Directory" : "File",
-			ext2_read_inode(0xA0, entry->inode).inode->i_mode
+			ext2_is_directory(filza.inode) ? "Dir" : "File",
+			filza.inode->i_mode
 		);
+		
+		int info_len = strlen(info);
+		int align_to = 60;
+		if (entry->name_length + info_len < align_to) {
+			int fill_size = align_to - (entry->name_length + info_len);
+			char* filler = kmalloc(fill_size + 1);
+			filler[fill_size] = 0;
+			for (int i = 0; i < fill_size; i++) filler[i] = ' ';
+			printf("%s %s %s\n", name, filler, info);
+			kfree(filler);
+		} /*else if (info_len < align_to) {
+			int fill_size = align_to - info_len;
+			char* filler = kmalloc(fill_size + 1);
+			filler[fill_size] = 0;
+			for (int i = 0; i < fill_size; i++) filler[i] = ' ';
+			printf("%s\n%s%s\n", name, filler, info);
+		}*/ else {
+			printf("%s\n >> %s\n", name, info);
+		}
+
         entry = (struct ext2_directory_entry*)((uint8_t*)entry + entry->size_of_entry);
 		
 		// to please valgrind (avoid invalid read)
@@ -535,7 +563,7 @@ static uint32_t ext2_write_blocks_from_blocklist (uint8_t drive, uint32_t blocks
 		}
 		default: {
 			//TODO: SCASS TUTT COS; SHE'S TURNED THE WEANS AGAINST US
-			printf("error: Tried to write n-ly indirect block with n > 3\n");
+			eprintf("Error: Tried to write n-ly indirect block with n > 3\n");
 		}
 	}
 	return 0;
@@ -604,7 +632,7 @@ uint32_t ext2_write_to_inode (uint8_t drive, struct ext2_inode* inode, uint32_t 
 		bytes_writ = 0;
 	} else {
 		// triply indirect not yet implemented.
-		printf("error: Tried to write to triply indirect block, which is not yet implemented.\n");
+		eprintf("Error: Tried to write to triply indirect block, which is not yet implemented.\n");
 		return 0;
 	}
 
@@ -612,6 +640,7 @@ uint32_t ext2_write_to_inode (uint8_t drive, struct ext2_inode* inode, uint32_t 
 }
 
 uint32_t* ext2_alloc_blocks (uint8_t drive, uint32_t block_count) {
+	printf("Trying to allocate %d blocks. %d are free.\n", block_count, superblock->s_free_blocks_count);
 	if (block_count < superblock->s_free_blocks_count) {
 		uint32_t* allocated_blocks = kmalloc (block_count * sizeof(uint32_t));
 		bitmap_t block_bitmap = ext2_read_block(drive, gdt->bg_block_bitmap);
@@ -664,7 +693,7 @@ uint32_t* ext2_alloc_blocks (uint8_t drive, uint32_t block_count) {
 
 		return allocated_blocks;
 	} else {
-		printf("error: Not enough kfree blocks to allocate %d blocks.\n", block_count);
+		eprintf("Error: Not enough free blocks to allocate %d blocks.\n", block_count);
 		return NULL;
 	}
 }
@@ -791,7 +820,7 @@ static void ext2_add_blocks_to_inode (uint8_t drive, struct ext2_inode_indexed i
 	}
 
 	// TODO: handle indirect blocks
-	printf("error: ext2_add_blocks_to_inode: Not enough space to allocate %d blocks to inode %d. Triply indirect blocks not yet implemented.\n", count, inode.index);
+	eprintf("Error: ext2_add_blocks_to_inode: Not enough space to allocate %d blocks to inode %d. Triply indirect blocks not yet implemented.\n", count, inode.index);
 end:
 	inode.inode->i_sectors += (count * BLOCK_SIZE) / SECTOR_SIZE;
 	ext2_commit_changes_to_inode(drive, inode);
@@ -819,7 +848,7 @@ static uint32_t ext2_count_allocated_blocks (struct ext2_inode* inode) {
 
 			if (blocks > 12 + INDIRECT_CAPACITY + INDIRECT_CAPACITY * INDIRECT_CAPACITY) {
 				// TODO: Handle triply indirect blocks
-				printf("error: ext2_count_allocated_blocks: Triply indirect blocks not yet implemented.\n");
+				eprintf("Error: ext2_count_allocated_blocks: Triply indirect blocks not yet implemented.\n");
 			}
 		}
 	}
@@ -844,7 +873,7 @@ struct ext2_directory_entry* ext2_read_directory_entry (uint8_t drive, struct ex
 
 struct ext2_directory_entry* ext2_add_directory_entry (uint8_t drive, struct ext2_inode_indexed parent, struct ext2_directory_entry* entry) {
 	if (!ext2_is_directory(parent.inode)) {
-		printf("error: Parent inode is not a directory.\n");
+		eprintf("Error: Parent inode is not a directory.\n");
 		return NULL;
 	}
 
@@ -866,20 +895,20 @@ struct ext2_directory_entry* ext2_add_directory_entry (uint8_t drive, struct ext
 		char name[current_entry->name_length + 1];
 		memcpy(name, &(current_entry->name), current_entry->name_length);
 		name[current_entry->name_length] = '\0';
-		printf("Current entry inode: %d, offset: %d, name: %s\n", current_entry->inode, offset, name);
+		// printf("Current entry inode: %d, offset: %d, name: %s\n", current_entry->inode, offset, name);
 		
 		// Calculate actual size of current entry (4-byte aligned, not including padding)
 		prev_entry_actual_size = ext2_get_directory_entry_actual_size(current_entry);
 
-		printf("size of entry: %d, actual size: %u\n", current_entry->size_of_entry, prev_entry_actual_size);
+		// printf("size of entry: %d, actual size: %u\n", current_entry->size_of_entry, prev_entry_actual_size);
 
 		offset += current_entry->size_of_entry;
-		printf("Next offset: %d\n", offset);
+		// printf("Next offset: %d\n", offset);
 		current_entry = ext2_read_directory_entry(drive, parent, offset);
 
 		if (prev_entry->size_of_entry - prev_entry_actual_size >= new_entry_size) {
 			// There's enough space in the current block to fit the new entry
-			printf("Found space for new entry after offset %d\n", offset - prev_entry->size_of_entry);
+			// printf("Found space for new entry after offset %d\n", offset - prev_entry->size_of_entry);
 			break;
 		}
 	} while (current_entry != NULL);
@@ -887,26 +916,26 @@ struct ext2_directory_entry* ext2_add_directory_entry (uint8_t drive, struct ext
 	// Offset should point at the point right before the previous entry
 	offset -= prev_entry->size_of_entry;
 	
-	printf("Prev entry actual size: %d, new entry size: %d\n", prev_entry_actual_size, new_entry_size);
+	// printf("Prev entry actual size: %d, new entry size: %d\n", prev_entry_actual_size, new_entry_size);
 
 	bool should_write_prev_entry = false;
 	if (prev_entry->size_of_entry - prev_entry_actual_size >= new_entry_size) {
-		printf("Resizing previous entry from %d to %d\n", prev_entry->size_of_entry, prev_entry_actual_size);
+		// printf("Resizing previous entry from %d to %d\n", prev_entry->size_of_entry, prev_entry_actual_size);
 		entry->size_of_entry = prev_entry->size_of_entry - prev_entry_actual_size;
 		prev_entry->size_of_entry = prev_entry_actual_size;
 		should_write_prev_entry = true;
 	} else {
-		printf("Putting new entry in a new block\n");
+		// printf("Putting new entry in a new block\n");
 		entry->size_of_entry = BLOCK_SIZE;
 		parent.inode->i_size += BLOCK_SIZE;
 		// Check if we need to allocate a new block
 		if (ext2_count_allocated_blocks(parent.inode) * BLOCK_SIZE < parent.inode->i_size) {
-			printf("Allocating new block for directory\n");
+			// printf("Allocating new block for directory\n");
 			ext2_add_blocks_to_inode(drive, parent, 1);
 		}
 	}
 
-	printf("New entry size of entry: %d\n", entry->size_of_entry);
+	// printf("New entry size of entry: %d\n", entry->size_of_entry);
 
 	// Write back the modified blocks
 	if (should_write_prev_entry) {
@@ -923,11 +952,11 @@ struct ext2_directory_entry* ext2_add_directory_entry (uint8_t drive, struct ext
 
 struct ext2_inode_indexed ext2_create_inode (uint8_t drive, uint16_t mode, struct ext2_inode_indexed parent, const char* name) {
 	if (!ext2_is_directory(parent.inode)) {
-		printf("error: Parent inode is not a directory.\n");
+		eprintf("Error: Parent inode is not a directory.\n");
 		return (struct ext2_inode_indexed){.inode = NULL, .index = 0};
 	}
 	if (superblock->s_free_inodes_count == 0) {
-		printf("error: No kfree inodes available.\n");
+		eprintf("Error: No kfree inodes available.\n");
 		return (struct ext2_inode_indexed){.inode = NULL, .index = 0};
 	}
 

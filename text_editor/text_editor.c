@@ -33,16 +33,20 @@ void init_text_editor(char* filename){
     cur_file = filename;
     #ifdef VGA_VESA
     kclear_screen();
+    clear_line_col(0, VESA_DARK_GREY);
+    clear_line_col(24, VESA_DARK_GREY);
     #else
     clear_screen_col(DEFAULT_COLOUR);
-    #endif
     clear_line_col(0, DARK_INVERSE);
     clear_line_col(24, DARK_INVERSE);
+    #endif
+
+    
     set_cursor_pos_raw(0);
-    kprint_col("MellOS Text Editor - ", DARK_INVERSE);
-    kprint_col(filename, DARK_INVERSE);
+    kprint("MellOS Text Editor - ");
+    kprint(filename);
     set_cursor_pos_raw(1920);
-    kprint_col("ctrl-s to save", DARK_INVERSE);
+    kprint("ctrl-s to save");
 
     set_cursor_pos_raw(80);
     text_editor_loop();

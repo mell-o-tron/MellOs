@@ -196,7 +196,7 @@ PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
 extern int top_of_stack ();
 
 void test_task(){
-    kprint_col("test task print\n", DEFAULT_COLOUR);
+    kprint("test task print\n");
 
     return;
 }
@@ -348,10 +348,10 @@ extern void main(uint32_t multiboot_tags_addr){
     // The automatic test GH action detects these strings
     // If it is needed to change them, contact mantainers
     if (failed_fs_tests != 0 || failed_mem_tests != 0){
-        kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
+        kprint("TESTS FAILED!!\n");
         for (;;){;}
     } else {
-        kprint_col("All tests passed!\n", DEFAULT_COLOUR);
+        kprint("All tests passed!\n");
     }
 
     printf("\n ENTERING COMMAND MODE...\n");

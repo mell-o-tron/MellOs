@@ -13,10 +13,10 @@ void _vesa_text_set_dirty_callback(function_type f);
 void set_cursor_pos_raw(uint16_t pos);
 uint16_t get_cursor_pos_raw();
 
-void clear_line_col(uint32_t line, Colour col);
+void clear_line_col(uint32_t line, VESA_Colour col);
 
 void kclear_screen();
-void kprint_col(const char* s, Colour col);
+void kprint_col(const char* s, VESA_Colour col);
 void kprint(const char* s);
 void kprint_char (char c, bool caps);
 void kprint_dec(uint32_t n);

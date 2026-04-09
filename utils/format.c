@@ -583,3 +583,13 @@ void printf(char* s, ...) {
     va_end(va);
     kprint(buf);
 }
+
+__attribute__((format(printf, 1, 2)))
+void eprintf(char* s, ...) {
+    va_list va;
+    va_start(va, s);
+    char buf [256];
+    vsnprintf(buf, sizeof buf, s, va);
+    va_end(va);
+    print_error(buf);
+}

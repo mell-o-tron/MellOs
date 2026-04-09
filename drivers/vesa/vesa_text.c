@@ -142,14 +142,14 @@ void increment_cursor_pos(){
 	cursor_pos = (cursor_pos + 1) % ((CONSOLE_WIDTH(fb)) * (CONSOLE_HEIGHT(fb)));
 }
 
-void clear_line_col(uint32_t line, Colour col){
-	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, vga2vesa(col), fb);
+void clear_line_col(uint32_t line, VESA_Colour col){
+	fb_fill_rect(0, line * CHAR_HEIGHT, fb->width, CHAR_HEIGHT, col, fb);
 }
 
 void scroll_up(){
 	// Scroll by inplace blit to itself
 	blit(fb, fb, 0, -CHAR_HEIGHT, fb->width, fb->height - CHAR_HEIGHT);
-	clear_line_col(CONSOLE_HEIGHT(fb) - 2, DEFAULT_COLOUR);
+	clear_line_col(CONSOLE_HEIGHT(fb) - 2, VESA_BLACK);
 	set_cursor_pos_raw(cursor_pos - CONSOLE_WIDTH(fb));
 }
 
@@ -159,8 +159,8 @@ void kclear_screen(){
 	set_cursor_pos_raw(0);
 }
 
-void kprint_col(const char* s, Colour col){
-	const VESA_Colour fg = {0xFF, 0xFF, 0xFF, 0xFF};
+void kprint_col(const char* s, VESA_Colour col){
+	const VESA_Colour fg = col;
     uart_print_all(s);
 	while (*s) {
 		if (*s == '\n') {
@@ -192,7 +192,7 @@ void kprint_col(const char* s, Colour col){
 }
 
 void kprint(const char* s){
-	kprint_col(s, 0x0F);
+	kprint_col(s, VESA_WHITE);
 }
 
 void kprint_char (char c, bool caps){
@@ -257,6 +257,6 @@ void move_cursor_UD(int i){			// MOVE CURSOR VERTICALLY
 
 void print_error(const char* s){
 	if (!s) return;
-    kprint_col(s, ERROR_COLOUR);
+    kprint_col(s, VESA_RED);
 }
 #endif

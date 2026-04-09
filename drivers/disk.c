@@ -53,12 +53,12 @@ uint16_t* identify_ata(uint8_t drive){
 	uint8_t status = inb(0x1F7);
 
 	if (status == 0){
-		kprint("Error: drive does not exist\n");
+		print_error("Error: drive does not exist\n");
 		return NULL;
 	}
 
 	if (status == 0xFF){
-		kprint("Error: floating bus, there are no drives connected.\n");
+		print_error("Error: floating bus, there are no drives connected.\n");
 		return NULL;
 	}
 
@@ -67,13 +67,13 @@ uint16_t* identify_ata(uint8_t drive){
 
 	// check, in case drive does not follow spec
 	if((inb(0x1F4) | inb(0x1F5)) != 0){
-		kprint("Error: drive is not ATA\n");
+		print_error("Error: drive is not ATA\n");
 		return NULL;
 	}
 	wait_DRQ();
 
 	if (check_ERR()){
-		kprint("ATA Identify Error\n");
+		print_error("ATA Identify Error\n");
 		return NULL;
 	}
 
@@ -87,21 +87,18 @@ uint16_t* identify_ata(uint8_t drive){
 
 }
 
-
-
 void ata_print_error(uint8_t error) {
-    kprint("Error details: ");
-    if(error & 0x01) kprint("AMNF ");  // Address Mark Not Found
-    if(error & 0x02) kprint("TK0NF "); // Track 0 Not Found
-    if(error & 0x04) kprint("ABRT ");  // Aborted Command
-    if(error & 0x08) kprint("MCR ");   // Media Change Request
-    if(error & 0x10) kprint("IDNF ");  // ID Not Found
-    if(error & 0x20) kprint("MC ");    // Media Changed
-    if(error & 0x40) kprint("UNC ");   // Uncorrectable Data
-    if(error & 0x80) kprint("BBK ");   // Bad Block
+    print_error("Error details: ");
+    if(error & 0x01) print_error("AMNF ");  // Address Mark Not Found
+    if(error & 0x02) print_error("TK0NF "); // Track 0 Not Found
+    if(error & 0x04) print_error("ABRT ");  // Aborted Command
+    if(error & 0x08) print_error("MCR ");   // Media Change Request
+    if(error & 0x10) print_error("IDNF ");  // ID Not Found
+    if(error & 0x20) print_error("MC ");    // Media Changed
+    if(error & 0x40) print_error("UNC ");   // Uncorrectable Data
+    if(error & 0x80) print_error("BBK ");   // Bad Block
     kprint("\n");
 }
-
 
 void check_ata_error(void) {
     uint8_t status = inb(0x1F7); // Read the status register
@@ -109,10 +106,10 @@ void check_ata_error(void) {
     // Check the ERR bit (bit 0)
     if (status & 0x01) {
         uint8_t error = inb(0x1F1); // Read the error register
-        kprint("ATA command error: status = 0x");
-        kprint(tostring_inplace(status, 16));
-        kprint(", error = 0x");
-        kprint(tostring_inplace(error, 16));
+        print_error("ATA command error: status = 0x");
+        print_error(tostring_inplace(status, 16));
+        print_error(", error = 0x");
+        print_error(tostring_inplace(error, 16));
         kprint("\n");
         ata_print_error(error);
     } else {
@@ -122,11 +119,11 @@ void check_ata_error(void) {
     }
 }
 
-void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *addr){
+void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t n_sectors, uint16_t *addr){
 	LBA += 1;
 	identify_ata(drive);
 
-	//printf("Attempting to read from drive %x, LBA %x, sector %x\n", drive, LBA, sector);
+	//printf("Attempting to read from drive %x, LBA %x, %x sectors\n", drive, LBA, n_sectors);
 
 	LBA = LBA & 0x0FFFFFFF;
 
@@ -134,7 +131,7 @@ void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *a
     outb(0x1F6, drive | ((LBA >> 24) & 0xF));
 	ata_delay_400ns();
 	outb(0x1F1, 0x00);
-    outb(0x1F2, sector);
+    outb(0x1F2, n_sectors);
     outb(0x1F3, (uint8_t) LBA);
     outb(0x1F4, (uint8_t)(LBA >> 8));
 	outb(0x1F5, (uint8_t)(LBA >> 16)); 
@@ -142,7 +139,7 @@ void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *a
 	ata_delay_400ns();
 	uint16_t *tmp = addr;
 	
-    for (int j = 0; j < sector; j ++){
+    for (int j = 0; j < n_sectors; j ++){
 		wait_BSY();
 		wait_DRQ();
 		
@@ -157,7 +154,8 @@ void LBA28_read_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *a
 }
 
 
-void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *buffer){
+void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t n_sectors, uint16_t *buffer){
+	LBA += 1;
 	identify_ata(drive);
 	// kprint("\nwriting: ");
 	// kprint(tostring_inplace(sector, 10));
@@ -172,7 +170,7 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *
 	outb(0x1F6, drive | ((LBA >> 24) & 0xF));		// send drive and bits 24 - 27 of LBA
 	ata_delay_400ns();
 	outb(0x1F1, 0x00);								// ?
-	outb(0x1F2, sector);							// send number of sectors
+	outb(0x1F2, n_sectors);							// send number of sectors
 	outb(0x1F3, (uint8_t) LBA);						// send bits 0-7 of LBA
 	outb(0x1F4, (uint8_t) (LBA >> 8));				// 8-15
 	outb(0x1F5, (uint8_t) (LBA >> 16)); 			// 16-23
@@ -181,7 +179,7 @@ void LBA28_write_sector(uint8_t drive, uint32_t LBA, uint32_t sector, uint16_t *
 
 	uint16_t *tmp = buffer;
 	
-	for (int j = 0; j < sector; j++){
+	for (int j = 0; j < n_sectors; j++){
 		wait_BSY();
 		wait_DRQ();
 		

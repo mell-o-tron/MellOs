@@ -116,10 +116,10 @@ void load_shell(){
                 uint32_t len = (a | b << 8 | c << 16 | d << 24);
 
                 
-                remove_file(filename);
-                new_file(filename, (len / 512 + 1));
+                // remove_file(filename);
+                // new_file(filename, (len / 512 + 1));
                 
-                write_string_to_file(str, filename);
+                // write_string_to_file(str, filename);
             }
         }
     }
