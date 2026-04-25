@@ -16,9 +16,11 @@ else
 fi
 
 if [[ "$ID" = "debian" || "$ID" = "ubuntu" || "$ID" = "linuxmint" || "$ID" = "pop" || "$ID" = "elementary" || "$ID" = "kali" ]]; then
-    cat "$distros_setup_dir/setup-gcc-debian.sh"
+    echo "Detected distro: $ID"
+    . "$distros_setup_dir/setup-gcc-debian.sh"
 elif [[ "$ID" = "arch" || "$ID" = "manjaro" || "$ID" = "endeavouros" ]];then
-    cat "$distros_setup_dir/setup-gcc-arch.sh" 
+    echo "Detected distro: $ID"
+    . "$distros_setup_dir/setup-gcc-arch.sh" 
 else
     echo "Unsupported distro: $ID"
     echo "Please file an issue on https://github.com/mell-o-tron/MellOs/issues"

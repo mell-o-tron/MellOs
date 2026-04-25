@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-sudo pacman -S nasm qemu cmake dnsmasq vde2 bridge-utils openbsd-netcat base-devel bison flex gmp libmpc mpfr texinfo mtools grub libisoburn
+set -o errexit # Exit on error to avoid snowballing errors
+
+sudo pacman -S nasm qemu cmake dnsmasq vde2 openbsd-netcat base-devel bison flex gmp libmpc mpfr texinfo mtools grub libisoburn
 export PREFIX="/usr/local/i386elfgcc"
 export TARGET=i386-elf
 export PATH="$PREFIX/bin:$PATH"

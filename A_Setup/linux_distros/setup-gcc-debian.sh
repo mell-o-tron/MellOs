@@ -1,4 +1,6 @@
 # nasm and qemu
+set -o errexit # Exit on error to avoid snowballing errors
+
 sudo apt-get install nasm
 sudo apt-get install qemu
 sudo apt-get install qemu-kvm
