@@ -7,17 +7,17 @@
 #include "stddef.h"
 #include "stdint.h"
 
-#include "conversions.h"
+#include "../global/include/errno.h"
 #include "mellos/kernel/kernel_stdio.h"
 #include "paging/frame_allocator.h"
 #include "stdio.h"
-#include "vga_text.h"
+#include "vesa_text.h"
 
 #define MAX_ORDER 26
 #define MIN_ORDER 5
 #define PAGE_LENGTH 4096
 
-#define BUDDY_DEFAULT_GROW (1u << 16)
+#define BUDDY_DEFAULT_GROW (1u << 20)
 #define BUDDY_GROW_ALIGN PAGE_LENGTH
 
 // ----- BUDDY/SLAB HYBRID ALLOCATOR -----
@@ -60,7 +60,11 @@ bool buddy_init(size_t size) {
 		order--;
 	}
 
-	allocator_base = alloc_frame(0, (ALIGN_UP(size, PAGE_LENGTH)) / PAGE_LENGTH);
+	const uint32_t frames = (ALIGN_UP(size, PAGE_LENGTH)) / PAGE_LENGTH;
+	if (frames == 0) {
+		kpanic_message("buddy_init: trying to allocate 0 frames");
+	}
+	allocator_base = alloc_frame(true, frames);
 	if (!allocator_base) {
 		kpanic_message("Failed to allocate memory for buddy allocator");
 	}
@@ -84,11 +88,7 @@ bool buddy_init(size_t size) {
 void buddy_add_region(void* base, size_t size) {
 
 	Block* block = base;
-	Block* last = free_list[size];
-
-	if (last != NULL) {
-		last->next = block;
-	}
+	block->next = free_list[size];
 	free_list[size] = block;
 
 	block->order = size;
@@ -102,27 +102,43 @@ static bool buddy_grow(size_t min_bytes) {
 	}
 
 	size_t grow_bytes = min_bytes;
+
+	// page-align growth and ensure power of two for buddy allocator
+	grow_bytes = ALIGN_UP(grow_bytes, BUDDY_GROW_ALIGN);
+
 	if (grow_bytes < BUDDY_DEFAULT_GROW) {
 		grow_bytes = BUDDY_DEFAULT_GROW;
 	}
 
-	// page-align growth
-	grow_bytes = ALIGN_UP(grow_bytes, BUDDY_GROW_ALIGN);
+	// Ensure grow_bytes is a power of 2 for the buddy allocator
+	size_t power_of_two = 1;
+	while (power_of_two < grow_bytes) {
+		power_of_two <<= 1;
+	}
+	grow_bytes = power_of_two;
 
 	uintptr_t start = (uintptr_t)allocator_base + allocator_size;
-	uintptr_t end = start + grow_bytes;
-
-	uintptr_t new_start =
-	    (uintptr_t)alloc_frame(0, ALIGN_UP((end / PAGE_LENGTH), PAGE_LENGTH) / PAGE_LENGTH);
+	uintptr_t new_start = (uintptr_t)alloc_frame(true, grow_bytes / PAGE_LENGTH);
 
 	if (!new_start) {
 		return false;
 	}
 
+	if (new_start != start) {
+		// The buddy allocator requires contiguous memory.
+		// If we can't get the next contiguous virtual address, we must fail.
+		free_frame(true, (void*)new_start, grow_bytes / PAGE_LENGTH);
+		return false;
+	}
+
 	// Tell the buddy about the new memory
-	size_t bits = 32 - __builtin_clz(grow_bytes);
+	size_t bits = 0;
+	while (((size_t)1 << (bits + 1)) <= grow_bytes) {
+		bits++;
+	}
+
 	if (bits > MAX_ORDER) {
-		free_physical_frame(true, new_start);
+		free_frame(true, (void*)new_start, grow_bytes / PAGE_LENGTH);
 		kpanic_message("Buddy allocator trying to grow a size larger than MAX_ORDER");
 	}
 	buddy_add_region((void*)new_start, bits);
@@ -131,10 +147,15 @@ static bool buddy_grow(size_t min_bytes) {
 }
 
 Block* get_buddy(Block* block) {
-	const size_t size = 1 << block->order;
-	const size_t offset = (char*)block - (char*)allocator_base;
-	const size_t buddy_offset = offset ^ size;
-	return (Block*)((char*)allocator_base + buddy_offset);
+	const size_t size = 1UL << block->order;
+	const uintptr_t offset = (uintptr_t)block - (uintptr_t)allocator_base;
+	const uintptr_t buddy_offset = offset ^ size;
+
+	if (buddy_offset >= allocator_size) {
+		return NULL;
+	}
+
+	return (Block*)((uintptr_t)allocator_base + buddy_offset);
 }
 
 void* buddy_alloc_internal(size_t size) {
@@ -145,30 +166,41 @@ void* buddy_alloc_internal(size_t size) {
 	size_t order = MIN_ORDER;
 	while (((size_t)1) << order < size + sizeof(Block)) {
 		order++;
-		if (order > MAX_ORDER) {
-			if (!buddy_grow(BUDDY_DEFAULT_GROW)) {
-				kfprintf(stderr, "Failed to grow buddy memory\n");
-				return NULL;
-			}
-			order = MIN_ORDER;
+	}
+
+	if (order > MAX_ORDER) {
+		if (!buddy_grow(size + sizeof(Block))) {
+			kfprintf(stderr, "Failed to grow buddy memory\n");
+			return NULL;
+		}
+
+		order = MIN_ORDER;
+		while (((size_t)1) << order < size + sizeof(Block)) {
+			order++;
 		}
 	}
 
 	size_t current_order = order;
+
 	while (current_order <= MAX_ORDER && free_list[current_order] == NULL) {
 		current_order++;
 	}
 
 	if (current_order > MAX_ORDER) {
-		return NULL;
+		if (!buddy_grow(size + sizeof(Block))) {
+			kfprintf(stderr, "Failed to grow buddy memory\n");
+			return NULL;
+		}
+		current_order = order;
 	}
 
 	Block* block = free_list[current_order];
+
 	free_list[current_order] = block->next;
 
 	while (current_order > order) {
 		current_order--;
-		Block* buddy = (Block*)((char*)block + (1 << current_order));
+		Block* buddy = (Block*)((char*)block + (1UL << current_order));
 		buddy->order = current_order;
 		buddy->free = true;
 		buddy->next = free_list[current_order];
@@ -192,14 +224,9 @@ void* buddy_alloc(size_t size) {
 	if (p) {
 		return p;
 	}
-	// grow by the minimum required amount
-	size_t want = 1u << MAX_ORDER;
 
-	size_t order = MIN_ORDER;
-	while ((((size_t)1) << order) < size + sizeof(Block))
-		order++;
-	if (order <= MAX_ORDER)
-		want = (size_t)1 << order;
+	// grow by the required amount
+	size_t want = size + sizeof(Block);
 
 	if (!buddy_grow(want)) {
 		kprintf("Failed to grow buddy memory by %i\n", want);
@@ -219,7 +246,7 @@ void buddy_free(void* loc) {
 
 	while (order < MAX_ORDER) {
 		Block* buddy = get_buddy(block);
-		if (!(buddy->free && buddy->order == order)) {
+		if (!buddy || !(buddy->free && buddy->order == order)) {
 			break;
 		}
 		Block** prev = &free_list[order];
@@ -317,8 +344,12 @@ void* slab_alloc(const size_t size) {
 	return new_slab->memory;
 }
 
+uintptr_t kernel_heap_phys_start = 0x1000000;
+uintptr_t kernel_heap_phys_end = 0x1000000 + KERNEL_HEAP_SIZE;
+uintptr_t heap_phys_start = 0x400000;
+uintptr_t heap_phys_end = 0x400000 + HEAP_SIZE;
+
 void slab_free(void* loc, size_t size) {
-	uint32_t off = (uint32_t)loc - (uint32_t)KERNEL_HEAP_PHYS_START;
 	int idx = -1;
 	for (int i = 0; i < SLAB_OBJ_SIZES_COUNT; i++) {
 		if (size <= slab_sizes[i]) {
@@ -332,10 +363,10 @@ void slab_free(void* loc, size_t size) {
 
 	LilSlab* slab = slab_heads[idx];
 	while (slab) {
-		if ((char*)off >= (char*)slab->memory &&
-		    (char*)off < (char*)slab->memory + slab->capacity * slab->obj_size) {
+		if ((char*)loc >= (char*)slab->memory &&
+		    (char*)loc < (char*)slab->memory + slab->capacity * slab->obj_size) {
 
-			size_t offset = (char*)off - (char*)slab->memory;
+			size_t offset = (char*)loc - (char*)slab->memory;
 			size_t index = offset / slab->obj_size;
 			slab->bitmap[index / 8] &= ~(1 << (index % 8));
 			return;
@@ -369,7 +400,7 @@ void* kmalloc(size_t size) {
 	}
 	SpinUnlock(&kmalloc_lock);
 
-	assert(result != 0);
+	//assert(result != 0);
 	if (result == 0) {
 		return NULL;
 	}

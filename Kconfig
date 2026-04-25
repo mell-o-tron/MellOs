@@ -633,3 +633,55 @@ config CPU_FEATURES_STRING
 
 endmenu
 
+choice
+    prompt "Optimization level"
+    default OPTIMIZATION_LVL_0
+config OPTIMIZATION_LVL_0
+    bool "O0"
+config OPTIMIZATION_LVL_1
+    bool "O1"
+config OPTIMIZATION_LVL_2
+    bool "O2"
+config OPTIMIZATION_LVL_3
+    bool "O3"
+config OPTIMIZATION_LVL_G
+    bool "Og"
+config OPTIMIZATION_LVL_S
+    bool "Os"
+config OPTIMIZATION_LVL_FAST
+    bool "Ofast"
+endchoice
+
+config OPTIMIZATION_LVL
+    string
+    default "-O0" if OPTIMIZATION_LVL_0
+    default "-O1" if OPTIMIZATION_LVL_1
+    default "-O2" if OPTIMIZATION_LVL_2
+    default "-O3" if OPTIMIZATION_LVL_3
+    default "-Og" if OPTIMIZATION_LVL_G
+    default "-Os" if OPTIMIZATION_LVL_S
+    default "-Ofast" if OPTIMIZATION_LVL_FAST
+
+
+choice
+    prompt "Debug level"
+    default DEBUG_GDB
+config DEBUG_NO
+    bool "g0"
+config DEBUG_1
+    bool "g1"
+config DEBUG_2
+    bool "g2"
+config DEBUG_3
+    bool "g3"
+config DEBUG_GDB
+    bool "ggdb"
+endchoice
+
+config DEBUG_LVL
+    string
+    default "-g0" if DEBUG_NO
+    default "-g1" if DEBUG_1
+    default "-g2" if DEBUG_2
+    default "-g3" if DEBUG_3
+    default "-ggdb" if DEBUG_GDB

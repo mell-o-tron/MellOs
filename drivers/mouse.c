@@ -184,11 +184,11 @@ void mouse_install() {
     receive_mouse_data();
 
 
-    mouse_buffer = kmalloc(sizeof(cbuffer_t));    
+    mouse_buffer = kzalloc(sizeof(cbuffer_t));
     mouse_buffer -> size = 1000;
     mouse_buffer -> top = 0;
     mouse_buffer -> bot = 0;
-    mouse_buffer -> array = kmalloc(mouse_buffer -> size);
+    mouse_buffer -> array = kzalloc(mouse_buffer -> size);
 
 	irq_install_handler(12, mouse_handler);
 }

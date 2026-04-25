@@ -120,7 +120,7 @@ void _vesa_text_set_dirty_callback(function_type f) {
 void _vesa_text_init() {
 	fb = allocate_framebuffer(CONSOLE_HRES, CONSOLE_VRES, CONFIG_GFX_BPP);
 	// font is 8x8
-	vesa_text_buffer = kmalloc((CONSOLE_HRES / 8) * (CONSOLE_VRES / 8) * (CONFIG_GFX_BPP / 8));
+	vesa_text_buffer = kzalloc((CONSOLE_HRES / 8) * (CONSOLE_VRES / 8) * (CONFIG_GFX_BPP / 8));
 	if (vesa_text_buffer == NULL) {
 		kpanic_message("Failed to allocate vesa text buffer");
 	}

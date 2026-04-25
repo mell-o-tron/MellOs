@@ -172,7 +172,7 @@ typedef struct dentry {
 	dentry_ops_t* dops;
 
 	/**
-	 * How many processes are currently accessing this dentry. Also add if the filesystem is
+	 * Describes how many processes are currently accessing this dentry. Also add if the filesystem is
 	 * traversing it.
 	 * If it hits 0 this dentry may be removed freed.
 	 */

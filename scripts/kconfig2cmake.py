@@ -30,6 +30,6 @@ with open(inp, "r") as f:
             lines.append(f'set({key} "{cmake_escape(val)}")')
 
 with open(outp, "w") as g:
-    g.write("# Auto-generated from auto.conf — do not edit.\n")
+    g.write("# Auto-generated from auto.conf - do not edit.\n")
     for l in lines:
         g.write(l + "\n")

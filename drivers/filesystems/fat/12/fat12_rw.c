@@ -1,14 +1,9 @@
 #include "fat12_rw.h"
-
-#include "fat.h"
-#include "mellos/kernel/kernel_stdio.h"
-
-#include "errno.h"
-#include "string.h"
-
 #include "dynamic_mem.h"
-
-#include <math.h>
+#include "errno.h"
+#include "fat.h"
+#include "math.h"
+#include "string.h"
 
 uint32_t cluster_first_sector(fat_driver_data_t* fs, uint32_t cluster) {
 	return fs->first_data_sector + ((cluster - 2) * fs->bfb->sectors_per_cluster);
@@ -44,7 +39,7 @@ int fat12_create(inode_t* dir, const char* name, uint32_t type, inode_t** out) {
 	in->ops = &fat12_inode_ops;
 
 	in->sb = dir->sb;
-	in->fops = &fat12_super_ops;
+	in->fops = &fat12_file_ops;
 	return 0;
 }
 
@@ -108,7 +103,7 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 
 		dir->sb->bd->ops->read_blocks(dir->sb->bd, sector, 1, buf);
 
-		fat12_dir_entry_t* de = buf;
+		fat12_dir_entry_t* de = (fat12_dir_entry_t*)buf;
 
 		for (uint32_t i = 0; i < ents_per_sec && entry_index < max_entries; i++, entry_index++) {
 			fat12_dir_entry_t* e = &de[i];

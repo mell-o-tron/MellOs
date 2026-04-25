@@ -1,12 +1,7 @@
 #include "mellos/pipe.h"
-
 #include "dynamic_mem.h"
-
 #include "errno.h"
 #include "stdbool.h"
-
-#include <processes.h>
-#include <random.h>
 
 pipe_t* open_pipe(fd_t* read_fd, fd_t* write_fd, int buffer_size) {
 	pipe_t* pipe = kmalloc(sizeof(pipe_t));
@@ -104,7 +99,6 @@ ssize_t pipe_read_nonblocking(fd_t* fd, void* buf, size_t count) {
 		return 0;
 	}
 	SpinLock(&pipe->lock);
-
 
 	if (pipe->buffer->top == pipe->buffer->bot) {
 		SpinUnlock(&pipe->lock);

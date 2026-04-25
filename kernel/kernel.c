@@ -40,6 +40,7 @@
 
 #include <mellos/kernel/kernel.h>
 #include <mem.h>
+#include <paging/frame_allocator.h>
 #include <stack_guard.h>
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
@@ -137,36 +138,39 @@ _Noreturn void kpanic_message(const char* msg) {
 }
 
 extern void kpanic(struct regs* r) {
-	_kpanic(exception_messages[r->int_no], r->int_no, r);
+	const char* msg = (r->int_no < 32) ? exception_messages[r->int_no] : "Unknown Interrupt";
+	_kpanic(msg, r->int_no, r);
 }
 __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, unsigned int int_no,
                                                              regs* r) {
-	const char* components[] = {
-	    KPArt,
-	    "Kernel panic: ",
-	    msg,
-	};
+	asm volatile("cli");
 	char buf[256];
+	ksnprintf(buf, 255, "Kernel panic: %s (%i)", msg, int_no);
 #ifdef CONFIG_GFX_VESA
-	snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
+	if (vga_fb != NULL) {
+		fb_clear_screen_col_VESA(VESA_RED, vga_fb);
 
-	fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-
-	if (CONFIG_GFX_HRES > 1200) {
-		fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
-	} else {
-		fb_draw_string(16, 16, buf, VESA_DARK_GREY, 2, 2, vga_fb);
+		if (CONFIG_GFX_HRES > 1200) {
+			fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
+		} else {
+			fb_draw_string(16, 16, buf, VESA_DARK_GREY, 2, 2, vga_fb);
+		}
 	}
 #else
 #define ERRCOL 0x47 // Lightgrey on Lightred
 #define VGAMEM (unsigned char*)0xB8000;
 
 	char panicscreen[4000];
+	for (int x = 0; x < 4000; x++) {
+		panicscreen[x] = ' ';
+	}
 
 	int psidx = 0; // Index to access panicscreen
 	int idx = 0;
-	if (is_buddy_inited()) {
-		snprintf(buf, 255,
+
+	const char* msg_final = msg ? msg : "Kernel panic";
+	if (is_buddy_inited() && r != NULL) {
+		ksnprintf(buf, 255,
 		         "\n\nEAX=%08x  EBX=%08x  ECX=%08x  EDX=%08x\n"
 		         "ESI=%08x  EDI=%08x  EBP=%08x  ESP=%08x\n"
 		         "EIP=%08x  EFLAGS=%08x CR2=%08x\n"
@@ -176,19 +180,19 @@ __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, un
 		         r->cr2, r->cs, r->ds, r->es, r->fs, r->gs, r->ss, int_no, r->err_code);
 	}
 
-	for (int x = 0; x < sizeof(components) / sizeof(char*); x++) {
-		idx = 0;
-		while (components[x][idx] != 0) {
-			if (components[x][idx] == '\n') {
-				do {
-					panicscreen[psidx] = ' ';
-					psidx++;
-				} while ((psidx + 1) % 80 != 0);
-			} else
-				panicscreen[psidx] = components[x][idx];
-			psidx++;
-			idx++;
-		}
+	// Write header
+	const char* header = "Kernel panic: ";
+	while (*header) {
+		panicscreen[psidx++] = *header++;
+	}
+	const char* mptr = msg_final;
+	while (*mptr) {
+		panicscreen[psidx++] = *mptr++;
+	}
+
+	// Pad to next line
+	while (psidx % 80 != 0) {
+		psidx++;
 	}
 
 	idx = 0;
@@ -239,7 +243,7 @@ void test_task() {
 void task_1() {
 	int i = 0;
 	for (;;) {
-		printf("Hello there! %d\n", i);
+		kprintf("Hello there! %d\n", i);
 		i++;
 		sleep(1);
 	}
@@ -248,7 +252,7 @@ void task_1() {
 void task_2() {
 	int i = 0;
 	for (;;) {
-		printf("BOIA DE %d\n", i);
+		kprintf("BOIA DE %d\n", i);
 		i++;
 		sleep(1);
 	}
@@ -319,9 +323,8 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	init_assertions(&clear_screen_col, &set_cursor_pos_raw, &vga_kclear_screen);
 #endif
 
-	MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
 #ifdef CONFIG_GFX_VESA
-	fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
+	fb_addr = get_multiboot_framebuffer_addr(&mb_tags);
 
 	if (mb_tags.flags & (1 << 12)) {
 		Hres = mb_tags.framebuffer_width;
@@ -366,7 +369,10 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 
 	// Initialize dynamic memory allocation
 	init_allocators();
-	map_memory();
+	MemoryArea mmap = map_memory();
+	heap_phys_start = mmap.start;
+	heap_phys_end = mmap.start + mmap.length;
+	switch_to_dynamic_bitmaps(&mmap);
 #ifdef CONFIG_GFX_VESA
 	_vesa_framebuffer_init(FRAMEBUFFER_VIRT_START);
 	_vesa_text_init();
@@ -376,7 +382,6 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #ifdef CONFIG_CONFIG_SERIAL
 	uart_init();
 #endif
-
 #ifdef CONFIG_GFX_VESA
 	kclear_screen();
 #else
@@ -454,6 +459,4 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 
 	load_shell();
 	// init_text_editor("test_file");
-
-	return;
 }

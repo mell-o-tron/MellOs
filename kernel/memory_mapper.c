@@ -102,6 +102,11 @@ __attribute__((section(".low.text"))) void init_memory_mapper(MultibootTags* mul
 	}
 }
 
+extern char __kload_start[];
+extern char __image_lma_end[];
+extern uintptr_t kernel_heap_phys_start;
+extern uintptr_t kernel_heap_phys_end;
+
 MemoryArea map_memory() {
 	uint32_t num_excluded_areas = 0;
 	struct {
@@ -109,9 +114,29 @@ MemoryArea map_memory() {
 		intptr_t end;
 	} excluded_areas[MAX_EXCLUDED_AREAS];
 
-	excluded_areas[num_excluded_areas].start = MAPPED_KERNEL_START;
-	excluded_areas[num_excluded_areas].end = MAPPED_KERNEL_START + 0x400000;
+	// Exclude Kernel image
+	excluded_areas[num_excluded_areas].start = (intptr_t)__kload_start;
+	excluded_areas[num_excluded_areas].end = (intptr_t)__image_lma_end;
 	num_excluded_areas++;
+
+	// Exclude Kernel Heap physical area
+	excluded_areas[num_excluded_areas].start = (intptr_t)kernel_heap_phys_start;
+	excluded_areas[num_excluded_areas].end = (intptr_t)kernel_heap_phys_end;
+	num_excluded_areas++;
+
+	// Exclude Multiboot structures if they are in the available memory range
+	if (multiboot_tags_local) {
+		excluded_areas[num_excluded_areas].start = (intptr_t)multiboot_tags_local;
+		excluded_areas[num_excluded_areas].end = (intptr_t)multiboot_tags_local + sizeof(MultibootTags);
+		num_excluded_areas++;
+
+		if (CHECK_FLAG(multiboot_tags_local->flags, 3) && multiboot_tags_local->mods_count > 0) {
+			// This is a simplification; ideally we'd exclude each module's range.
+			// But since we don't have modules yet (found nothing in search), we'll skip for now
+			// or just exclude the mods_addr area if it looks valid.
+		}
+	}
+
 	uintptr_t base_mem = 0L;
 	size_t len_mem = 0L;
 
