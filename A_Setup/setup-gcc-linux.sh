@@ -38,7 +38,6 @@ case "$ID" in
         exit 1
         ;;
 esac
-
 # 3. Execution Phase
 if [ -f "$TARGET_SCRIPT" ]; then
     echo -e "${BLUE}==> Detected Distro: ${BOLD}$ID${NC}"
