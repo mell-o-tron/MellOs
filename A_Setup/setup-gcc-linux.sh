@@ -1,28 +1,51 @@
 #!/usr/bin/env bash
 
-# Get the distro name 
-distro_release="/etc/os-release"
-curr_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-distros_setup_dir="$curr_dir/linux_distros"
+# --- Setup Paths ---
+# Using $(dirname ...) is the best way to make the script work 
+# no matter where you call it from.
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DISTRO_SCRIPTS="$BASE_DIR/linux_distros"
+OS_INFO="/etc/os-release"
 
-if [ -f "$distro_release" ]; then
-    . "$distro_release"
-else
-    echo "Cannot get the distro name"
-    echo "File $distro_release not found."
-    echo "Are you on linux?"
-    echo "If you are having issues, file an issue on https://github.com/mell-o-tron/MellOs/issues"
+# --- Style Definitions ---
+BOLD='\033[1m'
+BLUE='\033[34m'
+RED='\033[31m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}${BOLD}==> Initializing Environment Setup...${NC}"
+
+# 1. Check if we are actually on Linux
+if [ ! -f "$OS_INFO" ]; then
+    echo -e "${RED}[!] Error: /etc/os-release not found. Is this a Linux system?${NC}"
     exit 1
 fi
 
-if [[ "$ID" = "debian" || "$ID" = "ubuntu" || "$ID" = "linuxmint" || "$ID" = "pop" || "$ID" = "elementary" || "$ID" = "kali" ]]; then
-    echo "Detected distro: $ID"
-    . "$distros_setup_dir/setup-gcc-debian.sh"
-elif [[ "$ID" = "arch" || "$ID" = "manjaro" || "$ID" = "endeavouros" ]];then
-    echo "Detected distro: $ID"
-    . "$distros_setup_dir/setup-gcc-arch.sh" 
+# Load the OS info
+. "$OS_INFO"
+
+# 2. Distro Detection & Script Routing
+case "$ID" in
+    debian|ubuntu|linuxmint|pop|elementary|kali)
+        TARGET_SCRIPT="$DISTRO_SCRIPTS/setup-gcc-debian.sh"
+        ;;
+    arch|manjaro|endeavouros)
+        TARGET_SCRIPT="$DISTRO_SCRIPTS/setup-gcc-arch.sh"
+        ;;
+    *)
+        echo -e "${RED}[!] Unsupported Distro: $ID${NC}"
+        echo "Please report issues at: https://github.com/mell-o-tron/MellOs/issues"
+        exit 1
+        ;;
+esac
+# 3. Execution Phase
+if [ -f "$TARGET_SCRIPT" ]; then
+    echo -e "${BLUE}==> Detected Distro: ${BOLD}$ID${NC}"
+    echo -e "${BLUE}==> Launching: $(basename "$TARGET_SCRIPT")${NC}"
+    
+    # Source the script (runs in current shell context)
+    . "$TARGET_SCRIPT"
 else
-    echo "Unsupported distro: $ID"
-    echo "Please file an issue on https://github.com/mell-o-tron/MellOs/issues"
+    echo -e "${RED}[!] Error: Configuration script missing at $TARGET_SCRIPT${NC}"
     exit 1
 fi
