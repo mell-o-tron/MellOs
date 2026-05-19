@@ -58,6 +58,7 @@ shellfunction CMDs[] = {
     #endif
 };
 
+const int TOTAL_COMMANDS = sizeof(CMDs) / sizeof(shellfunction);
 
 void helpCMD(const char* s){
     if(strlen(s) == 0){

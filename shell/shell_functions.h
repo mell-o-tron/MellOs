@@ -11,3 +11,5 @@ typedef struct {
 
 shellfunction* TryGetCMD(char* cmdbuf);
 int GetCMDLength();
+extern shellfunction CMDs[];
+extern const int TOTAL_COMMANDS;

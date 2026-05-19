@@ -18,6 +18,7 @@
 
 #define COMMAND_BUFFER_LENGTH 128
 #define COMMAND_HISTORY_SIZE  32
+#define MAX_COMMANDS 16
 
 char command_buffer[COMMAND_BUFFER_LENGTH];
 uint32_t command_buffer_index = 0;
@@ -45,6 +46,86 @@ void add_filewrite_task(char* str, char* filename, uint32_t len){
     add_to_cbuffer(&shell_tasks, ((uint32_t)len >> 16) & 0xFF, false);
     add_to_cbuffer(&shell_tasks, ((uint32_t)len >> 24) & 0xFF, false);
     
+}
+
+static void swap_ptrs(shellfunction **a, shellfunction **b) {
+    shellfunction *tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+static int partition(shellfunction **matches, int low, int high) {
+    char *pivot = matches[high]->alias;
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (strcmp(matches[j]->alias, pivot) < 0) {
+            i++;
+            swap_ptrs(&matches[i], &matches[j]);
+        }
+    }
+    swap_ptrs(&matches[i + 1], &matches[high]);
+    return i + 1;
+}
+
+static void quicksort(shellfunction **matches, int low, int high) {
+    if (low < high) {
+        int pi = partition(matches, low, high);
+        quicksort(matches, low, pi - 1);
+        quicksort(matches, pi + 1, high);
+    }
+}
+
+static void sort_commands(shellfunction **matches, int count) {
+    if (count <= 1) return;
+    quicksort(matches, 0, count - 1);
+}
+
+static void show_all_commands(void) {
+    kprint("\n");
+    for (int i = 0; i < TOTAL_COMMANDS; i++) {
+        kprint(CMDs[i].alias);
+        kprint("  ");
+    }
+    kprint("\n> ");
+    if (command_buffer_index > 0) {
+        kprint(command_buffer);
+    }
+}
+
+void handle_tab_completion(void) {
+
+    shellfunction* matches[MAX_COMMANDS];
+    int match_count = 0;
+
+    for (int i = 0; i < TOTAL_COMMANDS; i++) {
+        if (string_starts_with(CMDs[i].alias, command_buffer)) {
+            matches[match_count++] = &CMDs[i];
+            if (match_count >= MAX_COMMANDS) break;
+        }
+    }
+
+    if (match_count == 0) return;
+
+    sort_commands(matches, match_count);
+
+    if (match_count == 1) {
+        char* full_cmd = matches[0]->alias;
+        int cmd_len = strlen(full_cmd);
+        eraseCurrentCommand();  
+        memcpy(command_buffer, full_cmd, cmd_len);
+        command_buffer[cmd_len] = '\0';
+        command_buffer_index = cmd_len;
+        kprint(full_cmd);
+    } else {
+        kprint("\n");
+        for (int i = 0; i < match_count; i++) {
+            kprint(matches[i]->alias);
+            kprint("  ");
+        }
+        kprint("\n");
+        refreshShell();
+        kprint(command_buffer);
+    }
 }
 
 void load_shell(){
@@ -81,6 +162,9 @@ void load_shell(){
                     kprint_char(' ', 0);
                     move_cursor_LR(-1);
                 }
+                break;
+            case '\t':
+                handle_tab_completion();
                 break;
 			default:
                 kprint_char(c, 0);
