@@ -197,8 +197,6 @@ extern int top_of_stack ();
 
 void test_task(){
     kprint_col("test task print\n", DEFAULT_COLOUR);
-
-    return;
 }
 
 void task_1(){
@@ -244,7 +242,7 @@ void play_startup_jingle(){
 // char test[0xe749] = {1};
 allocator_t allocator;
 
-extern void main(uint32_t multiboot_tags_addr){
+__attribute__((noreturn)) void main(uint32_t multiboot_tags_addr) {
 #ifdef VGA_VESA
 
     uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
@@ -379,7 +377,5 @@ extern void main(uint32_t multiboot_tags_addr){
 
     load_shell();
     // init_text_editor("test_file");
-
-
-    return;
+    while (1) {}
 }

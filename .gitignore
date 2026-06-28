@@ -22,3 +22,4 @@ build/
 serial.log
 qemu_debug.log
 .gdb_history
+utils/preconf.h

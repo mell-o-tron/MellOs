@@ -18,18 +18,20 @@
 - MacOS
 - Other operating systems as long as they support all the tools you need
 
-### Compiler:
+### Compiler (Toolchain setup):
 You can use either a cross-compiling GCC (you need to build one) or Clang (easier).
+You can pick one of the premade toolchains in `cmake/toolchains/`. We recommend [clang](../cmake/toolchains/mellos-clang.cmake)
+Or you can make your own toolchain based on the premade ones
 
-### Linux Setup
-You will need:
-- CMake (to build)
-- Clang or a cross-compiling GCC (to compile)
-- Qemu (to run the operating system)
-- NASM (assembler)
-- mtools grub libisoburn (to generate the iso with the bootloader)
+### Dependencies
+- Clang/cross-GCC
+- CMake
+- GNU Make/Ninja
+- GRUB with IA-32 support (optional)
+- QEMU (optional)
+- ccache (optional)
 
-### Easy setup:
+### GCC compilation scripts:
 If you are using a Debian or Arch based distro, you can run `setup-linux.sh` in this folder to automatically install all dependencies and to compile a version of GCC that is able to compile the OS. Keep in mind that compiling GCC takes a long time, so either be prepared or use Clang for a faster setup.
 
 **If you're using another distro, you may either use an emulator or make your own script (and make a pull request)**
@@ -42,27 +44,28 @@ Once you have all the necessary dependencies, go into the mellos directory, and 
 ```sh
 mkdir build
 cd build
-cmake <parameters> ..
+cmake -D<parameters> .. -DCMAKE_TOOLCHAIN_FILE=<your-toolchain>
 cmake --build .
 ```
 
 ### CMake parameters
-| Parameter            | Possible Values      | Description                                                                 |
-| -------------------- | -------------------- | --------------------------------------------------------------------------- |
-| `-DCMAKE_BUILD_TYPE` | `Debug`, `Release`   | Sets the build type to Debug for debugging or Release for optimized builds. |
-| `-DUSE_CLANG`        | `ON`, `OFF`          | Enables or disables the use of Clang as the compiler.                       |
-| `-DVGA`              | `TEXT`, `VESA`       | Sets the default video mode to either text mode or VESA graphics mode.      |
-| `-DHRES`             | `<width>`            | Sets the horizontal resolution for VESA mode.                               |
-| `-DVRES`             | `<height>`           | Sets the vertical resolution for VESA mode.                                 |
-| `-DAUDIO_BACKEND`    | `NONE`, `PULSEAUDIO` | Sets the audio backend to use.                                              |
-| `-DMACHINE`          | `PRESARIO`, `OTHER`  | Sets the target machine type.                                               |
+| Parameter          | Possible Values              | Description                                                                 |
+|--------------------|------------------------------|-----------------------------------------------------------------------------|
+| `CMAKE_BUILD_TYPE` | `Debug`, `Release`           | Sets the build type to Debug for debugging or Release for optimized builds. |
+| `VGA`              | `TEXT`, `VESA`               | Sets the default video mode to either text mode or VESA graphics mode.      |
+| `HRES`             | `<width>`                    | Sets the horizontal resolution for VESA mode.                               |
+| `VRES`             | `<height>`                   | Sets the vertical resolution for VESA mode.                                 |
+| `AUDIO_BACKEND`    | `NONE`, `PULSEAUDIO`         | Sets the audio backend to use.                                              |
+| `MACHINE`          | `PRESARIO`, `OTHER`          | Sets the target machine type.                                               |
+| `MARCH_MODE`       | `pentium` ...                | Parameter for compiler's `-march=` and `-mtune`. optional                   |
+| `OPT_LEVEL`        | `0`, `1`, `2`, `3`, `s`, `z` | Optimization level (`-O`), optional                                         |
+| `DSYM_LEVEL`       | `0`, `1`, `2`, `3`           | Debug symbol level (`-g`), optional                                         |
 
-Set this parameters when running the first `cmake` command. Example:
+You can configure the project using the following example:
 
 ```sh
-cmake -DCMAKE_BUILD_TYPE=Release -DUSE_CLANG=ON -DVGA=VESA -DHRES=800 -DVRES=600 -DMACHINE=OTHER ..
+cmake -DCMAKE_BUILD_TYPE=Release -DVGA=VESA -DHRES=800 -DVRES=600 -DMACHINE=OTHER -DOPT_LEVEL=2 -DDSYM_LEVEL=0 -DMARCH_MODE=pentium ..
 ```
-This will build MellOS in release mode, using Clang as the compiler, with VESA graphics mode at 800x600 resolution, targeting a generic machine.
 
 ---
 

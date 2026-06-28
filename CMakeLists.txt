@@ -1,233 +1,33 @@
-cmake_minimum_required(VERSION 3.22)
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 assembler-0.
+# 
+# This file is part of ZXFoundation (TM) and is ported to MellOS.
+#  
+# As part of MellOS, this file can be distributed and/or modified 
+# under the terms of the GNU General Public License as published by the Free 
+# Software Foundation, either version 3 of the License, or (at your option) 
+# any later version.
 
-set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)
-
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_C_COMPILER_WORKS TRUE)        # skip hosted link test
-#set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-
-option(USE_CLANG "Use Clang as the compiler" OFF)
-
-if(USE_CLANG)
-    set(CMAKE_C_COMPILER "clang")
-    set(CMAKE_ASM_NASM_COMPILER "nasm")
-    set(OBJCOPY "llvm-objcopy")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --target=i386-unknown-none-elf -march=i386")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=i386-unknown-none-elf -march=i386")
-    set(CMAKE_LINKER "ld.lld" CACHE FILEPATH "Linker")
-else()
-    # Toolchain (can be overridden by -D on configure)
-    set(I386_PREFIX "/usr/local/i386elfgcc/bin" CACHE PATH "Path prefix where i386-elf tools are installed")
-    set(CMAKE_C_COMPILER    "${I386_PREFIX}/i386-elf-gcc" CACHE FILEPATH "C compiler" FORCE)
-    # We let the gcc driver do the link but still pass linker script via link options
-    set(CMAKE_ASM_NASM_COMPILER "nasm" CACHE FILEPATH "NASM assembler")
-    set(OBJCOPY "${I386_PREFIX}/i386-elf-objcopy" CACHE FILEPATH "objcopy tool")
-endif()
-
+cmake_minimum_required(VERSION 3.0...3.10)
+include(cmake/meta.cmake)
 project(MellOs
- LANGUAGES C ASM_NASM
- HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
+	LANGUAGES C ASM_NASM
+	HOMEPAGE_URL "https://github.com/mell-o-tron/MellOs"
 )
 enable_language(ASM_NASM)
-set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or OTHER")
-set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
-set(HRES "600" CACHE STRING "Horizontal resolution")
-set(VRES "400" CACHE STRING "Vertical resolution")
-set(BPP  "32"   CACHE STRING "Bits per pixel")
-set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
-set(LDSCRIPT, "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" CACHE STRING "Link script")
-set(AUDIO_BACKEND "NONE" CACHE STRING "Audio backend to use: NONE or PULSEAUDIO")
-set(ADDITIONAL_QEMU_FLAGS "" CACHE STRING "Additional flags to pass to QEMU when running")
-#if (VGA STREQUAL "VESA")
-#    add_compile_definitions(VGA_VESA)
-#endif ()
 
-#if (WINDOW_DRAG STREQUAL "BOX")
-#    add_compile_definitions(BOX_WINDOW_DRAG)
-#endif ()
-
-
-# Output directory compatible with Makefile
-set(OUT_BIN_DIR "${CMAKE_BINARY_DIR}/wee_bins")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
-
-# Build flags similar to Makefile
-set(COMMON_DEFS VGA_${VGA} HRES=${HRES} VRES=${VRES} BPP=${BPP} WINDOW_DRAG_${WINDOW_DRAG})
-set(COMMON_DEFS_WITH_D)
-foreach (def ${COMMON_DEFS})
-    list(APPEND COMMON_DEFS_WITH_D "-D${def}")
-endforeach ()
-if (MACHINE STREQUAL "PRESARIO")
-    list(APPEND COMMON_DEFS_WITH_D "-DDISABLE_SSE")
-    set(DISABLE_SSE 1)
-    set(TARGET_CPU "486")
-else ()
-    set(DISABLE_SSE 0)
-    set(TARGET_CPU "qemu32")
-endif()
-#Add audio backend flags to qemu
-if (AUDIO_BACKEND STREQUAL "PULSEAUDIO")
-    list(APPEND ADDITIONAL_QEMU_FLAGS "-audiodev" "pa,id=snd0" "-machine" "pcspk-audiodev=snd0")
-    list(APPEND COMMON_DEFS_WITH_D "-DAUDIO_ENABLED")
-endif()
-list(REMOVE_DUPLICATES COMMON_DEFS_WITH_D)
-
-
-#add_compile_definitions(${COMMON_DEFS})
-
-
-
-# Kernel source files
-file(GLOB_RECURSE KERNEL_C_SRCS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/*.c)
-list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
-list(FILTER KERNEL_C_SRCS EXCLUDE REGEX ".*/external_modules/.*")
-
-set(INC_DIRS)
-# Header files are in same dirs as C files
-list(APPEND INC_DIRS ${CMAKE_SOURCE_DIR})
-# We will move to a "lib" dir for common code
-list(APPEND INC_DIRS ${CMAKE_SOURCE_DIR}/lib)
-list(REMOVE_DUPLICATES INC_DIRS)
-include_directories(${INC_DIRS})
-# Source lists (replicate Makefile selection)
-# C sources: all .c files
-
-set(C_SOURCES ${KERNEL_C_SRCS})
-# NASM setup (32-bit; pass flags as a LIST, not a concatenated string)
-
-
-set(NASM_DEFS
-        -D${VGA}
-        -DHRES=${HRES}
-        -DVRES=${VRES}
-        -DBPP=${BPP}
-)
-
-set(NASM_INCS)
-foreach(d ${INC_DIRS})
-    list(APPEND NASM_INCS -I${d}/)
-endforeach()
-
-# Do NOT set CMAKE_ASM_NASM_FLAGS with a big string; it causes shell splitting
-# set(CMAKE_ASM_NASM_FLAGS "${CMAKE_ASM_NASM_FLAGS} ${NASM_DEFS} ${NASM_INCS}")
-
-# ASM sources
-set(ASM_SOURCES
-        ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
-        ${CMAKE_SOURCE_DIR}/kernel/kernel_entry.asm
-        ${CMAKE_SOURCE_DIR}/processes/processes_asm.asm
-)
-
-add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
-set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
-
-# Apply NASM flags correctly as a list (each arg stays its own token)
-foreach(asm ${ASM_SOURCES})
-    set_source_files_properties(${asm} PROPERTIES
-            COMPILE_OPTIONS "${NASM_DEFS};${NASM_INCS};-w+regsize"
-    )
-endforeach()
-
-get_filename_component(LDSCRIPT "${CMAKE_SOURCE_DIR}/kernel/kernel.ld" ABSOLUTE)
-
-if(USE_CLANG)
-    target_link_options(kernel.elf PRIVATE
-        -T${LDSCRIPT}
-        -nostdlib
-    )
-else()
-    target_link_options(kernel.elf PRIVATE
-        -Wl,-T,${LDSCRIPT}
-        -nostdlib -nodefaultlibs -nostartfiles
-        -Wl,-m,elf_i386
-    )
+if (NOT CMAKE_TOOLCHAIN_FILE)
+	message(FATAL_ERROR "build: no toolchain file specified")
 endif()
 
-# Freestanding kernel style build
-# add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
-target_compile_options(kernel.elf PRIVATE
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<CONFIG:Debug>>>:-O3>
-        $<$<COMPILE_LANGUAGE:C>:-ffreestanding>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:$<BOOL:${USE_CLANG}>>>:-m32>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<NOT:${DISABLE_SSE}>>:-msse>
-        $<$<COMPILE_LANGUAGE:C>:-fno-builtin>
-        $<$<COMPILE_LANGUAGE:C>:-fstack-protector-strong>
-        $<$<COMPILE_LANGUAGE:C>:-fno-pic>
-        $<$<COMPILE_LANGUAGE:C>:-Wall>
-        $<$<COMPILE_LANGUAGE:C>:-Wno-parentheses>
-        $<$<COMPILE_LANGUAGE:C>:-Wno-missing-braces>
-        $<$<COMPILE_LANGUAGE:C>:-Werror=implicit-function-declaration>
-        $<$<COMPILE_LANGUAGE:C>:-Werror=return-type>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-DMELLOS_DEBUG>
-        $<$<COMPILE_LANGUAGE:C>:${COMMON_DEFS_WITH_D}>
-)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/toolchain")
 
-# Create the ISO using grub-mkrescue
-set(ISO_NAME "mellos.iso")
-set(ISO_PATH "${CMAKE_BINARY_DIR}/${ISO_NAME}")
-set(KERNEL_DEST "${CMAKE_BINARY_DIR}/iso/boot/kernel.elf")
-set(GRUB_DIR "${CMAKE_BINARY_DIR}/iso/boot/grub")
-set(TEST_IMG_SOURCE "${CMAKE_SOURCE_DIR}/test_disk.img")
-set(TEST_IMG_BINARY "${CMAKE_BINARY_DIR}/test_disk.img")
-
-add_custom_target(prepare_grub_dir
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${GRUB_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/grub.cfg ${GRUB_DIR}/grub.cfg
-)
-
-# Copy test_disk.img to build dir. Doing this to avoid situations where
-# it is accidentally committed. This behaviour will change in the future
-add_custom_command(
-        OUTPUT ${TEST_IMG_BINARY}
-        COMMAND ${CMAKE_COMMAND} -E copy ${TEST_IMG_SOURCE} ${TEST_IMG_BINARY}
-        COMMENT "Copying test_disk.img to build directory"
-)
-
-add_custom_command(
-        OUTPUT ${ISO_PATH}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${OUT_BIN_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:kernel.elf> ${KERNEL_DEST}
-        COMMAND grub-mkrescue -o ${ISO_PATH} ${CMAKE_BINARY_DIR}/iso
-        DEPENDS kernel.elf prepare_grub_dir
-        VERBATIM
-        COMMENT "Creating bootable ISO with grub-mkrescue"
-)
-add_custom_target(iso ALL DEPENDS ${ISO_PATH})
-add_custom_target(hda ALL DEPENDS ${TEST_IMG_BINARY})
-
-# Debug symbol file equivalent to Makefile's kernel.sym
-add_custom_target(debug_symbols
-        COMMAND ${OBJCOPY} --only-keep-debug $<TARGET_FILE:kernel.elf> ${OUT_BIN_DIR}/kernel.sym
-        DEPENDS kernel.elf
-        COMMENT "Extracting debug symbols to kernel.sym")
-
-# Run targets (mirroring Makefile)
-add_custom_target(run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
-        DEPENDS iso hda
-        USES_TERMINAL
-        COMMENT "Running MellOs in QEMU")
-
-add_custom_target(debug
-        COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -vga std -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
-        DEPENDS iso hda
-        USES_TERMINAL
-        COMMENT "Run QEMU with gdb stub (-s) and std VGA")
-
-add_custom_target(novga_telnet
-        COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -serial telnet:127.0.0.1:4444,server -nographic
-        DEPENDS iso hda
-        USES_TERMINAL
-        COMMENT "Run QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet")
-
-# Helpful: export compile commands (a compile_commands.json will be in build dir)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include(preconf)              # Pre-configuration
+include(dependencies) 		  # Host dependencies
+include(ccache)				  # CCache configuration
+include(configuration) 		  # Build/kernel options
+include(standard)   	      # C Standards
+include(sources)        	  # Core kernel sources
+include(mellos-compile)       # Full kernel compilation
+include(run)       		      # Run targets (mostly post-build targets)
