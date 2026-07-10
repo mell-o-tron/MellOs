@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 4.2)
 
 set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)
 
@@ -75,26 +75,51 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUT_BIN_DIR}")
 # dir)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(MellOs LANGUAGES C ASM_NASM)
+set(GRUB_INSTALL_DIR "" FILEPATH)
+
+if (EXISTS "/usr/local/grub-2_14/lib64/grub/i386-pc")
+    set(GRUB_INSTALL_DIR "/usr/local/grub-2_14/lib64/grub/i386-pc")
+elseif (EXISTS "/usr/share/grub2/i386-pc")
+    set(GRUB_INSTALL_DIR "/usr/share/grub2/i386-pc")
+elseif (EXISTS "/usr/lib/grub/i386-pc")
+    set(GRUB_INSTALL_DIR "/usr/lib/grub/i386-pc")
+endif()
+
+if (GRUB_INSTALL_DIR STREQUAL "")
+    ERROR ("grub dir not found, paths searched:
+    /usr/local/grub-2_14/lib64/grub/i386-pc
+    /usr/share/grub2/i386-pc
+    /usr/lib/grub/i386-pc")
+endif ()
+
+if (NOT EXISTS "${GRUB_INSTALL_DIR}/cdboot.img")
+    ERROR ("${GRUB_INSTALL_DIR}/cdboot.img does not exists, this grub install is not sufficient")
+endif ()
+
+if (NOT EXISTS "${GRUB_INSTALL_DIR}/boot.img")
+    ERROR ("${GRUB_INSTALL_DIR}/boot.img does not exists, this grub install is not sufficient")
+endif ()
+
+project (MellOs LANGUAGES C ASM_NASM)
 # set(MACHINE "OTHER" CACHE STRING "Machine target for the build. PRESARIO or
 # OTHER") set(TESTING "YES" CACHE STRING "Do you want to enable testing at
 # runtime?") set(VGA "VESA" CACHE STRING "Video mode macro VESA or TEXT")
 # set(HRES "600" CACHE STRING "Horizontal resolution") set(VRES "400" CACHE
 # STRING "Vertical resolution") set(BPP  "32"   CACHE STRING "Bits per pixel")
 # set(WINDOW_DRAG, "NORMAL" STRING "NORMAL or BOX")
-set(LDSCRIPT,
+set (LDSCRIPT,
         "${CMAKE_SOURCE_DIR}/kernel/kernel.ld"
         CACHE STRING "Link script")
 
-set(ASM_SOURCES ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
+set (ASM_SOURCES ${CMAKE_SOURCE_DIR}/cpu/gdt/gdt_loader.asm
         ${CMAKE_SOURCE_DIR}/processes/processes_asm.asm)
 
-add_executable(kernel.elf ${C_SOURCES} ${ASM_SOURCES})
+add_executable (kernel.elf ${C_SOURCES} ${ASM_SOURCES})
 
 set(KCONFIG_ROOT ${CMAKE_SOURCE_DIR}/Kconfig)
 set(KCONFIG_BUILD ${CMAKE_BINARY_DIR})
 set(KCONFIG_DOTCONFIG ${KCONFIG_BUILD}/.config)
-set(KCONFIG_HEADERDIR ${KCONFIG_BUILD}/include/generated)
+set(KCONFIG_HEADERDIR ${CMAKE_BINARY_DIR}/include/generated)
 
 set(KCONFIG_AUTOCONF ${KCONFIG_BUILD}/auto.conf)
 set(KCONFIG_HEADER ${KCONFIG_HEADERDIR}/autoconf.h)
@@ -355,8 +380,10 @@ endif()
 # Freestanding kernel style build
 # add '-DCMAKE_BUILD_TYPE=Debug' to your arguments for debug build
 target_compile_options(kernel.elf PRIVATE
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
+        $<$<COMPILE_LANGUAGE:C>:${CONFIG_OPTIMIZATION_LVL}>
+        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:${CONFIG_DEBUG_LVL}>
+        # $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-Og>
+        # $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Debug>>:-g>
         )
 # Freestanding kernel style build add '-DCMAKE_BUILD_TYPE=Debug' to your
 # arguments for debug build
@@ -462,14 +489,14 @@ add_custom_command(
         COMMAND cp ${CMAKE_SOURCE_DIR}/cdpre.cfg /tmp/mellos-cdpre.cfg
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:kernel.elf> ${KERNEL_DEST}
         #COMMAND grub-mkrescue -o ${ISO_PATH} --directory=/usr/lib/grub/i386-pc --install-modules=${GRUB_MODS} ${CMAKE_BINARY_DIR}/iso
-        COMMAND grub-mkimage -O i386-pc
+        COMMAND grub2-mkimage -O i386-pc
                 -o /tmp/mellos-core-cd.img
                 -p "(cd0)/boot/grub"
                 -c /tmp/mellos-cdpre.cfg
                 ${GRUB_MODS} "iso9660"
 
 
-        COMMAND cat /usr/lib/grub/i386-pc/cdboot.img /tmp/mellos-core-cd.img > ${ISO_ROOT}/eltorito.img
+        COMMAND cat ${GRUB_INSTALL_DIR}/cdboot.img /tmp/mellos-core-cd.img > ${ISO_ROOT}/eltorito.img
         COMMAND ${CMAKE_COMMAND} -E chdir ${ISO_ROOT}
                 xorriso -as mkisofs
                 -o ${ISO_PATH}
@@ -491,7 +518,7 @@ add_custom_command(
         COMMAND cp ${CMAKE_SOURCE_DIR}/fdpre.cfg /tmp/mellos-fdpre.cfg
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:kernel.elf> ${FD_KERNEL_DEST}
 
-        COMMAND grub-mkimage -O i386-pc
+        COMMAND grub2-mkimage -O i386-pc
                 -o /tmp/mellos-core-floppy.img
                 -p "(fd0)/boot/grub"
                 -c /tmp/mellos-fdpre.cfg
@@ -506,7 +533,7 @@ add_custom_command(
         COMMAND mcopy -i ${FD_PATH} ${FD_ISO_ROOT}/boot/kernel.elf ::/boot/kernel.elf
         # todo: add build options for grub with normal mode/ stripped down grub
         # COMMAND mcopy -i ${FD_PATH} ${FD_ISO_ROOT}/boot/grub/grub.cfg ::/boot/grub/grub.cfg
-        COMMAND dd if=/usr/lib/grub/i386-pc/boot.img of=mellos.fd conv=notrunc
+        COMMAND dd if=${GRUB_INSTALL_DIR}/boot.img of=mellos.fd conv=notrunc
         COMMAND dd if=/tmp/mellos-core-floppy.img of=mellos.fd bs=512 seek=1 conv=notrunc
 
 
@@ -527,7 +554,8 @@ add_custom_target(
         COMMENT "Extracting debug symbols to kernel.sym")
 
 # Run targets (mirroring Makefile)
-add_custom_target(run
+add_custom_target(
+        run
         COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
         DEPENDS iso hda
         USES_TERMINAL
@@ -545,8 +573,9 @@ add_custom_target(
 add_custom_target(
         novga_telnet
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -serial telnet:127.0.0.1:4444,server -nographic
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -s -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -serial telnet:127.0.0.1:4444,server,nowait -serial stdio -nographic
         DEPENDS iso hda
         USES_TERMINAL
-        COMMENT "Running QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet"
+        COMMENT "Running QEMU with gdb stub (-s), no VGA, and bind UART I/O to telnet and stdout.
+        To connect, run 'telnet localhost 4444' in a new terminal."
 )

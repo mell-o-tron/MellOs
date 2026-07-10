@@ -1,12 +1,13 @@
 /// MellOS - mem.c (32-bit port)
 /// Ported from 64-bit version by assembler-0
 /// Public domain as of 05-10-25 (dd-mm-yy)
-#include "mem.h"
+#include "string.h"
 #include "autoconf.h"
 #include "cpu/cpuid.h"
 #include "cpu/irq.h"
 #include "stddef.h"
 #include "stdint.h"
+#include "mem.h"
 
 #define _full_mem_prot_start()                                                                     \
 	{                                                                                              \
@@ -53,15 +54,15 @@ __attribute__((section(".low.text"))) void* memset(void* dest, int value, size_t
 		}
 	} else {
 #endif
-		// if (size >= 4) {
-		// 	uint32_t val32 = 0x01010101UL * val;
-		//
-		// 	while (size >= 4 && ((uintptr_t)dest_low8 & 3) == 0) {
-		// 		*(uint32_t*)dest_low8 = val32;
-		// 		dest_low8 += 4;
-		// 		size -= 4;
-		// 	}
-		// }
+		if (size >= 4) {
+			uint32_t val32 = 0x01010101UL * val;
+
+			while (size >= 4 && ((uintptr_t)dest_low8 & 3) == 0) {
+				*(uint32_t*)dest_low8 = val32;
+				dest_low8 += 4;
+				size -= 4;
+			}
+		}
 #ifdef CONFIG_CPU_FEAT_SSE2
 	}
 #endif
