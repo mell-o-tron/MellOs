@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "fdef.h"
 #include "mellos/block_device.h"
 #include "mellos/fs.h"
@@ -6,10 +7,19 @@
 #include "dynamic_mem.h"
 #include "mellos/kernel/mount_manager.h"
 #include "shell/shell.h"
+#include "stddef.h"
 
 FDEF(ls) {
 	kprintf("searching directory: %s\n", s);
-	kprintf("todo: implement\n");
+
+	inode_t* workdir = get_working_dir();
+	inode_t** ret = NULL;
+	workdir->ops->lookup(workdir, NULL, &ret);
+	for (int i = 0; ret[i] != NULL; i++) {
+		kprintf("%x %s", ret[i]->mode, ret[i]->dentry->name);
+        workdir->sb->ops->destroy_inode(ret[i]);
+	}
+	kfree(ret);
 }
 
 bool filter(vfs_mount_t* m) {
@@ -39,10 +49,7 @@ bool filter(vfs_mount_t* m) {
 void print_nodes_for(const block_device_t* bd) {
 
 	const linked_list_t* list = get_block_devices();
-	if (list == NULL) {
-		kfprintf(kstderr, "lsblk: get_mounts() is null!\n");
-		return;
-	}
+	kassert(list);
 
 	const list_node_t* node = list->head;
 	while (node) {
@@ -70,7 +77,7 @@ void print_nodes_for(const block_device_t* bd) {
 
 			kprintf("%s%s %s %s %u %s\n", "|-->", it->name, "part",
 			        it->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
-			        RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS, mnt->root->dentry);
+			        RAMFS_BLOCK_SIZE * RAMFS_MAX_BLOCKS, mnt->root->dentry->name);
 		}
 		node = node->next;
 	}
@@ -103,11 +110,9 @@ FDEF(lsblk) {
 			char* mount_point = NULL;
 			if (mnt != NULL) {
 				mount_point = mnt->root->dentry->name;
-			} else {
-				mount_point = "";
 			}
 
-			kprintf("%s%s %s %s %u %s\n", "", bd->name,
+			kprintf("%s %s %s %u %s\n", bd->name,
 		        "disk", bd->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
 		        bd->logical_block_size * bd->num_blocks, mount_point);
 		} else {
@@ -137,7 +142,7 @@ FDEF(cd) {
 	}
 	inode_t* inode = get_inode_from_path_relative(get_root_mount()->root, s);
 	if (!inode) {
-		kprintf("cd: directory not found");
+		kprintf("cd: directory not found\n");
 		return;
 	}
 	set_working_dir(inode);

@@ -38,7 +38,7 @@ int rebuild_path(inode_t* inode, char** buffer) {
 inode_t* get_inode_from_path_relative(inode_t* inode, const char* path) {
 
 	size_t offset = 0;
-	inode_t* tmp_inode;
+	inode_t** tmp_inode;
 	if (path[offset] != '/') {
 		kfprintf(kstderr, "Path must start with \"/\"!\n");
 		return NULL;
@@ -50,7 +50,7 @@ inode_t* get_inode_from_path_relative(inode_t* inode, const char* path) {
 			collected[offset] = '\0';
 
 			inode->ops->lookup(inode, collected, &tmp_inode);
-			inode = tmp_inode;
+			inode = *tmp_inode;
 			if (inode == NULL) {
 				kfree(collected);
 				kfree(tmp_inode);
@@ -69,7 +69,7 @@ inode_t* get_inode_from_path_relative(inode_t* inode, const char* path) {
 				return NULL;
 			}
 			inode->ops->lookup(inode, collected, &tmp_inode);
-			inode = tmp_inode;
+			inode = *tmp_inode;
 			kfree(collected);
 			return inode;
 		}

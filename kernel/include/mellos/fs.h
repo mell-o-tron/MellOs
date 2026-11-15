@@ -113,7 +113,7 @@ typedef struct {
 	/**
 	 * Reads a directory
 	 */
-	int (*lookup)(inode_t* dir, const char* name, inode_t** out);
+	int (*lookup)(inode_t* dir, const char* name, inode_t*** out);
 	/**
 	 * Creates a file. Use mkdir for directories.
 	 * This should return EINVAL if mode & S_IFDIR

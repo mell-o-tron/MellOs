@@ -69,8 +69,7 @@ char* kstr_decapitate(char* s, uint32_t n) {
 char* kstrdup(const char* s) {
 	if (s == NULL)
 		return NULL;
-	// fixme: libc-side malloc
-	char* res = kmalloc(kstrlen(s));
+	char* res = kzalloc(kstrlen(s));
 	kmemcpy(res, s, kstrlen(s));
 
 	return res;

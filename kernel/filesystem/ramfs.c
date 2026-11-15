@@ -229,7 +229,8 @@ int ramfs_unmount(superblock_t* sb) {
 	return -ENOSYS;
 }
 
-int ramfs_lookup(inode_t* dir, const char* name, inode_t** out) {
+// TODO: add support for name = NULL, retrieving all files
+int ramfs_lookup(inode_t* dir, const char* name, inode_t*** out) {
 	if (!(dir->mode & S_IRUSR)) {
 		return -EACCES;
 	}
@@ -244,7 +245,7 @@ int ramfs_lookup(inode_t* dir, const char* name, inode_t** out) {
 		for (uint32_t i = directory->count; i > 0; i--) {
 			if (!kstrcmp(directory->entries[directory->count].name, name)) {
 				if (directory->entries[directory->count].vnode->mode & S_IRUSR) {
-					*out = directory->entries[directory->count].vnode;
+					*out[0] = directory->entries[directory->count].vnode;
 					return 0;
 				} else {
 					return -EACCES;

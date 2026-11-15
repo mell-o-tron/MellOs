@@ -8,7 +8,7 @@ int ramfs_create_file(inode_t* dir, const char* name, uint32_t mode, inode_t** o
 /**
  * Reads a directory
  */
-int ramfs_lookup(inode_t* dir, const char* name, inode_t** out);
+int ramfs_lookup(inode_t* dir, const char* name, inode_t*** out);
 int ramfs_mkdir(inode_t* dir, const char* name, uint32_t mode);
 int ramfs_unlink(inode_t* dir, const char* name);
 int ramfs_readlink(inode_t* vn, char* buf, size_t size);

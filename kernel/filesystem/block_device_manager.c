@@ -28,14 +28,14 @@ extern vfs_mount_t* root_mnt;
 
 int create_partition_device(block_device_t* parent, int index, uint64_t start_lba,
                             uint64_t num_sectors, uint8_t type) {
-	partition_t* p = kmalloc(sizeof(partition_t));
+	partition_t* p = kzalloc(sizeof(partition_t));
 	p->parent = parent;
 	p->start_lba = start_lba;
 	p->num_sectors = num_sectors;
 
-	block_device_t* dev = kmalloc(sizeof(block_device_t));
+	block_device_t* dev = kzalloc(sizeof(block_device_t));
 	// todo: dynamic strings
-	dev->name = kmalloc(25);
+	dev->name = kzalloc(25);
 	p->parent = dev;
 
 	if (parent->driver_data == NULL) {
@@ -63,7 +63,7 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
 	dev->logical_block_size = parent->logical_block_size;
 	dev->start_lba = p->start_lba;
 	dev->num_blocks = num_sectors;
-	dev->ops = kmalloc(sizeof(block_device_ops));
+	dev->ops = kzalloc(sizeof(block_device_ops));
 	dev->flags |= BLOCK_DEVICE_FLAG_PARTITION;
 	dev->parent = parent;
 	dev->ops->read_blocks = &part_read;
@@ -99,6 +99,7 @@ block_device_t* register_disk(disk_info_t* diskinfo) {
 	block_device->ops->read_blocks = &atapi_read;
 	block_device->ops->write_blocks = &atapi_write;
 	block_device->ops->flush = &atapi_flush;
+	bdev_register(block_device);
 
 	return block_device;
 }
@@ -149,6 +150,7 @@ int bdev_initialize_blockdevices() {
 	root_sb->ops = fat_get_super_ops();
 	root_sb->fs = fat_get_fs_type();
 	root_mnt = mount(root_sb, root_bd, "/");
+	kfree(mbr);
 
 	kassert_msg(root_mnt != NULL, "root_mnt is NULL");
 

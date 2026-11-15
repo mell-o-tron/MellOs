@@ -18,7 +18,7 @@ typedef struct {
 } fat12_file_t;
 
 typedef struct {
-	uint8_t name[11];
+	char name[11];
 	uint8_t attributes;
 	uint8_t reserver_for_win_nt;
 	// 100ths of a second, windows 7 stores 0-199 in this
@@ -42,7 +42,7 @@ typedef struct {
 
 
 uint16_t fat12_get_next_cluster(superblock_t* fs, uint16_t active_cluster, uint32_t first_fat_sector, uint32_t sector_size);
-int fat12_lookup(inode_t* dir, const char* name, inode_t** out);
+int fat12_lookup(inode_t* dir, const char* name, inode_t*** out);
 int fat12_create(inode_t* dir, const char* name, uint32_t type, inode_t** out);
 int fat12_mkdir(inode_t* dir, const char* name, uint32_t type);
 inode_t* fat12_allocate_inode(superblock_t* superblock);

@@ -60,15 +60,14 @@ void add_filewrite_task(char* str, char* filename, uint32_t len) {
 void load_shell() {
 	if (get_root_mount() == NULL) {
 		kfprintf(kstderr, "root mount is null");
-
 		kpanic_message("root mount is null");
 	} else {
-		current_dir = get_root_mount()->root;
+		current_dir = get_root_mount()->sb->root;
 	}
 
 	refresh_shell();
 	shell_tasks.size = 1000;
-	shell_tasks.array = kmalloc(shell_tasks.size);
+	shell_tasks.array = kzalloc(shell_tasks.size);
 	shell_tasks.top = 0;
 	shell_tasks.bot = 0;
 

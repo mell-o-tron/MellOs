@@ -48,11 +48,11 @@ inode_ops_t fat12_inode_ops = {
 
 inode_t* fat12_allocate_inode(superblock_t* superblock) {
 	// FIXME this should actually set these
-	inode_t* inode = kmalloc(sizeof(inode_t));
+	inode_t* inode = kzalloc(sizeof(inode_t));
 	inode->fops = &fat12_file_ops;
 	inode->ops = &fat12_inode_ops;
 	inode->sb = superblock;
-	inode->private = kmalloc(sizeof(fat12_inode_t));
+	inode->private = kzalloc(sizeof(fat12_inode_t));
 	return inode;
 }
 
