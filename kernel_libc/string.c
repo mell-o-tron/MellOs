@@ -7,6 +7,7 @@
 
 #include "assert.h"
 #include "dynamic_mem.h"
+#include "kernel_stdio.h"
 #include "stddef.h"
 #include "string.h"
 
@@ -64,6 +65,15 @@ char* kstr_decapitate(char* s, uint32_t n) {
 	}
 
 	return res;
+}
+
+char* kstrchr(const char* s, const char f) {
+	for (char* i = (char*)s; *i != '\0'; i++) {
+		if (*i == f) {
+			return i;
+		}
+	}
+	return NULL;
 }
 
 char* kstrdup(const char* s) {

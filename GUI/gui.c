@@ -8,7 +8,7 @@
 
 Window* create_window(const char* title){
     Framebuffer* fb = allocate_full_screen_framebuffer();
-    assert(fb != NULL);
+    kassert(fb != NULL);
     return create_window_with_fb(fb, title);
 }
 
@@ -21,7 +21,7 @@ Window* create_window(const char* title){
  */
 Window* create_window_with_size(const char* title, uint32_t width, uint32_t height){
     Framebuffer* fb = allocate_framebuffer(width, height, CONFIG_GFX_BPP);
-    assert(fb != NULL);
+    kassert(fb != NULL);
     return create_window_with_fb(fb, title);
 }
 

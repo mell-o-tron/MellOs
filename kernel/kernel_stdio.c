@@ -185,7 +185,8 @@ static int32_t write_to_stream(file_t* __restrict stream, const char* __restrict
 	}
 
 	WriteUnlock(&stream->lock);
-	kprint_col((char*)s, DEFAULT_COLOUR);
+	kprint_col("Tried to write to stream but stream does not exist or is broken.\n", ERROR_COLOUR);
+	kprint_col((char*)s, ERROR_COLOUR);
 	return (int32_t)len;
 }
 
@@ -196,17 +197,26 @@ int32_t kfputs(const char* __restrict s, file_t* __restrict stream) {
 	const uint32_t len = kstrlen(s);
 	return write_to_stream(stream, s, len);
 }
+// TODO: Calculate buffer length from format string + args instead of using fixed size buffer
+__attribute__((format(printf, 2, 3))) int32_t kfprintf(file_t* stream, const char* fmt, ...) {
+	char buf[512];
+	va_list args;
+	va_start(args, fmt);
 
-int32_t kfprintf(file_t* stream, const char* format, ...) {
-	va_list va;
-	va_start(va, format);
-	char buf[256];
-	const int rval = kvsnprintf(buf, sizeof buf, format, va);
-	va_end(va);
-	if (rval <= 0)
-		return rval;
-	return write_to_stream(stream, buf, (uint32_t)rval);
+	kvsnprintf(buf, sizeof(buf), fmt, args);
+	va_end(args);
+	return kfputs(buf, stream);
 }
+/* int32_t kfprintf(file_t* stream, const char* format, ...) { */
+/* 	va_list va; */
+/* 	va_start(va, format); */
+/* 	char buf[256]; */
+/* 	const int rval = kvsnprintf(buf, sizeof buf, format, va); */
+/* 	va_end(va); */
+/* 	if (rval <= 0) */
+/* 		return rval; */
+/* 	return write_to_stream(stream, buf, (uint32_t)rval); */
+/* } */
 extern file_t* kstdout;
 int32_t kputs(const char* s) {
 	return kfputs(s, kstdout);

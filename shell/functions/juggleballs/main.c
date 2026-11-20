@@ -1,5 +1,6 @@
 #include "autoconf.h"
 #ifdef CONFIG_GFX_VESA
+#include "kernel_stdio.h"
 #include "includes.h"
 
 typedef float float_16_arr[16];
@@ -349,7 +350,7 @@ void jb_juggle(Sphere* sphere, int ticks) {
 void jb_main();
 void jb_juggle_balls(char* s) {
     if (!_vell_is_active()) {
-        printf("You need to run vell\n");
+        kprintf("You need to run vell\n");
         return;
     }
     //fixme: make a separate shell process, add it here, connect pipes

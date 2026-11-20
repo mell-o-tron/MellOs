@@ -248,19 +248,18 @@ ssize_t part_read(block_device_t* dev, uint64_t lba, size_t count, void* buffer)
 	kassert(part != NULL)
 	kassert(buffer != NULL);
 	kassert(count > 0);
-	if (lba + count > lba + part->num_sectors) {
-		return -1; // EIO
-	}
+	if (lba + count > part->start_lba + part->num_sectors || lba < part->start_lba)
+		return -1;
 
-	return dev->parent->ops->read_blocks(part->parent, lba, count, buffer);
+	return dev->parent->ops->read_blocks(dev->parent, lba, count, buffer);
 }
 
 ssize_t part_write(block_device_t* dev, uint64_t lba, size_t count, const void* buffer) {
 	const partition_t* part = dev->driver_data;
 	kassert(buffer != NULL);
 	kassert(count > 0);
-	if (lba + count > part->num_sectors)
+	if (lba + count > part->start_lba + part->num_sectors || lba < part->start_lba)
 		return -1;
 
-	return part->parent->ops->write_blocks(part->parent, lba, count, buffer);
+	return dev->parent->ops->write_blocks(dev->parent, lba, count, buffer);
 }

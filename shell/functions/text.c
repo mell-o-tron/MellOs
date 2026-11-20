@@ -1,19 +1,20 @@
 #include "autoconf.h"
+#include "shell/shell.h"
+#include "kernel_stdio.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
 #include "colours.h"
-#define FDEF(name) void name(const char* s)
+#include "fdef.h"
 
 extern uint16_t cursor_pos;
 
 extern char ker_tty[4000];
 
 FDEF(echo){
-    kprint(s+1); // +1 bc skip whitespace
-    kprint("\n");
+    kprintf("%s\n", s);
 }
 
 FDEF(clear){
@@ -22,5 +23,6 @@ FDEF(clear){
     #else
     clear_screen_col(DEFAULT_COLOUR);
     #endif
-    set_cursor_pos_raw(0);
+	set_cursor_pos_raw(0);
+	refresh_shell();
 }

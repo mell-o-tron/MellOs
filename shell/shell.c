@@ -193,16 +193,50 @@ void parseCommand() {
 	if (command_buffer[0] == 0) {
 		;
 	} else {
-		shellfunction* cmd = TryGetCMD(command_buffer);
-		if (cmd != 0) {
-			// execute command
-			cmd->fptr(kstr_decapitate(command_buffer, kstrlen(cmd->alias)));
+		char* ptr = kstrchr(command_buffer, ' ');
+
+		shellfunction* cmd = NULL;
+		char* buffer_copy = NULL;
+		size_t space_offset;
+		if (ptr != NULL) {
+			space_offset = ptr - command_buffer;
+			if (space_offset <= 0) {
+				kfprintf(kstderr, "Invalid first character");
+				kfree(buffer_copy);
+				goto exit;
+			}
+
+			buffer_copy = kstrdup(command_buffer);
+			// TODO: static buffer copy instance for each shell instance so no need to allocate each
+			// time we parse a new command
+			buffer_copy[space_offset] = '\0';
+			cmd = TryGetCMD(buffer_copy);
+			if (cmd == NULL) {
+				kprintf("Command not found: %s\n", buffer_copy);
+				kfree(buffer_copy);
+				goto exit;
+			}
 		} else {
-			kprint("\"");
-			kprint(command_buffer);
-			kprint("\" is not a command\n");
+
+			cmd = TryGetCMD(command_buffer);
+			if (cmd == NULL) {
+				kprintf("Command not found: %s\n", command_buffer);
+				goto exit;
+			}
+		}
+		// execute command
+
+
+		if (buffer_copy == NULL) {
+			cmd->fptr("");
+		} else {
+			cmd->fptr(&(buffer_copy[space_offset + 1]));
+		}
+		if (buffer_copy != NULL) {
+			kfree(buffer_copy);
 		}
 	}
+exit:
 
 	// SetCursorPosRaw(1920);
 	refresh_shell();

@@ -8,8 +8,8 @@
 
 #include "colours.h"
 #include "dynamic_mem.h"
-#include "mem.h"
 #include "stdint.h"
+#include "string.h"
 #include "test_font.h"
 #include "vesa.h"
 

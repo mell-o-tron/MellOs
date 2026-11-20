@@ -1,3 +1,4 @@
+#include "mellos/kernel/kernel.h"
 #include "mellos/kernel/streams.h"
 #include "kernel_stdio.h"
 #include "autoconf.h"
@@ -28,13 +29,18 @@ ssize_t stdout_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 		return -EINVAL;
 	}
 
-	char *buffer = kmalloc(size + 1);
+	char* buffer = kmalloc(size + 1);
+	if (!buffer) {
+		//kpanic_message("Unable to allocate memory!");
+		return -ENOMEM;
+	}
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
 	buffer[size] = 0;
 
 	kprint_col(buffer, DEFAULT_COLOUR);
+	kfree(buffer);
 	return size;
 }
 
@@ -44,13 +50,18 @@ ssize_t stderr_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 		return -EINVAL;
 	}
 
-	char *buffer = kmalloc(size + 1);
+	char* buffer = kmalloc(size + 1);
+	if (!buffer) {
+		// kpanic_message("Unable to allocate memory!");
+		return -ENOMEM;
+	}
 	for (int i = 0; i < size; i++) {
 		buffer[i] = ((char*)buf)[i];
 	}
 	buffer[size] = 0;
 
 	kprint_col(buffer, ERROR_COLOUR);
+	kfree(buffer);
 	return size;
 }
 
@@ -93,9 +104,14 @@ stream_ops_t kernel_stdin_streamops = {
 
 void init_stdio_files() {
 	kstdin = kmalloc(sizeof(file_t));
-	kstdout = kmalloc(sizeof(file_t));
-	kstderr = kmalloc(sizeof(file_t));
 	kassert_msg(kstdin, "kstdin is null");
-	kassert_msg(kstderr, "kstderr is null");
+	kstdin->ops = &stdin_fops;
+
+	kstdout = kmalloc(sizeof(file_t));
 	kassert_msg(kstdout, "kstdout is null");
+	kstdout->ops = &stdout_fops;
+
+	kstderr = kmalloc(sizeof(file_t));
+	kassert_msg(kstderr, "kstderr is null");
+	kstderr->ops = &stderr_fops;
 }

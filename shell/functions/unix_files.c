@@ -1,13 +1,49 @@
 #include "assert.h"
 #include "fdef.h"
+#include "kernel_stdio.h"
 #include "mellos/block_device.h"
 #include "mellos/fs.h"
-#include "kernel_stdio.h"
 
 #include "dynamic_mem.h"
 #include "mellos/kernel/mount_manager.h"
 #include "shell/shell.h"
 #include "stddef.h"
+#include "string.h"
+
+FDEF(mkdir) {
+	if (kstrlen(s) == 0) {
+		kfprintf(kstderr, "Unable to create directory with empty name\n");
+		return;
+	}
+	kprintf("Creating directory: %s\n", s);
+	inode_t* workdir = get_working_dir();
+	inode_t** created_file = NULL;
+
+	workdir->ops->lookup(workdir, s, &created_file);
+	if (*created_file != NULL) {
+
+		kfprintf(kstderr, "File already exists!\n");
+		return;
+	}
+
+	// TODO: preprocess the string so we pass the parent dir correctly
+	// drwxr-xr-x
+	int ret = workdir->ops->mkdir(
+	    workdir, s, S_IFDIR | S_IRUSR | S_IXUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+
+	if (ret < 0) {
+		kfprintf(kstderr, "Unable to create directory!\n");
+		return;
+	}
+
+	workdir->ops->lookup(workdir, s, &created_file);
+	if (created_file == NULL) {
+		kfprintf(kstderr, "Could not create directory!\n");
+		return;
+	}
+	// this frees the pointer, not the inode which is now in use
+	kfree(created_file);
+}
 
 FDEF(ls) {
 	kprintf("searching directory: %s\n", s);
@@ -17,7 +53,7 @@ FDEF(ls) {
 	workdir->ops->lookup(workdir, NULL, &ret);
 	for (int i = 0; ret[i] != NULL; i++) {
 		kprintf("%x %s", ret[i]->mode, ret[i]->dentry->name);
-        workdir->sb->ops->destroy_inode(ret[i]);
+		workdir->sb->ops->destroy_inode(ret[i]);
 	}
 	kfree(ret);
 }
@@ -112,9 +148,9 @@ FDEF(lsblk) {
 				mount_point = mnt->root->dentry->name;
 			}
 
-			kprintf("%s %s %s %u %s\n", bd->name,
-		        "disk", bd->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
-		        bd->logical_block_size * bd->num_blocks, mount_point);
+			kprintf("%s %s %s %u %s\n", bd->name, "disk",
+			        bd->flags & BLOCK_DEVICE_FLAG_READ_ONLY ? "true" : "false",
+			        bd->logical_block_size * bd->num_blocks, mount_point);
 		} else {
 			print_nodes_for(bd);
 		}
@@ -140,11 +176,16 @@ FDEF(cd) {
 		kprintf("cd: this is going to change in the future.\n");
 		return;
 	}
-	inode_t* inode = get_inode_from_path_relative(get_root_mount()->root, s);
+	inode_t* inode = NULL;
+	if (kstrcmp(s, "/") == 0) {
+		inode = get_root_mount()->root;
+		goto set_dir;
+	}
+	inode = get_inode_from_path_relative(get_root_mount()->root, s);
 	if (!inode) {
 		kprintf("cd: directory not found\n");
 		return;
 	}
+set_dir:
 	set_working_dir(inode);
-	refresh_shell();
 }

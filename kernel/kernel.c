@@ -380,8 +380,10 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	//init_kernel_devices();
 	init_stdio_files();
 	init_fs_registry();
-	//bdev_initialize_blockdevices();
+	// bdev_initialize_blockdevices();
+
 	dentry_manager_init();
+
 	kassert_msg(init_vfs(param_get_address("root")) == 0, "vfs did not initialize correctly");
 	kassert(get_root_mount());
 	kassert(get_proc_mount());

@@ -10,8 +10,8 @@
 #include "dynamic_mem.h"
 #include "gui.h"
 #include "vterm.h"
+#include "kernel_stdio.h"
 #include "mouse_handler.h"
-#include "mellos/kernel/kernel_stdio.h"
 #include "mellos/kernel/kernel.h"
 
 static CircularList* windows = NULL;

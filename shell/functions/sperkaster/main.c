@@ -1,6 +1,7 @@
 #include "autoconf.h"
 #ifdef CONFIG_GFX_VESA
 #include "includes.h"
+#include "kernel_stdio.h"
 
 typedef struct tup_Vec3__bool_le tup_Vec3__bool_le;
 typedef float float_16_arr[16];
@@ -648,7 +649,7 @@ void sperkaster(char* s) {
                             } else {
 
                             }
-                            printf("%d ticks rendered\n", ticks);
+                            kprintf("%d ticks rendered\n", ticks);
                             ticks = 0;
                             return;
                         } else {

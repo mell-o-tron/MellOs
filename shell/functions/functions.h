@@ -26,6 +26,7 @@ FHDR(rmfile);
 FHDR(erase_files);
 
 // unix_files.c
+FHDR(mkdir);
 FHDR(ls);
 FHDR(lsblk);
 FHDR(pwd);

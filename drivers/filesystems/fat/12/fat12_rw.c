@@ -11,7 +11,9 @@
 #include "mellos/fs.h"
 #include "mellos/kernel/dentry.h"
 #include "mellos/kernel/kernel.h"
+#include "mellos/kernel/mount_manager.h"
 #include "rtc.h"
+#include "shell/shell.h"
 #include "string.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -213,20 +215,86 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t*** out) {
 	return -ENOENT;
 }
 
+// TODO: Move path processing to unix_files.c and later to userspace
 int fat12_mkdir(inode_t* parent, const char* name, uint32_t type) {
 	if (!(type & S_IFDIR)) {
 		return -EINVAL;
 	}
+
+	fat_driver_data_t* fs = parent->sb->private;
+	fat12_inode_t* fin = parent->private;
+
+	bool is_root = false;
+	bool relative = false;
+
+	if (name[0] != '/') {
+		relative = true;
+	}
+
+	size_t slashes = 0;
+
+	for (int i = 0; i != '\0'; i++) {
+
+		if (name[i] == '/') {
+			slashes++;
+		}
+	}
+
+	// slashes = 0 means this is also a relative path
+	if (slashes == 0) {
+		if (parent == get_root_mount()->root) {
+			is_root = true;
+		}
+	}
+
+	uint32_t sector = 0;
+	uint16_t max_entries = 0;
+
+
+	char buf[512];
+
+
+	uint32_t ents_per_sec = fs->bfb->bytes_per_sector / 32;
+
+	if (is_root) {
+		sector = fs->first_data_sector - fs->root_dir_sectors; // first_root_sector
+		max_entries = fs->bfb->root_entry_count;
+	} else {
+		uint32_t cluster = fin->first_cluster;
+
+		while (is_cluster_valid(cluster)) {
+			uint32_t first_sector = cluster_first_sector(fs, cluster);
+
+			for (uint8_t s = 0; s < fs->bfb->sectors_per_cluster; s++) {
+				uint32_t sec = first_sector + s;
+				parent->sb->bd->ops->read_blocks(parent->sb->bd, sec, 1, buf);
+
+				for (uint32_t i = 0; i < ents_per_sec; i++) {
+
+					// same Name[0] / Attr logic as above
+					// but here, 0x00 also means "end of directory", so you can
+					// early-return -ENOENT
+				}
+			}
+
+			// TODO: is the 3rd argument really supposed to be fs->bfb->reserved_sector_count? i'm not sure but i will not think about it right now
+			cluster = fat12_get_next_cluster(parent->sb, cluster, fs->bfb->reserved_sector_count,
+			                                 fs->bfb->bytes_per_sector);
+		}
+		return -ENOENT;
+	}
 	inode_t* inode = parent->sb->ops->allocate_inode(parent->sb);
 	dentry_t* de = kzalloc(sizeof(dentry_t));
-	dentry_init(de, inode, name);
+	dentry_init(de, inode, (char*)name);
     de->inode = inode;
 	inode->parent = parent;
 	inode->mode = type;
 
 	fat12_dir_entry_t* direntry = kzalloc(sizeof(fat12_dir_entry_t));
 	char* strc = kstrdup(name);
-	drop_after_last('/', strc, false);
+	/* if (kstrchr(name, '/') != NULL) { */
+	/* 	drop_after_last('/', strc, false); */
+	/* } */
 	// we could theoretically have a thread conflict here and leave a dangling inode/dentry
 	if (kstrlen(strc) > 10) {
 		ERR("Unable to create file, file name too long.");
@@ -235,10 +303,10 @@ int fat12_mkdir(inode_t* parent, const char* name, uint32_t type) {
 		return -1;
     }
 	kstrcpy(direntry->name, strc);
-    kfree(strc);
+	kfree(strc);
 
-	int blocks_written = parent->sb->bd->ops->write_blocks(parent->sb->bd,get_first_available_cluster(parent->sb, 3, parent->sb->block_size), sizeof(fat12_dir_entry_t), direntry);
 
+	int blocks_written = parent->sb->bd->ops->write_blocks(parent->sb->bd, parent->sb->bd->start_lba, sizeof(fat12_dir_entry_t), direntry);
     return blocks_written;
 }
 

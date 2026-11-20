@@ -13,6 +13,7 @@ char* kstrcpy(char* strDest, const char* strSrc);
 _Bool kstring_starts_with(char* s, char* prefix);
 char* kstr_decapitate(char* s, uint32_t n);
 char* kstrdup(const char* s);
+char* kstrchr(const char* s, const char f);
 char* drop_after(char delimiter, char* s, _Bool include);
 char* drop_after_last(char delimiter, char* s, _Bool include);
 int kmemcmp(const void* s1, const void* s2, size_t n);
