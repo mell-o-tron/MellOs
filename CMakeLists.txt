@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 4.0)
 
 set(CMAKE_ASM_NASM_OBJECT_FORMAT elf)
 
