@@ -11,12 +11,25 @@ typedef struct task_state {
     void* stack_base;
 } state_t;
 
+typedef enum {
+    PROC_READY,
+    PROC_RUNNING,
+    PROC_BLOCKED,
+    PROC_TERMINATED
+} proc_state_t;
+
 typedef struct process {
-	uint32_t owner;
 	uint32_t pid;
-	int32_t errno;
 	state_t* state;
-	bool must_relinquish;
+    uint32_t * page_directory;
+    bool must_relinquish;
+	uint32_t owner;
+	int32_t errno;
+    uint32_t weight; // D-WRR weight
+    uint32_t quantum_left; // Remaining quantum for this round
+    proc_state_t status;
+	// Future extensibility: resource table, IPC, etc.
+
 	fd_table_t fd_table;
 	size_t open_files_count;
 	struct process* parent;
@@ -27,6 +40,7 @@ typedef struct process {
 	file_t* stdin_device;
 	file_t* stdout_device;
 	file_t* stderr_device;
+
 
 	// todo: implement
 	process_page_list_t* page_list;

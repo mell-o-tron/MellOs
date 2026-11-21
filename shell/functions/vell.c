@@ -13,11 +13,10 @@
 #include "kernel_stdio.h"
 #include "mouse_handler.h"
 #include "mellos/kernel/kernel.h"
+#include "fdef.h"
 
 static CircularList* windows = NULL;
 static Window* mouse_window = NULL;
-
-#define FDEF(name) void name(const char* s)
 
 static Framebuffer* fb;
 static Framebuffer* fb2;

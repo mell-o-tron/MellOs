@@ -80,9 +80,8 @@ void timer_handler(regs_t* r) {
 		}
 	}
 
-	if (timer_ticks % 1 == 0) {
-		scheduler_daemon();
-	}
+    // IRQ-based preemption: forcibly call scheduler
+    scheduler_daemon();
 }
 
 void sleep(int ticks) {

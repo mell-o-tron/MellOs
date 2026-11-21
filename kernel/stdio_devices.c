@@ -7,6 +7,7 @@
 #include "errno.h"
 #include "stddef.h"
 #ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif

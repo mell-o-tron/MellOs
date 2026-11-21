@@ -62,7 +62,7 @@ void* alloc_frame(bool is_kernel, uint32_t continuous_frames_to_alloc) {
 	if (continuous_frames_to_alloc == 0) {
 		return NULL;
 	}
-	kprintf("allocating frames: %u", continuous_frames_to_alloc);
+//	kprintf("allocating frames: %u\n", continuous_frames_to_alloc);
 	uint32_t start_physical_address =
 	    alloc_physical_frames_ranged(is_kernel, continuous_frames_to_alloc);
 

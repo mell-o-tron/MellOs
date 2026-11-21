@@ -307,6 +307,7 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 #else
 	init_paging(0, (MultibootTags*)multiboot_tags_addr);
 #endif
+
 }
 
 __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t multiboot_tags_addr) {
@@ -455,6 +456,6 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #endif
 
 	load_shell();
-	while (true) {}
+	return;
 	// init_text_editor("test_file");
 }
