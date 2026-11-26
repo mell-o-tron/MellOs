@@ -21,7 +21,7 @@ uint32_t days_in_month(int year, int month) {
 // Determines the day of the week using the Doomsday algorithm
 const char* doomsday_algorithm(int year, int month, int day) {
     static const char* weekdays[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-    static const int doomsday_months[] = {3, 0, 3, 2, 5, 0, 3, 5, 1, 3, 6, 1}; // Offsets for each month
+    static const int doomsday_months[] = {3, 0, 0, 4, 2, 6, 4, 1, 5, 3, 0, 5}; // Offsets for each month
 
     int century_anchor[] = {2, 0, 5, 3}; // Anchor days for centuries (e.g., 1900s -> 3, 2000s -> 2)
     int century = year / 100;
