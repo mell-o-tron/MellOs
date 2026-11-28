@@ -75,3 +75,5 @@ If you make a useful change or addition, you are allowed to use the `anything_he
 ### Future
 - Spawning processes from the shell
 
+### Licensing 
+This project is licensed under GPLv3. However, certain components ported from ZXFoundation/AeroSync (formerly VoidFrameX) are licensed under the Apache License 2.0 and GPLv2-or-late, which is compatible with GPLv3."

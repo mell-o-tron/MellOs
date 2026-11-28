@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2026 assembler-0.
+//  
+// This file is part of ZXFoundation (TM) and is ported to MellOS.
+//   
+// As part of MellOS, this file can be distributed and/or modified 
+// under the terms of the GNU General Public License as published by the Free 
+// Software Foundation, either version 3 of the License, or (at your option) 
+// any later version.
+#pragma once
+
+/// @brief kernel release
+#define CONFIG_MOS_RELEASE           "@MellOs_Release@"
+
+/// @brief kernel copyright date
+#define CONFIG_MOS_COPYRIGHT_DATE    "@MellOs_Copyright_Date@"
+
+/// @brief kernel build time (from compiler)
+#define CONFIG_MOS_BUILD_DT_COMPILER  __DATE__ " " __TIME__
+
+/// @brief host build platform
+#define CONFIG_MOS_BUILD_PLATFORM    "@MellOs_Host_Build_Platform@"
+
+/// @brief compiler id
+#define CONFIG_MOS_COMPILER_ID       __VERSION__
+
+/// @brief maximum number of CPUs
+#define CONFIG_MOS_MAX_CPUS           128U

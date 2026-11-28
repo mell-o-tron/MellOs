@@ -40,12 +40,16 @@ jobs:
               run: |
                 sed -i '/COMMAND \${CMAKE_COMMAND}/ s/^.*debug_symbols.*$//g' CMakeLists.txt
 
+            - name: Deps
+              run: |
+                pacman -S --needed lld --noconfirm
+                
             - name: Build MellOS
               run: |
                 mkdir build
                 cd build
-                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug -DUSE_CLANG=ON ..
-                make    
+                cmake -DMACHINE=${{matrix.machine}} -DVGA=${{matrix.vga_mode}} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/mellos-clang.cmake ..
+                make VERBOSE=1 -j$(nproc)
             
             - name: Run
               run: |
