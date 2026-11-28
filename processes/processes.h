@@ -1,5 +1,10 @@
 #pragma once
-#include "../utils/typedefs.h"
+
+#include "linked_list.h"
+#include "mellos/pipe.h"
+#include "process_memory.h"
+
+#include "mellos/fs.h"
 
 typedef struct task_state {
     void* stack;
@@ -14,16 +19,32 @@ typedef enum {
 } proc_state_t;
 
 typedef struct process {
-    uint32_t pid;
-    state_t * state;
+	uint32_t pid;
+	state_t* state;
     uint32_t * page_directory;
     bool must_relinquish;
+	uint32_t owner;
+	int32_t errno;
     uint32_t weight; // D-WRR weight
     uint32_t quantum_left; // Remaining quantum for this round
     proc_state_t status;
-    // Future extensibility: resource table, IPC, etc.
-} process_t;
+	// Future extensibility: resource table, IPC, etc.
 
+	fd_table_t fd_table;
+	size_t open_files_count;
+	struct process* parent;
+	linked_list_t* children_list;
+	fd_t* stdin;
+	fd_t* stdout;
+	fd_t* stderr;
+	file_t* stdin_device;
+	file_t* stdout_device;
+	file_t* stderr_device;
+
+
+	// todo: implement
+	process_page_list_t* page_list;
+} process_t;
 
 extern void __attribute__((__cdecl__)) switch_task(process_t* current, process_t* new);
 
@@ -31,12 +52,21 @@ extern void __attribute__((__cdecl__)) switch_task(process_t* current, process_t
 
 process_t* create_task(void* code);
 
+process_t* get_current_process();
+uint32_t get_current_pid();
+process_t* get_process_by_pid(uint32_t pid);
+
 void init_scheduler();
-void scheduler_daemon ();
+void begin_execution();
 
 void try_to_relinquish();
 void try_to_terminate();
-process_t* schedule_process(void * code);
 void kill_task(uint32_t pid);
+
+process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, fd_t* stdout_target,
+                            fd_t* stderr_target);
+void add_child(process_t* parent, process_t* child);
+void remove_child(process_t* parent, process_t* child);
+
+void scheduler_daemon();
 void list_processes();
-// Extensible: add block/wake, IPC, resource management, etc.

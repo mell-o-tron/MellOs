@@ -1,10 +1,10 @@
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../utils/typedefs.h"
-#include "../../text_editor/text_editor.h"
+#include "text_editor.h"
 
 #define FDEF(name) void name(const char* s)
 

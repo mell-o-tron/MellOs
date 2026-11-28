@@ -1,21 +1,22 @@
-#include "utils/math.h"
-#ifdef VGA_VESA
+#include "math.h"
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 
-#include "shell/functions/vell.h"
-#include "drivers/vesa/vesa.h"
-#include "drivers/vesa/vesa_text.h"
-#include "misc/colours.h"
-#include "utils/typedefs.h"
-#include "data_structures/circular_list.h"
-#include "memory/dynamic_mem.h"
-#include "GUI/gui.h"
-#include "GUI/vterm.h"
-#include "GUI/mouse_handler.h"
+#include "shell/vell.h"
+#include "vesa.h"
+#include "vesa_text.h"
+#include "colours.h"
+#include "circular_list.h"
+#include "dynamic_mem.h"
+#include "gui.h"
+#include "vterm.h"
+#include "kernel_stdio.h"
+#include "mouse_handler.h"
+#include "mellos/kernel/kernel.h"
+#include "fdef.h"
 
 static CircularList* windows = NULL;
 static Window* mouse_window = NULL;
-
-#define FDEF(name) void name(const char* s)
 
 static Framebuffer* fb;
 static Framebuffer* fb2;
@@ -80,6 +81,9 @@ void _vell_draw(){
 
 FDEF(vell){
     if (fb == NULL) {
+    	if (fb2 != NULL) {
+    		kfprintf(kstderr, "fb1 is NULL but fb2 is not?\n");
+    	}
         fb = allocate_full_screen_framebuffer();
         fb2 = allocate_full_screen_framebuffer();
         _init_vterm();
@@ -169,7 +173,7 @@ void __unfocus_all(){
 }
 
 void _vell_generate_drag_start_event(MouseButton button, Vector2i start_pos){
-    if(button == MOUSE_LEFT){
+    if (button == MOUSE_LEFT){
         WindowElement element;
         Window* w = find_window_at(start_pos, &element);
         if (w == NULL || element != TITLEBAR) {
@@ -189,6 +193,10 @@ Vector2i ghost_window_delta = {0, 0};
 Recti last_square = {};
 
 void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos) {
+	if (vga_fb == NULL) {
+		kpanic_message("VGA framebuffer is NULL!\n_vell_generate_drag_continue_event\n");
+		return;
+	}
     if (button == MOUSE_LEFT) {
         if (dragging_window == NULL) {
             return;
@@ -203,7 +211,8 @@ void _vell_generate_drag_continue_event(MouseButton button, Vector2i current_pos
             dragging_window->y += dy;
             Recti r2 = recti_of_window(dragging_window);
             dragging_prev_pos = current_pos;
-            Recti r3 = recti_intersection(recti_union(r, r2), recti_of_framebuffer(vga_fb));
+			Recti r4 = recti_of_framebuffer(vga_fb);
+            Recti r3 = recti_intersection(recti_union(r, r2), r4);
             __vell_draw(r3.pos.x, r3.pos.y, r3.pos.x + r3.size.x, r3.pos.y + r3.size.y);
 #elif BOX_WINDOW_DRAG
             ghost_window_delta.x += dx;

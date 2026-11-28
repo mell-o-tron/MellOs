@@ -1,16 +1,17 @@
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../utils/conversions.h"
+#include "conversions.h"
 #define FDEF(name) void name(const char* s)
 
 #define SCALE 16
 
 FDEF(displayinfo){
     kprint("Display Information:\n");
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
     kprint("Resolution: ");
     kprint(tostring_inplace(Hres, 10));
     kprint("x");

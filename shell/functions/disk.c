@@ -1,18 +1,20 @@
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#include "stddef.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../drivers/disk.h"
-#include "../../memory/dynamic_mem.h"
-#include "../../utils/conversions.h"
-#include "../../disk_interface/diskinterface.h"
+#include "disk.h"
+#include "dynamic_mem.h"
+#include "conversions.h"
+#include "diskinterface.h"
 
 
 #define FDEF(name) void name(const char* s)
 
 FDEF(diskinfo){
-    identify_ata(0xA0);
+    identify_ata(0xA0, NULL);
     // disk_info* res = kmalloc (sizeof(disk_info));
     // if (!res) {
     //     kprint("info allocation failed");

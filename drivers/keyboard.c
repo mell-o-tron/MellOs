@@ -1,16 +1,17 @@
-#include "../utils/typedefs.h"
-#include "../utils/conversions.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#include "stdint.h"
+#include "stdbool.h"
+#include "conversions.h"
+#include "string.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 #include "port_io.h"
-#include "../cpu/interrupts/irq.h"
-#include "../memory/dynamic_mem.h"
-#include "../data_structures/circular_buffer.h"
-#include "../utils/string.h"
-
+#include "cpu/irq.h"
+#include "dynamic_mem.h"
+#include "circular_buffer.h"
 #define MAPPED_KEYS 92
 
 /********************FUNCTIONS*********************
@@ -175,7 +176,7 @@ void kbSetLayout(const char* command) {
         kprint("\n");
     } else {
         for(int i = 0; i < layouts_count; i++) {
-            uint32_t diff = strcmp(command + str_start, layouts[i]->name);
+            uint32_t diff = kstrcmp(command + str_start, layouts[i]->name);
             if(diff == 0) {
                 selected_layout = layouts[i];
                 return;

@@ -9,16 +9,28 @@ cmake-build-debug
 .cache/
 compile_flags.txt
 compile_commands.json
+.config
+auto.conf
+cmake/
+/include/
+/scripts/kconfig-py/__pycache__/
+/out/
+/Debug/
+qemucpulog.log
+/.venv/
 
 # binaries
-wee_bins/
+/wee_bins/
 os_image.bin
 osimage_formated.bin
 mellos.iso
 iso/boot/kernel.elf
-build/
+/build/
+/build-text/
+/build-vesa/
 
 # logs
 serial.log
 qemu_debug.log
 .gdb_history
+/Testing/

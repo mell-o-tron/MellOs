@@ -1,16 +1,17 @@
-#include "utils/typedefs.h"
-#include "drivers/port_io.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#include "port_io.h"
+#include "stdbool.h"
+#include "stdint.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "utils/conversions.h"
-#include "cpu/interrupts/irq.h"
-#include "cpu/interrupts/idt.h"
-#include "processes/processes.h"
-#include "drivers/keyboard.h"
-#include "utils/format.h"
+#include "cpu/idt.h"
+#include "cpu/irq.h"
+#include "keyboard.h"
+#include "processes.h"
+#include "timer.h"
 
 volatile uint32_t timer_ticks = 0;
 int seconds = 0;
@@ -18,8 +19,7 @@ volatile uint16_t current_hz = 0;
 
 extern bool keyboard_enabled;
 
-void timer_phase(uint16_t hz)
-{
+void timer_phase(uint16_t hz) {
 	irqflags_t irqf = local_irq_save_and_cli();
 	current_hz = hz;
 	uint32_t div32 = 1193180u / (hz ? hz : 1u);
@@ -31,8 +31,7 @@ void timer_phase(uint16_t hz)
 	local_irq_restore(irqf);
 }
 
-void timer_handler(regs *r)
-{
+void timer_handler(regs_t* r) {
 	/* Increment our 'tick count' */
 	timer_ticks++;
 
@@ -46,22 +45,36 @@ void timer_handler(regs *r)
 		// if the keyboard is enabled, print the top of the keyboard buffer.
 		char c = get_from_kb_buffer();
 		switch (c) {
-			case 0: break; // buffer is empty
-			case 8: move_cursor_LR(-1); kprint_char(' ', 0);move_cursor_LR(-1); break;	// backspace
-			default: kprint_char(c, 0);
+		case 0:
+			break; // buffer is empty
+		case 8:
+			move_cursor_LR(-1);
+			kprint_char(' ', 0);
+			move_cursor_LR(-1);
+			break; // backspace
+		default:
+			kprint_char(c, 0);
 		}
 
 		char a = get_from_act_buffer();
 		switch (a) {
-			case 'U': move_cursor_UD(-1);break;
-			case 'D': move_cursor_UD(+1);break;
-			case 'L': move_cursor_LR(-1);break;
-			case 'R': move_cursor_LR(+1);break;
+		case 'U':
+			move_cursor_UD(-1);
+			break;
+		case 'D':
+			move_cursor_UD(+1);
+			break;
+		case 'L':
+			move_cursor_LR(-1);
+			break;
+		case 'R':
+			move_cursor_LR(+1);
+			break;
 		}
-	}
-	else {
-		// if the keyboard is not enabled, older keystrokes are eliminated at a rate of 2 chars a second.
-		if (timer_ticks % 9 == 0){
+	} else {
+		// if the keyboard is not enabled, older keystrokes are eliminated at a rate of 2 chars a
+		// second.
+		if (timer_ticks % 9 == 0) {
 			rem_from_kb_buffer();
 			rem_from_act_buffer();
 		}
@@ -71,17 +84,18 @@ void timer_handler(regs *r)
     scheduler_daemon();
 }
 
-
-void sleep (int ticks){
-    int startTicks = timer_ticks;
-    while(timer_ticks < startTicks + ticks){
+void sleep(int ticks) {
+	int startTicks = timer_ticks;
+	while (timer_ticks < startTicks + ticks) {
 		;
 	}
-    return;
+	return;
 }
 
-
-void timer_install()
-{
+void timer_install() {
 	irq_install_handler(0, timer_handler);
+}
+
+uint32_t get_ms_since_boot() {
+	return (timer_ticks * 1000) / current_hz;
 }

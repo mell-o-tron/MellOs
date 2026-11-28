@@ -1,90 +1,85 @@
-/*
- * VoidFrame Kernel Linker Script (GPL-v2) by assembler-0
- * Optimized for x86_64 with proper alignment and memory layout
- * Public domain as of 26/10/25 (dd/mm/yy)
- * Multiboot2 ready and proper page alignment
- */
-
+OUTPUT_FORMAT(elf32-i386)
+OUTPUT_ARCH(i386)
 ENTRY(_kernel_start)
 
-/* Define constants */
-PAGE_SIZE = 4K;
-KERNEL_BASE = 1M;
+KLOAD = 0x00100000;
+KHIGH = 0xC0000000;
+
+/* Program headers: R=4, W=2, X=1 */
+PHDRS {
+  lowhdr   PT_LOAD FLAGS(5);   /* R+X for low code */
+  lowdata  PT_LOAD FLAGS(6);   /* R+W for low data, bss */
+
+  texthdr  PT_LOAD FLAGS(5);   /* R+X for high .text */
+  rodatahdr PT_LOAD FLAGS(4);  /* R, no exec for .rodata */
+  datahdr  PT_LOAD FLAGS(6);   /* R+W for high .data */
+  bsshdr   PT_LOAD FLAGS(6);   /* R+W for high .bss  */
+  /*todo: tls*/
+}
+
+/* Monotonic LMA cursor */
+__lma = KLOAD;
 
 SECTIONS
 {
-    . = KERNEL_BASE;
-    _kernel_phys_start = .;
+  /* ---------- LOW phase ---------- */
+  . = KLOAD;
 
-    /* Multiboot header - must be early in file */
-    .boot ALIGN(PAGE_SIZE) :
-    {
-        *(.multiboot*)
-        . = ALIGN(PAGE_SIZE);
-    }
+  /* one low RX segment */
+  .lowrx ALIGN(4K) : AT(__lma) {
+    KEEP(*(.multiboot))
+    . = ALIGN(4K);
+    *(.entry*) *(.low.text*)
+  } :lowhdr
+  __lma = ALIGN(LOADADDR(.lowrx) + SIZEOF(.lowrx), 4K);
 
-    /* Executable code - read-only, executable */
-    .text ALIGN(PAGE_SIZE) :
-    {
-        _text_start = .;
-        *(.text.boot)     /* Boot code first */
-        *(.text.hot)      /* Hot/frequently used code */
-        *(.text)          /* Regular code */
-        *(.text.*)        /* Other text sections */
-        . = ALIGN(PAGE_SIZE);
-        _text_end = .;
-    }
 
-    /* Read-only data - read-only, non-executable */
-    .rodata ALIGN(PAGE_SIZE) :
-    {
-        _rodata_start = .;
-        *(.rodata.str*)   /* String literals first */
-        *(.rodata)        /* Regular rodata */
-        *(.rodata.*)
-        . = ALIGN(PAGE_SIZE);
-        _rodata_end = .;
-    }
+  .low.data ALIGN(4K) : AT(__lma) { *(.low.rodata*) *(.low.data*) }
+  :lowdata
+  __lma = ALIGN(ADDR(.low.data) + SIZEOF(.low.data), 4K);
 
-    /* Initialized data - read-write */
-    .data ALIGN(PAGE_SIZE) :
-    {
-        _data_start = .;
-        *(.data)
-        *(.data.*)
-        . = ALIGN(PAGE_SIZE);
-        _data_end = .;
-    }
+  .low.bss ALIGN(4K) (NOLOAD) : {
+    *(COMMON) *(.low.bss*)
+  } :lowdata
+  __lma = ALIGN(ADDR(.low.bss) + SIZEOF(.low.bss), 4K);
 
-    /* Uninitialized data - read-write, zero-initialized */
-    .bss ALIGN(PAGE_SIZE) :
-    {
-        _bss_start = .;
-        *(.bss)
-        *(.bss.*)
-        *(COMMON)         /* Common symbols */
-        . = ALIGN(PAGE_SIZE);
-        _bss_end = .;
-    }
+  /* ---------- HIGH phase ---------- */
+  . = KHIGH;
 
-    /* Kernel end marker */
-    . = ALIGN(PAGE_SIZE);
-    _kernel_phys_end = .;
-    _kernel_size = _kernel_phys_end - _kernel_phys_start;
+  .text ALIGN(4K) : AT(__lma) { *(.text*) } :texthdr
 
-    /* Discard unnecessary sections */
-    /DISCARD/ :
-    {
-        *(.comment)
-        *(.note*)
-        *(.eh_frame*)
-        *(.debug*)
-    }
+  PROVIDE(__text_pa_start = LOADADDR(.text));
+  PROVIDE(__text_va_start = ADDR(.text));
+  __lma = ALIGN(__lma + SIZEOF(.text), 4K);
+  PROVIDE(__text_pa_end = LOADADDR(.text) + SIZEOF(.text));
+  PROVIDE(__text_va_end = ADDR(.text) + SIZEOF(.text));
+
+  .rodata ALIGN(4K) : AT(__lma) { *(.rodata*) } :rodatahdr
+
+  PROVIDE(__rodata_pa_start = LOADADDR(.rodata));
+  __lma = ALIGN(__lma + SIZEOF(.rodata), 4K);
+  PROVIDE(__rodata_pa_end = LOADADDR(.rodata) + SIZEOF(.rodata));
+  PROVIDE(__rodata_va_start = ADDR(.rodata));
+  PROVIDE(__rodata_va_end = ADDR(.rodata) + SIZEOF(.rodata));
+
+  .data ALIGN(4K) : AT(__lma) { *(.data*) } :datahdr
+
+  PROVIDE(__data_pa_start = LOADADDR(.data));
+  __lma = ALIGN(__lma + SIZEOF(.data), 4K);
+  PROVIDE(__data_pa_end = LOADADDR(.data) + SIZEOF(.data));
+  PROVIDE(__data_va_start = ADDR(.data));
+  PROVIDE(__data_va_end = ADDR(.data) + SIZEOF(.data));
+
+  .bss ALIGN(4K) (NOLOAD) : { *(.bss*) } :bsshdr
+
+  __lma = ALIGN(__lma + SIZEOF(.bss), 4K);
+  PROVIDE(__bss_pa_start = LOADADDR(.bss));
+  PROVIDE(__bss_pa_end = LOADADDR(.bss) + SIZEOF(.bss));
+  PROVIDE(__bss_va_start = ADDR(.bss));
+  PROVIDE(__bss_va_end = ADDR(.bss) + SIZEOF(.bss));
+
+  /* Useful labels */
+  PROVIDE(__kload_start = KLOAD);
+  PROVIDE(__khigh_base  = KHIGH);
+  PROVIDE(__image_lma_end = __lma);
 }
-
-/* Sanity checks */
-ASSERT(_kernel_size < 16M, "Kernel too large (>16MB)")
-ASSERT(_text_start >= _kernel_phys_start, "Text section misaligned")
-ASSERT(_rodata_start >= _text_end, "Rodata section misaligned")
-ASSERT(_data_start >= _rodata_end, "Data section misaligned")
-ASSERT(_bss_start >= _data_end, "BSS section misaligned")

@@ -1,20 +1,27 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "gui.h"
-#include "drivers/vesa/vesa.h"
-#include "shell/functions/vell.h"
-#include "memory/dynamic_mem.h"
-#include "kernel/kernel.h"
-#include "utils/assert.h"
+#include "vesa.h"
+#include "shell/vell.h"
+#include "dynamic_mem.h"
+#include "assert.h"
 
 Window* create_window(const char* title){
     Framebuffer* fb = allocate_full_screen_framebuffer();
-    assert(fb != NULL);
+    kassert(fb != NULL);
     return create_window_with_fb(fb, title);
 }
 
+/**
+ * //todo: we could allow for custom bpp windows
+ * @param title
+ * @param width
+ * @param height
+ * @return
+ */
 Window* create_window_with_size(const char* title, uint32_t width, uint32_t height){
-    Framebuffer* fb = allocate_framebuffer(width, height);
-    assert(fb != NULL);
+    Framebuffer* fb = allocate_framebuffer(width, height, CONFIG_GFX_BPP);
+    kassert(fb != NULL);
     return create_window_with_fb(fb, title);
 }
 

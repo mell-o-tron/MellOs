@@ -1,5 +1,5 @@
-#include "../drivers/disk.h"
-#include "../memory/dynamic_mem.h"
+#include "disk.h"
+#include "dynamic_mem.h"
 
 uint8_t* read_string_from_disk (uint8_t disk, uint32_t LBA, uint32_t num_sectors){
 

@@ -1,40 +1,59 @@
 /*********************
-* TEXT MODE: 0xB8000 *
-* GR.  MODE: 0xA000  *
-*********************/
+ * TEXT MODE: 0xB8000 *
+ * GR.  MODE: 0xA000  *
+ *********************/
 
-
-#include "utils/memory_area_spec.h"
-#include "utils/typedefs.h"
-#include "multiboot_tags.h"
-#include "memory_mapper.h"
+#include "mellos/fd.h"
+#include "mellos/kernel/boot_params.h"
+#include "mellos/kernel/memory_mapper.h"
+#include "mellos/kernel/multiboot_tags.h"
+#include "stdbool.h"
+#include "stddef.h"
 // #include "../utils/error_handling.h"                // read docs!
-#include "misc/colours.h"
-#include "utils/conversions.h"
-// #include "../utils/string.h"
-#include "memory/paging/paging_utils.h"
+#include "colours.h"
 
-#include "utils/format.h"
+#include "allocator.h"
+#include "autoconf.h"
+#include "cpu/gdt.h"
+#include "cpu/idt.h"
+#include "cpu/irq.h"
+#include "cpu/isr.h"
+#include "dynamic_mem.h"
+#include "kernel_stdio.h"
+#include "paging/paging.h"
+#include "port_io.h"
+#include "timer.h"
 
-#include "cpu/interrupts/idt.h"
-#include "cpu/interrupts/isr.h"
-#include "cpu/interrupts/irq.h"
-#include "cpu/timer/timer.h"
-#include "../cpu/gdt/gdt.h"
-#include "../drivers/keyboard.h"
-#include "../drivers/port_io.h"
-#include "../memory/paging/paging.h"
-#include "../memory/paging/pat.h"
-#include "../memory/dynamic_mem.h"
-#include "../data_structures/allocator.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#include "../drivers/mouse.h"
-#include "shell/functions/vell.h"
-#include "utils/format.h"
+#include "keyboard.h"
+
+#include "assert.h"
+
+#include "mellos/kernel/dentry.h"
+#include "mellos/kernel/mount_manager.h"
+#include "mellos/kernel/stdio_devices.h"
+#include "stdint.h"
+#include "string.h"
+
+#include "mellos/kernel/kernel.h"
+#include "paging/frame_allocator.h"
+#ifdef CONFIG_GFX_VESA
+#include "mouse.h"
+#include "vesa.h"
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
+#endif
+
+// Provide a weak default for tests when not linked
+int __attribute__((weak)) run_all_mem_tests(void) {
+	return 0;
+}
+
+// TEXT-mode clear-screen shim to match VESA kclear_screen signature
+#ifndef CONFIG_GFX_VESA
+static void vga_kclear_screen(void) {
+	clear_screen_col(DEFAULT_COLOUR);
+}
 #endif
 // #include "../utils/assert.h"
 
@@ -47,54 +66,47 @@
 
 // DISK
 // #include "../drivers/disk.h"
-#include "../disk_interface/diskinterface.h"
 
 // SHELL
-#include "../shell/shell.h"
+#include "../shell/include/shell/shell.h"
 
 // FILE SYSTEM
-#include "../file_system/file_system.h"
 
 // TEXT_EDITOR
-#include "../text_editor/text_editor.h"
 
 // TESTS
 #include "../test/fs_test.h"
 #include "../test/mem_test.h"
-#include "drivers/uart.h"
+#include "uart.h"
 #ifdef AUDIO_ENABLED
 #include "drivers/pc_speaker.h"
 #endif
 
-
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 __attribute__((section(".multiboot")))
 #define MULTIBOOT_HEADER_MAGIC 0x1BADB002
 
-#define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+#define CHECK_FLAG(flags, bit) ((flags) & (1 << (bit)))
 
 #define MULTIBOOT_HEADER_FLAGS 0x00000007
 const uint32_t multiboot_header[] = {
-    MULTIBOOT_HEADER_MAGIC,
-    MULTIBOOT_HEADER_FLAGS,
+    MULTIBOOT_HEADER_MAGIC, MULTIBOOT_HEADER_FLAGS,
     -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS) & 0xFFFFFFFF,
     // aout kludge (unused)
-    0,0,0,0,0,
+    0, 0, 0, 0, 0,
     // video mode
-    0, // Linear graphics please?
-    HRES, // Preferred width
-    VRES, // Preferred height
-    BPP   // Preferred pixel depth
+    0,               // Linear graphics please?
+    CONFIG_GFX_HRES, // Preferred width
+    CONFIG_GFX_VRES, // Preferred height
+    CONFIG_GFX_BPP   // Preferred pixel depth
 };
 #else
 __attribute__((section(".multiboot")))
 #define MULTIBOOT_HEADER_MAGIC 0x1BADB002
 #define MULTIBOOT_HEADER_FLAGS 0x0
-const uint32_t multiboot_header[] = {
-    MULTIBOOT_HEADER_MAGIC,
-    MULTIBOOT_HEADER_FLAGS,
-    -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS) & 0xFFFFFFFF
-};
+const uint32_t multiboot_header[] = {MULTIBOOT_HEADER_MAGIC, MULTIBOOT_HEADER_FLAGS,
+                                     -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS) &
+                                         0xFFFFFFFF};
 #endif
 
 extern const char KPArt[];
@@ -102,284 +114,348 @@ extern const char Fool[];
 
 bool keyboard_enabled = false; // maybe put this in some "state" struct?
 
-void khang(){
-    for(;;);
+void khang() {
+	for (;;)
+		;
 }
 
 #if !defined(__clang__)
 #pragma GCC push_options
-#pragma GCC optimize ("O0")
+#pragma GCC optimize("O0")
 #endif
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-void _kpanic(const char* msg, unsigned int int_no);
-void kpanic_message(const char* msg) {
-    _kpanic(msg, 0);
+_Noreturn void _kpanic(const char* msg, unsigned int int_no, regs_t* r);
+_Noreturn void kpanic_message(const char* msg) {
+	_kpanic(msg, 0, NULL);
 }
 
-extern  void kpanic(struct regs *r) {
-    _kpanic(exception_messages[r->int_no], r->int_no);
+extern void kpanic(regs_t* r) {
+	const char* msg = (r->int_no < 32) ? exception_messages[r->int_no] : "Unknown Interrupt";
+	_kpanic(msg, r->int_no, r);
 }
+__attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, unsigned int int_no,
+                                                             regs_t* r) {
+	asm volatile("cli");
+	char buf[256];
+	ksnprintf(buf, 255, "Kernel panic: %s (%i)", msg, int_no);
+#ifdef CONFIG_GFX_VESA
+	if (vga_fb != NULL) {
+		fb_clear_screen_col_VESA(VESA_RED, vga_fb);
 
-void _kpanic(const char* msg, unsigned int int_no) {
-    const char* components[] = {
-        KPArt,
-        "Kernel panic: ",
-        msg,
-    };
-#if VGA_VESA
-    char buf[256];
-    snprintf(buf, 255, "%s %s %s%i%s", components[1], components[2], "(", int_no, ")");
-
-    fb_clear_screen_col_VESA(VESA_RED, vga_fb);
-    fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
+		if (CONFIG_GFX_HRES > 1200) {
+			fb_draw_string(16, 16, buf, VESA_DARK_GREY, 3, 3, vga_fb);
+		} else {
+			fb_draw_string(16, 16, buf, VESA_DARK_GREY, 2, 2, vga_fb);
+		}
+	}
 #else
-    #define ERRCOL 0x47 // Lightgrey on Lightred
-    #define VGAMEM (unsigned char*)0xB8000;
+#define ERRCOL 0x47 // Lightgrey on Lightred
+#define VGAMEM (unsigned char*)0xB8000;
 
-    char panicscreen[4000];
+	char panicscreen[4000];
+	for (int x = 0; x < 4000; x++) {
+		panicscreen[x] = ' ';
+	}
 
-    int psidx = 0; //Index to access panicscreen
-    int idx = 0;
+	int psidx = 0; // Index to access panicscreen
+	int idx = 0;
 
-    for(int x = 0; x < sizeof(components)/sizeof(char*); x++){
-        idx = 0;
-        while(components[x][idx] != 0){
-            if(components[x][idx] == '\n'){
-                do{
-                    panicscreen[psidx] = ' ';
-                    psidx++;
-                } while((psidx+1) % 80 != 0);
-            } else panicscreen[psidx] = components[x][idx];
-            psidx++;
-            idx++;
-        }
-    }
+	const char* msg_final = msg ? msg : "Kernel panic";
+	if (is_buddy_inited() && r != NULL) {
+		ksnprintf(buf, 255,
+		         "\n\nEAX=%08x  EBX=%08x  ECX=%08x  EDX=%08x\n"
+		         "ESI=%08x  EDI=%08x  EBP=%08x  ESP=%08x\n"
+		         "EIP=%08x  EFLAGS=%08x CR2=%08x\n"
+		         "CS=%04x  DS=%04x  ES=%04x  FS=%04x  GS=%04x  SS=%04x\n"
+		         "INT=%02x ERR=%08x",
+		         r->eax, r->ebx, r->ecx, r->edx, r->esi, r->edi, r->ebp, r->esp, r->eip, r->eflags,
+		         r->cr2, r->cs, r->ds, r->es, r->fs, r->gs, r->ss, int_no, r->err_code);
+	}
 
-    unsigned char *write = VGAMEM;
+	// Write header
+	const char* header = "Kernel panic: ";
+	while (*header) {
+		panicscreen[psidx++] = *header++;
+	}
+	const char* mptr = msg_final;
+	while (*mptr) {
+		panicscreen[psidx++] = *mptr++;
+	}
 
-    for(int i = 0; i < 4000; i++){
-        *write++ = panicscreen[i];
-        *write++ = ERRCOL;
-    }
+	// Pad to next line
+	while (psidx % 80 != 0) {
+		psidx++;
+	}
+
+	idx = 0;
+	while (buf[idx] != 0) {
+		if (buf[idx] == '\n') {
+			do {
+				panicscreen[psidx] = ' ';
+				psidx++;
+			} while ((psidx + 1) % 80 != 0);
+		} else {
+			panicscreen[psidx] = buf[idx];
+		}
+		psidx++;
+		idx++;
+	}
+
+	unsigned char* write = VGAMEM;
+
+	for (int i = 0; i < 4000; i++) {
+		*write++ = panicscreen[i];
+		*write++ = ERRCOL;
+	}
 #endif
 
+	// Disables the flashing cursor because that's annoying imo
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, 0x20);
 
-
-    // Disables the flashing cursor because that's annoying imo
-    outb(0x3D4, 0x0A);
-    outb(0x3D5, 0x20);
-
-    for(;;);
+	for (;;)
+		;
 }
 
 #if !defined(__clang__)
 #pragma GCC pop_options
 #endif
 
-#define PAGE_LENGTH 4096
-uint32_t page_directory[1024]       __attribute__((aligned(4096)));
-uint32_t first_page_table[1024]     __attribute__((aligned(4096)));
-uint32_t second_page_table[1024]    __attribute__((aligned(4096)));
-#define NUM_MANY_DIRECTORIES (uint32_t)512
-uint32_t lots_of_pages[NUM_MANY_DIRECTORIES][1024]  __attribute__((aligned(4096)));
-#ifdef VGA_VESA
-#define NUM_FB_DIRECTORIES (uint32_t)2 // FB is 8100 KB (1920x1080x4), so 2 pages are enough
-unsigned int framebuffer_pages[NUM_FB_DIRECTORIES][1024]     __attribute__((aligned(4096)));
-PD_FLAGS framebuffer_page_dflags = PD_PRESENT | PD_READWRITE;
-PT_FLAGS framebuffer_page_tflags = PT_PRESENT | PT_READWRITE | PT_WRITECOMBINING;
-#endif
-
-PD_FLAGS page_directory_flags   = PD_PRESENT | PD_READWRITE;
+PD_FLAGS page_directory_flags = PD_PRESENT | PD_READWRITE;
 PT_FLAGS first_page_table_flags = PT_PRESENT | PT_READWRITE;
 
-extern int top_of_stack ();
+extern int top_of_stack();
 
-void test_task(){
-    kprint_col("test task print\n", DEFAULT_COLOUR);
+void test_task() {
+	kprint_col("test task print\n", DEFAULT_COLOUR);
 
-    return;
+	return;
 }
 
-void task_1(){
-    int i = 0;
-    for (;;){
-        printf("Hello there! %d\n", i);
-        i++;
-        sleep(1);
-    }
+void task_1() {
+	int i = 0;
+	for (;;) {
+		kprintf("Hello there! %d\n", i);
+		i++;
+		sleep(1);
+	}
 }
 
-void task_2(){
-    int i = 0;
-    for (;;){
-        printf("BOIA DE %d\n", i);
-        i++;
-        sleep(1);
-    }
+void task_2() {
+	int i = 0;
+	for (;;) {
+		kprintf("BOIA DE %d\n", i);
+		i++;
+		sleep(1);
+	}
 }
 
-#ifdef AUDIO_ENABLED
-void play_startup_jingle(){
-    double base = 110;
-    double time = 10;
-    double note_duration = time * 0.75;
-    double pause_duration = time * 0.25;
+#ifdef CONFIG_AUDIO_ENABLED
+void play_startup_jingle() {
+	double base = 110;
+	double time = 10;
+	double note_duration = time * 0.75;
+	double pause_duration = time * 0.25;
 
-    beep((uint32_t)base, note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 1.33), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 1.66), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 2), note_duration);
-    sleep(pause_duration + note_duration + pause_duration);
-    beep((uint32_t)(base * 1.66), note_duration);
-    sleep(pause_duration);
-    beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
-    sleep(pause_duration);
+	beep((uint32_t)base, note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 1.33), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 1.66), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 2), note_duration);
+	sleep(pause_duration + note_duration + pause_duration);
+	beep((uint32_t)(base * 1.66), note_duration);
+	sleep(pause_duration);
+	beep((uint32_t)(base * 2), note_duration * 3 + pause_duration * 2);
+	sleep(pause_duration);
 }
 #endif
+
+__attribute__((section(".low.bss"))) MultibootTags mb_tags;
 
 // char test[0xe749] = {1};
 allocator_t allocator;
+__attribute__((section(".low.bss"))) uint32_t fb_addr;
+__attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr) {
+	// Early guard to prevent NULL deref from bad boot handoff
+	if (multiboot_tags_addr == 0) {
+		kprintf("FATAL: multiboot_tags_addr is NULL at entry\n");
+		kpanic_message("Null Multiboot pointer");
+	}
 
-extern void main(uint32_t multiboot_tags_addr){
-#ifdef VGA_VESA
+	mb_tags = *((MultibootTags*)multiboot_tags_addr);
+	if (mb_tags.flags & (1 << 2)) {
+		for (int i = 0; i < BOOT_PARAMS_LENGTH - 1; ++i) {
+			boot_cmdline[i] = ((const char*)mb_tags.cmdline)[i];
+			if (((const char*)mb_tags.cmdline)[i] == 0)
+				break;
+		}
+	} else {
+		kmemset(boot_cmdline, 0, sizeof(boot_cmdline));
+	}
 
-    uintptr_t fb_addr = get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
+	fb_addr = (uint32_t)get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
+#ifdef CONFIG_GFX_VESA
+	init_memory_mapper((MultibootTags*)multiboot_tags_addr, (PIXEL*)fb_addr, CONFIG_GFX_BPP);
+#else
+	init_memory_mapper((MultibootTags*)multiboot_tags_addr, 0, 0);
 #endif
-    MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
-    printf("lower: %i\n", multiboot_tags->mem_upper);
-    printf("upper: %i\n", multiboot_tags->mem_lower);
-
-    printf("map:\n");
-
-
-
-
-    /*
-        +-------------------+
--4      | size              |
-        +-------------------+
-0       | base_addr         |
-8       | length            |
-16      | type              |
-        +-------------------+
-    */
-#ifdef VGA_VESA
-    init_memory_mapper(multiboot_tags, (void *)fb_addr, BPP);
-#elif VGA_TEXT
-    init_memory_mapper(multiboot_tags, NULL, BPP);
+#ifdef CONFIG_GFX_VESA
+	init_paging(fb_addr, (MultibootTags*)multiboot_tags_addr);
+#else
+	init_paging(0, (MultibootTags*)multiboot_tags_addr);
 #endif
-    MemoryArea memory_area = get_largest_free_block();
+
+}
+
+__attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t multiboot_tags_addr) {
+
+#ifdef CONFIG_GFX_VESA
+	fb_addr = get_multiboot_framebuffer_addr(&mb_tags);
+
+	if (mb_tags.flags & (1 << 12)) {
+		Hres = mb_tags.framebuffer_width;
+		Vres = mb_tags.framebuffer_height;
+		Pitch = mb_tags.framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
+	} else {
+		Hres = CONFIG_GFX_HRES;
+		Vres = CONFIG_GFX_VRES;
+		Pitch = sizeof(PIXEL) * CONFIG_GFX_HRES;
+	}
+#endif
+	kprintf("lower: %X\n", mb_tags.mem_lower);
+	kprintf("upper: %X\n", mb_tags.mem_upper);
+
+	kprintf("map:\n");
+
+	cache_boot_params();
+
+	// Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
+
+	// gdt_init();
+	// idt_install();
+	// irq_install();
+
+#ifdef CONFIG_GFX_PAT // PAT became standard in i686 (Pentium Pro/2/3)
+	setup_pat();      // Sets up the Page Attribute Table
+#endif
+	// Maps a few pages for future use. Until we have a page manager, we just have a fixed number of
+	// pages for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
+	//     uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
+	//     put_page_table_to_directory(, lots_of_pages[i], i + 2, va, first_page_table_flags,
+	//     page_directory_flags);
+	// }
+
+	asm volatile("cli");
+	gdt_init();
+	idt_install();
+	isrs_install();
+	irq_install();
+
+	timer_phase(60);
+	timer_install();
+	set_cursor_pos_raw(0);
+
+	// Initialize dynamic memory allocation
+	init_allocators();
+	MemoryArea mmap = map_memory();
+	heap_phys_start = mmap.start;
+	heap_phys_end = mmap.start + mmap.length;
+	switch_to_dynamic_bitmaps(&mmap);
+#ifdef CONFIG_GFX_VESA
+	_vesa_framebuffer_init(FRAMEBUFFER_VIRT_START);
+	_vesa_text_init();
+	mouse_install();
+#endif
+	kb_install();
+#ifdef CONFIG_CONFIG_SERIAL
+	uart_init();
+#endif
+#ifdef CONFIG_GFX_VESA
+	kclear_screen();
+#else
+	clear_screen_col(DEFAULT_COLOUR);
+#endif
+	//init_kernel_devices();
+	init_stdio_files();
+	init_fs_registry();
+	// bdev_initialize_blockdevices();
+
+	dentry_manager_init();
+
+	kassert_msg(init_vfs(param_get_address("root")) == 0, "vfs did not initialize correctly");
+	kassert(get_root_mount());
+	kassert(get_proc_mount());
+	vfs_mount_t* mount1 = get_proc_mount();
+    kassert_msg(mount1 == get_proc_mount(), "get_proc_mount is differing on each call")
+	// ramfs_init();
 
 
-    // Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
+	asm volatile("sti");
+#ifdef MELLOS_ENABLE_TESTS
+	kprint("MellOS Debug mode:\n\n");
 
-    // identity-maps 0x0 to 8MB (i.e. 0x800000 - 1)
-    init_paging(page_directory, first_page_table, second_page_table, memory_area.start);
+	kprint("Running fs tests... ");
+	int failed_fs_tests = run_all_fs_tests();
+	kprint(tostring_inplace(failed_fs_tests, 10));
+	kprint(" failed\n");
 
-    // Sets up the Page Attribute Table
-    setup_pat();
+	kprint("Running mem tests... ");
+	int failed_mem_tests = run_all_mem_tests();
+	kprint("0x");
+	kprint(tostring_inplace(failed_mem_tests, 16));
+	kprint(" failed\n");
 
-    // Maps a few pages for future use. Until we have a page manager, we just have a fixed number of pages
-    for(int32_t i = 0; i < NUM_MANY_DIRECTORIES; i++){
-        uintptr_t va = MAPPED_KERNEL_START + (2U + i) * 0x400000;
-        add_page_directory(page_directory, lots_of_pages[i], i + 2, va, first_page_table_flags, page_directory_flags);
-    }
+	// IMPORTANT: Leave the following messages as they are
+	// The automatic test GH action detects these strings
+	// If it is needed to change them, contact mantainers
+	if (failed_fs_tests != 0 || failed_mem_tests != 0) {
+		kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
+		for (;;) {
+			;
+		}
+	} else {
+		kprint_col("All tests passed!\n", DEFAULT_COLOUR);
+	}
 
+	printf("\n ENTERING COMMAND MODE...\n");
 
-    #ifdef VGA_VESA
-    // Map two pages for the framebuffer
+	sleep(100);
+#endif
 
-    for (uint32_t i = 0; i < NUM_FB_DIRECTORIES; i++){
-        uintptr_t phys_base = (fb_addr & ~0x3FFFFF) + (i * 0x400000);
-        add_page_directory(page_directory, framebuffer_pages[i],
-            2 + NUM_MANY_DIRECTORIES + i,
-            phys_base,
-            framebuffer_page_tflags, framebuffer_page_dflags);
-    }
-    #endif
+	void* code_loc2 = kmalloc(10);
 
-    gdt_init();
-    idt_install();
-    isrs_install();
-    irq_install();
-    // asm volatile("hlt");
+	asm volatile("sti");
+	if (code_loc2 == NULL) {
+		kprint_col("SLAB ALLOC TEST FAILED!!", DEFAULT_COLOUR);
+	} else {
+		kfree(code_loc2);
+	}
+	// sleep(100);
+#ifdef CONFIG_GFX_VESA
+	kclear_screen();
+#else
+	clear_screen_col(DEFAULT_COLOUR);
+#endif
 
-
-    asm volatile ("sti");
-    timer_phase(60);
-    timer_install();
-    set_cursor_pos_raw(0);
-
-    // Initialize dynamic memory allocation
-    init_allocators((void*)memory_area.start, memory_area.length);
-
-    #ifdef VGA_VESA
-    //MultibootTags* multiboot_tags = (MultibootTags*)multiboot_tags_addr;
-    Hres = multiboot_tags->framebuffer_width;
-    Vres = multiboot_tags->framebuffer_height;
-    Pitch = multiboot_tags->framebuffer_pitch / BYTES_PER_PIXEL; // Convert to pixels
-    _vesa_framebuffer_init(fb_addr);
-    _vesa_text_init();
-    mouse_install();
-    #endif
-
-
-    kb_install();
-
-    uart_init();
+	set_cursor_pos_raw(0);
+	kprintf("%s\n", Fool);
 #ifdef MELLOS_DEBUG
-    kprint("MellOS Debug mode:\n\n");
+	kprintf("boot command line: %s\n", boot_cmdline);
+#endif
+	// Initialize the process scheduler and set this as the first process
+	asm volatile("cli");
+	init_scheduler();
+	asm volatile("sti");
+	asm("hlt");
+#ifdef AUDIO_ENABLED
+	// Victory!
+	play_startup_jingle();
+#endif
 
-    kprint("Running fs tests... ");
-    int failed_fs_tests = run_all_fs_tests();
-    kprint(tostring_inplace(failed_fs_tests, 10));
-    kprint(" failed\n");
-
-    printf("Running mem tests... ");
-    int failed_mem_tests = run_all_mem_tests();
-    printf("%016x", failed_mem_tests);
-    printf(" failed\n");
-
-    // IMPORTANT: Leave the following messages as they are
-    // The automatic test GH action detects these strings
-    // If it is needed to change them, contact mantainers
-    if (failed_fs_tests != 0 || failed_mem_tests != 0){
-        kprint_col("TESTS FAILED!!\n", DEFAULT_COLOUR);
-        for (;;){;}
-    } else {
-        kprint_col("All tests passed!\n", DEFAULT_COLOUR);
-    }
-
-    printf("\n ENTERING COMMAND MODE...\n");
-
-    sleep(100);
-    #endif
-
-    #ifdef VGA_VESA
-    kclear_screen();
-    #else
-    clear_screen_col(DEFAULT_COLOUR);
-    #endif
-
-    set_cursor_pos_raw(0);
-
-    kprint(Fool);
-
-    // Initialize the process scheduler and set this as the first process
-    init_scheduler();
-
-    #ifdef AUDIO_ENABLED
-    // Victory!
-    play_startup_jingle();
-    #endif
-
-    load_shell();
-    // init_text_editor("test_file");
-
-
-    return;
+	load_shell();
+	return;
+	// init_text_editor("test_file");
 }

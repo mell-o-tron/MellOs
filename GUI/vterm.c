@@ -1,10 +1,11 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 
 #include "vterm.h"
-#include "drivers/vesa/vesa.h"
-#include "drivers/vesa/vesa_text.h"
-#include "GUI/gui.h"
-#include "shell/functions/vell.h"
+#include "vesa.h"
+#include "vesa_text.h"
+#include "gui.h"
+#include "shell/vell.h"
 
 static Window* w;
 

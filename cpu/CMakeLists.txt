@@ -1,0 +1,5 @@
+file(GLOB_RECURSE CPU_API_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+add_library(cpu_api STATIC ${CPU_API_SRCS})
+target_include_directories(cpu_api PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(cpu_api PRIVATE ${CMAKE_SOURCE_DIR}/global/include)
+target_link_libraries(cpu_api drivers kernel syscalls)

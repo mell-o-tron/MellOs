@@ -1,12 +1,12 @@
-#ifdef VGA_VESA
-#include "utils/typedefs.h"
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "mouse_handler.h"
 #include "gui.h"
-#include "misc/colours.h"
+#include "colours.h"
 // #include "mouse_icon.h"
-#include "memory/dynamic_mem.h"
-#include "shell/functions/vell.h"
-#include "utils/math.h"
+#include "dynamic_mem.h"
+#include "shell/vell.h"
+#include "math.h"
 
 static Window* mouse_window = NULL;
 
@@ -24,7 +24,7 @@ typedef struct MouseState {
 static MouseState mouse_state;
 
 void _init_mouse_handler(){
-    Framebuffer* fb = allocate_framebuffer(16, 16);
+    Framebuffer* fb = allocate_framebuffer(16, 16, CONFIG_GFX_BPP);
     mouse_window = create_window_with_fb(fb, "mouse");
     _vell_deregister_window(mouse_window);
     _vell_register_mouse(mouse_window);

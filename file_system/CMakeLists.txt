@@ -1,0 +1,4 @@
+file(GLOB_RECURSE FILESYSTEM_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+add_library(filesystem STATIC ${FILESYSTEM_SRCS})
+target_include_directories(filesystem PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(filesystem memory disk_interface gui_objs kernel_libc)

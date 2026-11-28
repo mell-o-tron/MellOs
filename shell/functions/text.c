@@ -1,25 +1,28 @@
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#include "shell/shell.h"
+#include "kernel_stdio.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../misc/colours.h"
-#define FDEF(name) void name(const char* s)
+#include "colours.h"
+#include "fdef.h"
 
 extern uint16_t cursor_pos;
 
 extern char ker_tty[4000];
 
 FDEF(echo){
-    kprint(s+1); // +1 bc skip whitespace
-    kprint("\n");
+    kprintf("%s\n", s);
 }
 
 FDEF(clear){
-    #ifdef VGA_VESA
+    #ifdef CONFIG_GFX_VESA
     kclear_screen();
     #else
     clear_screen_col(DEFAULT_COLOUR);
     #endif
-    set_cursor_pos_raw(0);
+	set_cursor_pos_raw(0);
+	refresh_shell();
 }

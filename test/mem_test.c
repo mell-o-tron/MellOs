@@ -1,14 +1,12 @@
-#include "file_system/file_system.h"
-#include "utils/string.h"
-#include "memory/dynamic_mem.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa.h"
-#include "drivers/vesa/vesa_text.h"
-#include "drivers/mouse.h"
+#include "autoconf.h"
+#include "memory.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa.h"
+#include "vesa_text.h"
+#include "mouse.h"
 #else
-#include "drivers/vga_text.h"
 #endif
-#include "utils/format.h"
+#include "kernel_stdio.h"
 
 #define TEST_SIZE 10
 
@@ -61,9 +59,9 @@ int variable_size_alloc_deterministic_test(){
             return 1;
         }
         if ((uint32_t)loc2 != prev_loc){
-            printf("Alloc returned different address on same size alloc: %x vs %x\n", (uint32_t)loc2, prev_loc);
-            printf("Size was %d\n", i);
-            printf("Header says size is %d\n", *((uint8_t*)(prev_loc - 1)));
+            kprintf("Alloc returned different address on same size alloc: %x vs %x\n", (uint32_t)loc2, prev_loc);
+            kprintf("Size was %d\n", i);
+            kprintf("Header says size is %d\n", *((uint8_t*)(prev_loc - 1)));
             return 1;
         }
         kfree(loc2);
@@ -72,7 +70,7 @@ int variable_size_alloc_deterministic_test(){
 }
 
 int run_all_mem_tests() {
-    return 
+    return
         malloc_test() +
         stress_test() +
         variable_size_alloc_deterministic_test();

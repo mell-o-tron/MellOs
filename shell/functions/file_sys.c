@@ -1,14 +1,16 @@
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../../file_system/file_system.h"
+#include "file_system.h"
+#include "stddef.h"
 
 #define FDEF(name) void name(const char *s)
 
-FDEF(ls) {
-  file_t *files = get_file_list(0xA0, 1, 1);
+FDEF(dir) {
+  old_file_t *files = get_file_list(0xA0, 1, 1);
   print_files(files, 32);
 }
 

@@ -1,4 +1,4 @@
-#include "msr.h"
+#include "cpu/msr.h"
 
 // MSR = Model-Specific Register
 

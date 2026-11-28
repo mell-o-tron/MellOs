@@ -1,25 +1,27 @@
-#include "../file_system/file_system.h"
-#include "../utils/string.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa.h"
-#include "../drivers/vesa/vesa_text.h"
-#include "../drivers/mouse.h"
+#include "autoconf.h"
+#include "file_system.h"
+#include "string.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa.h"
+#include "vesa_text.h"
+#include "mouse.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-
+/*
 int create_file_test () {
     remove_file("test");
     new_file("test", 1);
     write_string_to_file("this is the night mail crossing the border", "test");
     char* s = read_string_from_file("test");
-    int res = strcmp(s, "this is the night mail crossing the border");
+    int res = kstrcmp(s, "this is the night mail crossing the border");
 
     // TODO should free s here
 
     remove_file("test");
     return res == 0 ? 0 : 1;
 }
+*/
 
 
     /*

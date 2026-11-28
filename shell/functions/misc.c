@@ -1,9 +1,9 @@
-#include "../../utils/typedefs.h"
+#include "autoconf.h"
 
-#ifdef VGA_VESA
-#include "../../drivers/vesa/vesa_text.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 #define FDEF(name) void name(const char* s)
 

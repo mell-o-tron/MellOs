@@ -1,11 +1,13 @@
+#include "autoconf.h"
 #include "bitmap.h"
-#include "../utils/typedefs.h"
+#include "stdint.h"
 #include "allocator.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "stddef.h"
+/*#ifdef CONFIG_GFX_VESA
+#include "../drivers/vesa/include/vesa_text.h"
 #else
 #include "../drivers/vga_text.h"
-#endif
+#endif*/
 
 // FOR DEBUG
 bitmap_t get_allocator_bitmap (allocator_t * allocator){

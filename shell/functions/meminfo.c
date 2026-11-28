@@ -1,15 +1,16 @@
-//
-// Created by matias on 9/25/25.
-//
+#include "mellos/kernel/memory_mapper.h"
+#include "kernel_stdio.h"
 
-#include "utils/format.h"
-#include "kernel/memory_mapper.h"
+#include "stdio.h"
 
 #define FDEF(name) void name(const char* s)
 
 FDEF(meminfo){
-    printf("Memory Information:\n");
+	// printf has the [KERNEL] prefix when it is called from pid 0 (terminal atm)
+	// it uses interrupts
+	// kprintf does neither of these,
+    kprintf("Memory Information:\n");
 
-    const MemoryArea memory_area = get_largest_free_block();
-    printf("selected: %016llx..%016llx\n", (uint64_t)memory_area.start, (uint64_t)memory_area.start + (uint64_t)memory_area.length);
+    // Dump full memory map via kernel-side printing to the current stdout device
+    dump_memory_map(kstdout);
 }

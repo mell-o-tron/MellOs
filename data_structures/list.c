@@ -1,12 +1,12 @@
+#include "autoconf.h"
 #include "list.h"
-#include "../utils/typedefs.h"
-#include "../drivers/vga_text.h"
-#include "../memory/dynamic_mem.h"
-#include "../utils/conversions.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#include "stdint.h"
+#include "dynamic_mem.h"
+#include "conversions.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 
 void list_append(List** list, void* data){

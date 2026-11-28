@@ -1,6 +1,7 @@
 // #include "../../../drivers/vesa/vesa_text.h"
-#include "../../../utils/format.h"
-#include "../../../shell/functions/vell.h"
-#include "../../../GUI/gui.h"
-#include "../../../cpu/timer/timer.h"
-#include "../../../processes/processes.h"
+#pragma once
+#include "stdio.h"
+#include "shell/vell.h"
+#include "gui.h"
+#include "timer.h"
+#include "processes.h"

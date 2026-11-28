@@ -1,15 +1,17 @@
+#include "autoconf.h"
+
 #include "shell/shell_functions.h"
-#include "processes/processes.h"
-#include "utils/conversions.h"
-#include "utils/string.h"
-#ifdef VGA_VESA
-#include "drivers/vesa/vesa_text.h"
+#include "processes.h"
+#include "conversions.h"
+#include "string.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "drivers/vga_text.h"
+#include "vga_text.h"
 #endif
 
 void kill(const char* s) {
-    if (strlen(s) == 0) {
+    if (kstrlen(s) == 0) {
         kprint("Usage: kill [PID]\n");
         kprint("Kills the process with the specified PID\n");
         return;

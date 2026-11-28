@@ -1,14 +1,26 @@
+bits 32
 %macro OUT_SERIAL 1
     mov al, %1
-    out 0x3f8, al
+    
+                                ; wait for transmit buffer to be empty
+    mov dx, 0x3f8 + 5           ; line Status Register (LSR)
+    %%wait_transmit:
+        in al, dx
+        test al, 0x20           ; empty bit
+        jz %%wait_transmit
+    
+                                ; safe to send
+    mov dx, 0x3f8
+    mov al, %1
+    out dx, al
 %endmacro
-
+%include "kconfig.asm"
 CODE_SEG equ GDT_code - GDT_start
 DATA_SEG equ GDT_data - GDT_start
-TMP_MEM  equ 0x60000            ; Tmp location to store the multiboot tags
+TMP_MEM  equ 0x60004            ; Tmp location to store the multiboot tags
+saved_eax equ 0x60000
 
 ; kernel_entry.asm
-bits 32
 global _kernel_start
 extern main
 extern kpanic
@@ -18,29 +30,47 @@ _kernel_start:
     cli
     cld
 
+    ; Preserve Multiboot EBX early
     mov [TMP_MEM], ebx
+    mov [saved_eax], eax
+    jmp init_serial
+.pre_mb_test:
+    ; EAX contains Multiboot magic for v1 (0x2BADB002). Emit a quick serial breadcrumb.
+    mov eax, [saved_eax]
+
+    cmp eax, 0x2BADB002
+    jne .mb_bad
+    OUT_SERIAL 'M' ; Magic OK
+    jmp .after_magic
+.mb_bad:
+    OUT_SERIAL 'm' ; Magic BAD
+.after_magic:
 
     lgdt [GDT_descriptor]
-
+    OUT_SERIAL 'G'
     mov ax, DATA_SEG
 	mov ds, ax
 	mov ss, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-
+    OUT_SERIAL 'P'
 	mov ebp, 0x90000		; 32 bit stack base pointer
 	mov esp, ebp
+    OUT_SERIAL 'p'
 
-    xor ebp, ebp
-
+    ; Pass saved EBX (Multiboot info) as cdecl arg to main
     push dword [TMP_MEM]
+    OUT_SERIAL 'E'
     call check_and_enable_features
+    OUT_SERIAL 'm'
     call main
+    OUT_SERIAL 'F'
     jmp $
 
 check_and_enable_features:
     ; Test for CPUID capability (ID bit in EFLAGS)
+%ifdef CONFIG_CPU_FEAT_CPUID
     pushfd
     pop eax
     mov ecx, eax
@@ -57,7 +87,9 @@ check_and_enable_features:
     ; Get basic CPU features (CPUID Leaf 1)
     mov eax, 1
     cpuid
-
+%endif
+%ifdef CONFIG_CPU_FEAT_SSE
+    OUT_SERIAL 's'
     ; Check for SSE support (EDX bit 25)
     test edx, 1 << 25   ; SSE
     jz .fault
@@ -72,6 +104,7 @@ check_and_enable_features:
     or eax, 1 << 10     ; Set OSXMMEXCPT (Operating System Unmasked SIMD Floating-Point Exception Support)
     mov cr4, eax
     OUT_SERIAL 'S' ; SSE Enabled
+%endif
 .fault:
     ret
 
@@ -124,15 +157,17 @@ init_serial:
     dec dx
     mov al, 0x0b
     out dx, al         ; IRQs enabled, RTS/DSR set
-    ret
+    jmp _kernel_start.pre_mb_test
+
+section .low.text
+    
+%include "../cpu/interrupts/interrupt.asm"
 
 section .text
-    
-%include "cpu/interrupts/interrupt.asm"
-%include "memory/paging/paging.asm"
+%include "../memory/paging/paging.asm"
 
 section .data
 
 section .rodata		    ; read only data
 
-%include "kernel/IncBins.asm"	; including binaries
+%include "IncBins.asm"	; including binaries

@@ -1,20 +1,22 @@
-#ifdef VGA_VESA
+#include "autoconf.h"
+#ifdef CONFIG_GFX_VESA
 #include "mouse.h"
-#include "../utils/typedefs.h"
+#include "stdint.h"
+#include "stdbool.h"
 
 #include "port_io.h"
-#include "../cpu/interrupts/irq.h"
-#include "../cpu/interrupts/idt.h"
-#include "../utils/conversions.h"
-#include "../cpu/timer/timer.h"
-#ifdef VGA_VESA
-#include "vesa/vesa_text.h"
+#include "cpu/irq.h"
+#include "cpu/idt.h"
+#include "conversions.h"
+#include "timer.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
-#include "../data_structures/circular_buffer.h"
-#include "../memory/dynamic_mem.h"
-#include "../GUI/mouse_handler.h"
+#include "circular_buffer.h"
+#include "dynamic_mem.h"
+#include "mouse_handler.h"
 
 #define MOUSE_CMD_PORT 0x64
 #define MOUSE_DATA_PORT 0x60
@@ -182,11 +184,11 @@ void mouse_install() {
     receive_mouse_data();
 
 
-    mouse_buffer = kmalloc(sizeof(cbuffer_t));    
+    mouse_buffer = kzalloc(sizeof(cbuffer_t));
     mouse_buffer -> size = 1000;
     mouse_buffer -> top = 0;
     mouse_buffer -> bot = 0;
-    mouse_buffer -> array = kmalloc(mouse_buffer -> size);
+    mouse_buffer -> array = kzalloc(mouse_buffer -> size);
 
 	irq_install_handler(12, mouse_handler);
 }

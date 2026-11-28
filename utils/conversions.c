@@ -8,15 +8,14 @@
 ***********************************************************/
 
 #include "string.h"
-#ifdef VGA_VESA
-#include "../drivers/vesa/vesa_text.h"
+#ifdef CONFIG_GFX_VESA
+#include "vesa_text.h"
 #else
-#include "../drivers/vga_text.h"
+#include "vga_text.h"
 #endif
-#include "../memory/dynamic_mem.h"
-#include "../memory/mem.h"
+#include "dynamic_mem.h"
 #include "conversions.h"
-#include "math.h"
+#include "errno.h"
 
 
 const char* tostring(int n, int base, char* dest) {
@@ -46,7 +45,7 @@ const char* tostring(int n, int base, char* dest) {
 	
 	buffer[i] = '\0';
 
-	reverse(buffer);
+	kreverse(buffer);
 
 	return buffer;
 }
@@ -70,12 +69,12 @@ const char* tostring_unsigned(uint32_t n, int base, char* dest) {
     
     buffer[i] = '\0';
 
-    reverse(buffer);
+    kreverse(buffer);
 
     return buffer;
 }
 
-
+__attribute__((deprecated("tostring_inplace is deprecated, use stdio string formatting functions instead")))
 const char* tostring_inplace(int n, int base) {
     // int size = ceil_log(n, base);
     char* res = kmalloc(20); // Using bad approx, doubling just to be sure
@@ -91,7 +90,7 @@ int num_len (int base){ // TODO
     // return (int)((ceil(log(base, num))+1)*sizeof(char))
 }
 
-int oct2bin(unsigned char *str, int size) {
+int oct2bin(uint8_t *str, int size) {
     int n = 0;
     unsigned char *c = str;
     while (size-- > 0) {
@@ -144,11 +143,12 @@ int kulltostr(char* dest, unsigned long long x, unsigned int base, size_t dsize)
     if (dsize == 1)
         return -EOVERFLOW;
     const char* digits = "0123456789abcdef";
-    if (base < 2 || base > __builtin_strlen(digits))
+    if (base < 2 || base > 16)
         return -EINVAL;
 
     /* 64 bit integers require libgcc */
 #ifndef ALLOW_64BIT
+#include "autoconf.h"
     /* gcc should be able to do this operation without libgcc */
     if (x > 0xFFFFFFFF)
         return -ERANGE;
@@ -210,30 +210,30 @@ int klltostr(char* dest, long long x, unsigned int base, size_t dsize) {
 
 int dtostr(char* dest, double value, int precision, size_t dsize) {
     if (dsize < 2) return -EOVERFLOW;
-    
+
     char *p = dest;
-    
+
     // Handle special cases
     if (value != value) { // NaN
         if (dsize < 4) return -EOVERFLOW;
-        strcpy(dest, "nan");
+        kstrcpy(dest, "nan");
         return 0;
     }
-    
+
     if (value == 1.0/0.0 || value == -1.0/0.0) { // Infinity
         if (dsize < 4) return -EOVERFLOW;
         if (value < 0) {
-            strcpy(dest, "-inf");
+            kstrcpy(dest, "-inf");
         } else {
-            strcpy(dest, "inf");
+            kstrcpy(dest, "inf");
         }
         return 0;
     }
-    
+
     // Validate precision
     if (precision < 0) precision = 6;
     if (precision > 20) return -EINVAL; // Reasonable limit
-    
+
     // Handle negative
     if (value < 0) {
         if (dsize < 2) return -EOVERFLOW;
@@ -241,10 +241,10 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
         value = -value;
         dsize--;
     }
-    
+
     // Get integer part
     unsigned long integer_part = (unsigned long)value;
-    
+
     // Convert integer part
     if (integer_part == 0) {
         if (dsize < 2) return -EOVERFLOW;
@@ -258,22 +258,22 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
             temp[len++] = '0' + (temp_int % 10);
             temp_int /= 10;
         }
-        
+
         if (dsize < len + 1) return -EOVERFLOW;
-        
+
         for (int i = len - 1; i >= 0; i--) {
             *p++ = temp[i];
             dsize--;
         }
     }
-    
+
     // Add decimal point and fractional part
     if (precision > 0) {
         if (dsize < precision + 2) return -EOVERFLOW; // +1 for dot, +1 for null terminator
-        
+
         *p++ = '.';
         dsize--;
-        
+
         double fractional = value - integer_part;
         for (int i = 0; i < precision; i++) {
             fractional *= 10.0;
@@ -283,7 +283,7 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
             dsize--;
         }
     }
-    
+
     *p = '\0';
     return 0; // Success
 }

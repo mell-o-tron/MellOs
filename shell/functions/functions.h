@@ -1,4 +1,5 @@
 #pragma once
+#include "autoconf.h"
 
 // Function header to simplify declaring shell commands
 #define FHDR(name) void name(const char* s);
@@ -20,12 +21,19 @@ FHDR(diskread);
 
 // file_sys.c
 
-FHDR(ls);
+FHDR(dir);
 FHDR(newfile);
 FHDR(write_file);
 FHDR(read_file);
 FHDR(rmfile);
 FHDR(erase_files);
+
+// unix_files.c
+FHDR(mkdir);
+FHDR(ls);
+FHDR(lsblk);
+FHDR(pwd);
+FHDR(cd);
 
 // text_editor.c
 
@@ -35,11 +43,11 @@ FHDR(texted);
 
 FHDR(exec);
 
-//kill.c
+// kill.c
 FHDR(kill);
 FHDR(ps);
 
-#ifdef VGA_VESA
+#ifdef CONFIG_GFX_VESA
 // vell.c
 FHDR(vell);
 FHDR(frogues);
@@ -48,8 +56,8 @@ FHDR(sperkaster);
 #endif
 FHDR(displayinfo);
 FHDR(meminfo);
+FHDR(mountcmd);
 
-FHDR(print_time);
-#ifdef AUDIO_ENABLED
+#ifdef CONFIG_AUDIO_ENABLED
 FHDR(roll);
 #endif
